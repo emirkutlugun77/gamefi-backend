@@ -8,15 +8,31 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const nft_module_1 = require("./nft/nft.module");
+const user_module_1 = require("./user/user.module");
+const nft_collection_entity_1 = require("./entities/nft-collection.entity");
+const nft_type_entity_1 = require("./entities/nft-type.entity");
+const user_nft_entity_1 = require("./entities/user-nft.entity");
+const user_entity_1 = require("./entities/user.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [nft_module_1.NftModule],
+        imports: [
+            typeorm_1.TypeOrmModule.forRoot({
+                type: 'postgres',
+                url: process.env.DATABASE_URL || 'postgresql://postgres:ZinjEqdWdceEXeFYFsFUeMgtSfyrSKZA@hopper.proxy.rlwy.net:31815/railway',
+                autoLoadEntities: true,
+                synchronize: true,
+                entities: [nft_collection_entity_1.NftCollection, nft_type_entity_1.NftType, user_nft_entity_1.UserNft, user_entity_1.User],
+            }),
+            nft_module_1.NftModule,
+            user_module_1.UserModule,
+        ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
     })
