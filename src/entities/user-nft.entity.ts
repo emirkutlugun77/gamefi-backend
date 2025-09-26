@@ -21,6 +21,12 @@ export class UserNft {
   @Column('bigint')
   purchasePrice: string; // Price paid in lamports
 
+  @Column({ nullable: true })
+  mainImage: string; // Main image URL
+
+  @Column('text', { nullable: true })
+  additionalImages: string; // JSON array of additional image URLs
+
   @Column()
   purchasedAt: Date;
 

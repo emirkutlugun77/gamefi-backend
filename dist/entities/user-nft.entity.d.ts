@@ -6,6 +6,8 @@ export declare class UserNft {
     nftTypeId: string;
     purchaseTransaction: string;
     purchasePrice: string;
+    mainImage: string;
+    additionalImages: string;
     purchasedAt: Date;
     isActive: boolean;
     nftType: NftType;

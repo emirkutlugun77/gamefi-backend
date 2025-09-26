@@ -15,10 +15,10 @@ const web3_js_1 = require("@solana/web3.js");
 const umi_bundle_defaults_1 = require("@metaplex-foundation/umi-bundle-defaults");
 const digital_asset_standard_api_1 = require("@metaplex-foundation/digital-asset-standard-api");
 const umi_1 = require("@metaplex-foundation/umi");
-const PROGRAM_ID = new web3_js_1.PublicKey('12LJUQx5mfVfqACGgEac65Xe6PMGnYm5rdaRRcU4HE7V');
+const PROGRAM_ID = new web3_js_1.PublicKey('8KzE3LCicxv13iJx2v2V4VQQNWt4QHuvfuH8jxYnkGQ1');
 const TOKEN_METADATA_PROGRAM_ID = new web3_js_1.PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 const TARGET_COLLECTION_NAME = 'VYBE_SUPERHEROES_w89yuli8p3l';
-const TARGET_COLLECTION_MINT = '2xXLJU6hbKwTjvqkDsfv8rwFqSB7hRSqzyAvXDmgJi1r';
+const TARGET_COLLECTION_MINT = 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN';
 const MARKETPLACE_ACCOUNT_DISCRIMINATOR = [70, 222, 41, 62, 78, 3, 32, 174];
 const COLLECTION_ACCOUNT_DISCRIMINATOR = [243, 209, 195, 150, 192, 176, 151, 165];
 let NftService = class NftService {
@@ -60,6 +60,34 @@ let NftService = class NftService {
             console.warn('Failed to fetch metadata JSON for URI:', uri, e.message);
         }
         return null;
+    }
+    extractImagesFromMetadata(metadata) {
+        if (!metadata)
+            return {};
+        const mainImage = metadata.image || metadata.main_image || metadata.mainImage;
+        const additionalImages = [];
+        if (metadata.additional_images) {
+            additionalImages.push(...metadata.additional_images);
+        }
+        if (metadata.additionalImages) {
+            additionalImages.push(...metadata.additionalImages);
+        }
+        if (metadata.gallery) {
+            additionalImages.push(...metadata.gallery);
+        }
+        if (metadata.images && Array.isArray(metadata.images)) {
+            additionalImages.push(...metadata.images);
+        }
+        const convertToHttpUrl = (url) => {
+            if (url && url.startsWith('ipfs://')) {
+                return url.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+            }
+            return url;
+        };
+        return {
+            mainImage: mainImage ? convertToHttpUrl(mainImage) : undefined,
+            additionalImages: additionalImages.map(convertToHttpUrl).filter(Boolean)
+        };
     }
     getMarketplacePDA() {
         return web3_js_1.PublicKey.findProgramAddressSync([Buffer.from('marketplace')], PROGRAM_ID);
@@ -314,6 +342,9 @@ let NftService = class NftService {
                                 if (metadata.image && nft.image === '/placeholder.svg') {
                                     nft.image = metadata.image;
                                 }
+                                const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadata);
+                                nft.mainImage = mainImage;
+                                nft.additionalImages = additionalImages;
                                 if (metadata.description && !nft.description) {
                                     nft.description = metadata.description;
                                 }
@@ -354,6 +385,9 @@ let NftService = class NftService {
                                     if (metadata.image && nft.image === '/placeholder.svg') {
                                         nft.image = metadata.image;
                                     }
+                                    const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadata);
+                                    nft.mainImage = mainImage;
+                                    nft.additionalImages = additionalImages;
                                     if (metadata.description && !nft.description) {
                                         nft.description = metadata.description;
                                     }
@@ -393,6 +427,9 @@ let NftService = class NftService {
                             if (metadata) {
                                 nft.metadata = metadata;
                                 nft.image = metadata.image || '/placeholder.svg';
+                                const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadata);
+                                nft.mainImage = mainImage;
+                                nft.additionalImages = additionalImages;
                             }
                             delete nft.uri;
                         }
@@ -571,10 +608,13 @@ let NftService = class NftService {
             if (!belongsToOurCollection)
                 return null;
             const metadataJson = await this.fetchMetadataWithCache(uri);
+            const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadataJson);
             return {
                 mint: mint.toString(),
                 metadata: metadataJson,
                 name: name.replace(/\0+$/, ''),
+                mainImage,
+                additionalImages,
                 image: metadataJson?.image || '/placeholder.svg',
                 collectionName: matchedCollectionName,
             };

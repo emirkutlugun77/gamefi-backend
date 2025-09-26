@@ -90,6 +90,8 @@ class NFTItemTypeDto {
     max_supply;
     current_supply;
     bump;
+    mainImage;
+    additionalImages;
 }
 exports.NFTItemTypeDto = NFTItemTypeDto;
 __decorate([
@@ -120,11 +122,21 @@ __decorate([
     (0, swagger_1.ApiProperty)({ description: 'PDA bump seed' }),
     __metadata("design:type", Number)
 ], NFTItemTypeDto.prototype, "bump", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Main image URL', required: false }),
+    __metadata("design:type", String)
+], NFTItemTypeDto.prototype, "mainImage", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Additional images array', required: false }),
+    __metadata("design:type", Array)
+], NFTItemTypeDto.prototype, "additionalImages", void 0);
 class UserNFTDto {
     mint;
     metadata;
     name;
     image;
+    mainImage;
+    additionalImages;
     collectionName;
 }
 exports.UserNFTDto = UserNFTDto;
@@ -144,6 +156,14 @@ __decorate([
     (0, swagger_1.ApiProperty)({ description: 'NFT image URL' }),
     __metadata("design:type", String)
 ], UserNFTDto.prototype, "image", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Main image URL', required: false }),
+    __metadata("design:type", String)
+], UserNFTDto.prototype, "mainImage", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Additional images array', required: false }),
+    __metadata("design:type", Array)
+], UserNFTDto.prototype, "additionalImages", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ description: 'Collection name', required: false }),
     __metadata("design:type", String)

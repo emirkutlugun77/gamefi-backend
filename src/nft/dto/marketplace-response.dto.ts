@@ -64,6 +64,12 @@ export class NFTItemTypeDto {
 
   @ApiProperty({ description: 'PDA bump seed' })
   bump: number;
+
+  @ApiProperty({ description: 'Main image URL', required: false })
+  mainImage?: string;
+
+  @ApiProperty({ description: 'Additional images array', required: false })
+  additionalImages?: string[];
 }
 
 export class UserNFTDto {
@@ -78,6 +84,12 @@ export class UserNFTDto {
 
   @ApiProperty({ description: 'NFT image URL' })
   image?: string;
+
+  @ApiProperty({ description: 'Main image URL', required: false })
+  mainImage?: string;
+
+  @ApiProperty({ description: 'Additional images array', required: false })
+  additionalImages?: string[];
 
   @ApiProperty({ description: 'Collection name', required: false })
   collectionName?: string;

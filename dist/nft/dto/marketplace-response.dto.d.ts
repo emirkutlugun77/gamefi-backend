@@ -23,12 +23,16 @@ export declare class NFTItemTypeDto {
     max_supply: number;
     current_supply: number;
     bump: number;
+    mainImage?: string;
+    additionalImages?: string[];
 }
 export declare class UserNFTDto {
     mint: string;
     metadata?: any;
     name?: string;
     image?: string;
+    mainImage?: string;
+    additionalImages?: string[];
     collectionName?: string;
 }
 export declare class MarketplaceDataResponseDto {

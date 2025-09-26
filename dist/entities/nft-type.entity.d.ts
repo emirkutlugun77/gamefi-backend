@@ -8,6 +8,8 @@ export declare class NftType {
     price: string;
     maxSupply: string;
     currentSupply: string;
+    mainImage: string;
+    additionalImages: string;
     createdAt: Date;
     updatedAt: Date;
     collection: NftCollection;

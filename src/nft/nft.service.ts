@@ -6,12 +6,12 @@ import { dasApi } from '@metaplex-foundation/digital-asset-standard-api';
 import { publicKey as umiPublicKey } from '@metaplex-foundation/umi';
 
 // Constants from the marketplace website
-const PROGRAM_ID = new PublicKey('12LJUQx5mfVfqACGgEac65Xe6PMGnYm5rdaRRcU4HE7V');
+const PROGRAM_ID = new PublicKey('8KzE3LCicxv13iJx2v2V4VQQNWt4QHuvfuH8jxYnkGQ1');
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
 // Target collection filter
 const TARGET_COLLECTION_NAME = 'VYBE_SUPERHEROES_w89yuli8p3l';
-const TARGET_COLLECTION_MINT = '2xXLJU6hbKwTjvqkDsfv8rwFqSB7hRSqzyAvXDmgJi1r'; // VYBE_SUPERHEROES collection mint
+const TARGET_COLLECTION_MINT = 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN'; // VYBE_SUPERHEROES collection mint
 
 // Account discriminators for parsing
 const MARKETPLACE_ACCOUNT_DISCRIMINATOR = [70, 222, 41, 62, 78, 3, 32, 174];
@@ -101,6 +101,40 @@ export class NftService {
     }
     
     return null;
+  }
+
+  private extractImagesFromMetadata(metadata: any): { mainImage?: string; additionalImages?: string[] } {
+    if (!metadata) return {};
+
+    const mainImage = metadata.image || metadata.main_image || metadata.mainImage;
+    const additionalImages: string[] = [];
+
+    // Extract additional images from various possible fields
+    if (metadata.additional_images) {
+      additionalImages.push(...metadata.additional_images);
+    }
+    if (metadata.additionalImages) {
+      additionalImages.push(...metadata.additionalImages);
+    }
+    if (metadata.gallery) {
+      additionalImages.push(...metadata.gallery);
+    }
+    if (metadata.images && Array.isArray(metadata.images)) {
+      additionalImages.push(...metadata.images);
+    }
+
+    // Convert IPFS URLs to HTTP gateway URLs
+    const convertToHttpUrl = (url: string) => {
+      if (url && url.startsWith('ipfs://')) {
+        return url.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+      }
+      return url;
+    };
+
+    return {
+      mainImage: mainImage ? convertToHttpUrl(mainImage) : undefined,
+      additionalImages: additionalImages.map(convertToHttpUrl).filter(Boolean)
+    };
   }
 
   private getMarketplacePDA(): [PublicKey, number] {
@@ -430,6 +464,11 @@ export class NftService {
                 if (metadata.image && nft.image === '/placeholder.svg') {
                   nft.image = metadata.image;
                 }
+                
+                // Extract images from metadata
+                const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadata);
+                nft.mainImage = mainImage;
+                nft.additionalImages = additionalImages;
                 if (metadata.description && !nft.description) {
                   nft.description = metadata.description;
                 }
@@ -478,6 +517,11 @@ export class NftService {
                   if (metadata.image && nft.image === '/placeholder.svg') {
                     nft.image = metadata.image;
                   }
+                  
+                  // Extract images from metadata
+                  const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadata);
+                  nft.mainImage = mainImage;
+                  nft.additionalImages = additionalImages;
                   if (metadata.description && !nft.description) {
                     nft.description = metadata.description;
                   }
@@ -524,6 +568,11 @@ export class NftService {
               if (metadata) {
                 nft.metadata = metadata;
                 nft.image = metadata.image || '/placeholder.svg';
+                
+                // Extract images from metadata
+                const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadata);
+                nft.mainImage = mainImage;
+                nft.additionalImages = additionalImages;
               }
               delete nft.uri; // Temizle
             } catch (e) {
@@ -729,10 +778,15 @@ export class NftService {
       // Fetch metadata JSON with cache
       const metadataJson = await this.fetchMetadataWithCache(uri);
       
+      // Extract images from metadata
+      const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadataJson);
+      
       return { 
         mint: mint.toString(), 
         metadata: metadataJson,
         name: name.replace(/\0+$/, ''),
+        mainImage,
+        additionalImages,
         image: metadataJson?.image || '/placeholder.svg',
         collectionName: matchedCollectionName,
       };

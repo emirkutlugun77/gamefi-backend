@@ -137,7 +137,7 @@ export class NftController {
   @ApiQuery({ 
     name: 'collection', 
     description: 'Collection mint address (optional, defaults to VYBE_SUPERHEROES)', 
-    example: '2xXLJU6hbKwTjvqkDsfv8rwFqSB7hRSqzyAvXDmgJi1r',
+    example: 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN',
     required: false 
   })
   @ApiResponse({ 
@@ -154,7 +154,7 @@ export class NftController {
         data: {
           nfts,
           count: nfts.length,
-          collection: collectionAddress || '2xXLJU6hbKwTjvqkDsfv8rwFqSB7hRSqzyAvXDmgJi1r'
+          collection: collectionAddress || 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN'
         }
       };
     } catch (error) {

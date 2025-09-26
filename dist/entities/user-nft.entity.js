@@ -19,6 +19,8 @@ let UserNft = class UserNft {
     nftTypeId;
     purchaseTransaction;
     purchasePrice;
+    mainImage;
+    additionalImages;
     purchasedAt;
     isActive;
     nftType;
@@ -48,6 +50,14 @@ __decorate([
     (0, typeorm_1.Column)('bigint'),
     __metadata("design:type", String)
 ], UserNft.prototype, "purchasePrice", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], UserNft.prototype, "mainImage", void 0);
+__decorate([
+    (0, typeorm_1.Column)('text', { nullable: true }),
+    __metadata("design:type", String)
+], UserNft.prototype, "additionalImages", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Date)

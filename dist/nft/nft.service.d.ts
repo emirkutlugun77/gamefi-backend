@@ -42,6 +42,7 @@ export declare class NftService {
     private readonly USER_NFTS_CACHE_DURATION;
     constructor();
     private fetchMetadataWithCache;
+    private extractImagesFromMetadata;
     private getMarketplacePDA;
     private getCollectionPDA;
     private getMetadataPDA;

@@ -25,6 +25,12 @@ export class NftType {
   @Column('bigint')
   currentSupply: string;
 
+  @Column({ nullable: true })
+  mainImage: string; // Main image URL
+
+  @Column('text', { nullable: true })
+  additionalImages: string; // JSON array of additional image URLs
+
   @Column()
   createdAt: Date;
 
