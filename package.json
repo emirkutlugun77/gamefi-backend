@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@coral-xyz/anchor": "^0.31.1",
     "@metaplex-foundation/digital-asset-standard-api": "^2.0.0",
     "@metaplex-foundation/umi": "^1.4.1",
     "@metaplex-foundation/umi-bundle-defaults": "^1.4.1",
