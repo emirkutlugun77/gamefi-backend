@@ -1,7 +1,10 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { User } from '../entities/user.entity';
+import { ChooseSideDto } from './dto/choose-side.dto';
+import { RegisterDto } from './dto/register.dto';
+import { GetByPublicKeyDto } from './dto/get-by-public-key.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -9,16 +12,21 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
+  @ApiOperation({ summary: 'List users' })
   async getUsers(): Promise<User[]> {
     return this.userService.findAll();
   }
 
   @Get('by-public-key')
-  async getByPublicKey(@Query('publicKey') publicKey: string): Promise<User> {
+  @ApiOperation({ summary: 'Get user by public key' })
+  @ApiQuery({ name: 'publicKey', required: true })
+  @ApiResponse({ status: 200, description: 'User found' })
+  async getByPublicKey(@Query('publicKey') publicKey: GetByPublicKeyDto['publicKey']): Promise<{ success: boolean; data: User | null }> {
     if (!publicKey) {
-      throw new Error('publicKey is required') as any
+      return { success: false, data: null } as any;
     }
-    return this.userService.findByPublicKey(publicKey);
+    const user = await this.userService.findByPublicKey(publicKey);
+    return { success: true, data: user };
   }
 
   @Get(':id')
@@ -27,16 +35,17 @@ export class UserController {
   }
 
   @Post('register')
-  async register(@Body('publicKey') publicKey: string): Promise<User> {
-    return this.userService.register(publicKey);
+  @ApiOperation({ summary: 'Register user by public key' })
+  async register(@Body() body: RegisterDto): Promise<{ success: boolean; data: User }> {
+    const user = await this.userService.register(body.publicKey);
+    return { success: true, data: user };
   }
 
   @Post('choose-side')
-  async chooseSide(
-    @Body('publicKey') publicKey: string,
-    @Body('side') side: string,
-  ): Promise<User> {
-    return this.userService.chooseSide(publicKey, side);
+  @ApiOperation({ summary: 'Choose side for user' })
+  async chooseSide(@Body() body: ChooseSideDto): Promise<{ success: boolean; data: User }> {
+    const user = await this.userService.chooseSide(body.publicKey, body.side);
+    return { success: true, data: user };
   }
 }
 

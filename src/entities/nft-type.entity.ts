@@ -31,6 +31,9 @@ export class NftType {
   @Column('text', { nullable: true })
   additionalImages: string; // JSON array of additional image URLs
 
+  @Column('bigint', { nullable: true, default: '0' })
+  stakingAmount: string; // Staking reward amount per month
+
   @Column()
   createdAt: Date;
 

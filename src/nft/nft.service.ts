@@ -43,6 +43,7 @@ export interface NFTItemType {
   price: number;
   max_supply: number;
   current_supply: number;
+  staking_amount: number;
   bump: number;
 }
 
@@ -236,7 +237,7 @@ export class NftService {
               offset += nameLen;
               const uriLen = data.readUInt32LE(offset); 
               offset += 4;
-              if (uriLen === 0 || uriLen > 500 || data.length < offset + uriLen + 8 + 8 + 8 + 1) continue;
+              if (uriLen === 0 || uriLen > 500 || data.length < offset + uriLen + 8 + 8 + 8 + 8 + 1) continue;
               const uri = data.slice(offset, offset + uriLen).toString('utf8'); 
               offset += uriLen;
               const price = Number(data.readBigUInt64LE(offset)); 
@@ -245,13 +246,15 @@ export class NftService {
               offset += 8;
               const current_supply = Number(data.readBigUInt64LE(offset)); 
               offset += 8;
+              const staking_amount = Number(data.readBigUInt64LE(offset)); 
+              offset += 8;
               const bump = data.readUInt8(offset);
               
               // Only include item types for target collection
               // We'll check this after we have all collections parsed
               const key = collection.toString();
               if (!itemTypesMap[key]) itemTypesMap[key] = [];
-              itemTypesMap[key].push({ collection, name, uri, price, max_supply, current_supply, bump });
+              itemTypesMap[key].push({ collection, name, uri, price, max_supply, current_supply, staking_amount, bump });
               continue;
             } catch (_) {
               continue;

@@ -70,6 +70,9 @@ export class NFTItemTypeDto {
 
   @ApiProperty({ description: 'Additional images array', required: false })
   additionalImages?: string[];
+
+  @ApiProperty({ description: 'Staking reward amount per month', required: false, example: 100 })
+  stakingAmount?: number;
 }
 
 export class UserNFTDto {
