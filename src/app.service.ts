@@ -11,10 +11,10 @@ export class AppService {
   private presaleService: PresaleService;
   private userService: UserService;
 
-  constructor() {
+  constructor(userService: UserService) {
     this.connection = new Connection('https://api.devnet.solana.com', 'confirmed');
     this.presaleService = new PresaleService(this.connection);
-    this.userService = new UserService(null); // Will be injected properly
+    this.userService = userService;
   }
 
   getHello(): string {
