@@ -15,6 +15,9 @@ export class User {
   @Column({ unique: true })
   @Index({ unique: true })
   publicKey: string;
+  @Column({ unique: true, nullable: true })
+  @Index({ unique: true })
+  telegramId: string;
 
 
   @Column({ type: 'text', default: PlayerSide.NOT_CHOSEN })

@@ -11,12 +11,12 @@ export class UserService {
   ) {}
 
 
-  async register(publicKey: string): Promise<User> {
+  async register(publicKey: string,telegramId?: string): Promise<User> {
     const existing = await this.userRepository.findOne({ where: { publicKey } });
     if (existing) {
       throw new BadRequestException('User already exists');
     }
-    const user = this.userRepository.create({ publicKey });
+    const user = this.userRepository.create({ publicKey, telegramId });
     return this.userRepository.save(user);
   }
 
