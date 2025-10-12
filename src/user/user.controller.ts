@@ -20,8 +20,9 @@ export class UserController {
   @Get('by-public-key')
   @ApiOperation({ summary: 'Get user by public key' })
   @ApiQuery({ name: 'publicKey', required: true })
+  @ApiQuery({ name: 'telegramId', required: false })
   @ApiResponse({ status: 200, description: 'User found' })
-  async getByPublicKey(@Query('publicKey') publicKey: GetByPublicKeyDto['publicKey']): Promise<{ success: boolean; data: User | null }> {
+  async getByPublicKey(@Query('publicKey') publicKey: GetByPublicKeyDto['publicKey'], @Query('telegramId') telegramId: GetByPublicKeyDto['telegramId']): Promise<{ success: boolean; data: User | null }> {
     if (!publicKey) {
       return { success: false, data: null } as any;
     }
