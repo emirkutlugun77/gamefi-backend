@@ -6,6 +6,10 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty()
   publicKey!: string;
+  @ApiProperty({ example: '1234567890' })
+  @IsString()
+  @IsNotEmpty()
+  telegramId!: string;
 }
 
 

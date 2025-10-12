@@ -22,7 +22,7 @@ export class UserController {
   @ApiQuery({ name: 'publicKey', required: true })
   @ApiQuery({ name: 'telegramId', required: false })
   @ApiResponse({ status: 200, description: 'User found' })
-  async getByPublicKey(@Query('publicKey') publicKey: GetByPublicKeyDto['publicKey'], @Query('telegramId') telegramId: GetByPublicKeyDto['telegramId']): Promise<{ success: boolean; data: User | null }> {
+  async getByPublicKey(@Query('publicKey') publicKey: GetByPublicKeyDto['publicKey']): Promise<{ success: boolean; data: User | null }> {
     if (!publicKey) {
       return { success: false, data: null } as any;
     }
@@ -38,7 +38,7 @@ export class UserController {
   @Post('register')
   @ApiOperation({ summary: 'Register user by public key' })
   async register(@Body() body: RegisterDto): Promise<{ success: boolean; data: User }> {
-    const user = await this.userService.register(body.publicKey);
+    const user = await this.userService.register(body.publicKey, body.telegramId);
     return { success: true, data: user };
   }
 
