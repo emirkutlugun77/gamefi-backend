@@ -10,6 +10,7 @@ export declare class NftType {
     currentSupply: string;
     mainImage: string;
     additionalImages: string;
+    stakingAmount: string;
     createdAt: Date;
     updatedAt: Date;
     collection: NftCollection;

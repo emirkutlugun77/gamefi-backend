@@ -13,10 +13,13 @@ const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const nft_module_1 = require("./nft/nft.module");
 const user_module_1 = require("./user/user.module");
+const achievements_module_1 = require("./achievements/achievements.module");
 const nft_collection_entity_1 = require("./entities/nft-collection.entity");
 const nft_type_entity_1 = require("./entities/nft-type.entity");
 const user_nft_entity_1 = require("./entities/user-nft.entity");
 const user_entity_1 = require("./entities/user.entity");
+const task_entity_1 = require("./entities/task.entity");
+const user_task_entity_1 = require("./entities/user-task.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -28,10 +31,11 @@ exports.AppModule = AppModule = __decorate([
                 url: process.env.DATABASE_URL || 'postgresql://postgres:ZinjEqdWdceEXeFYFsFUeMgtSfyrSKZA@hopper.proxy.rlwy.net:31815/railway',
                 autoLoadEntities: true,
                 synchronize: true,
-                entities: [nft_collection_entity_1.NftCollection, nft_type_entity_1.NftType, user_nft_entity_1.UserNft, user_entity_1.User],
+                entities: [nft_collection_entity_1.NftCollection, nft_type_entity_1.NftType, user_nft_entity_1.UserNft, user_entity_1.User, task_entity_1.Task, user_task_entity_1.UserTask],
             }),
             nft_module_1.NftModule,
             user_module_1.UserModule,
+            achievements_module_1.AchievementsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

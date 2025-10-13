@@ -20,7 +20,9 @@ var PlayerSide;
 let User = class User {
     id;
     publicKey;
+    telegramId;
     chosenSide;
+    airdrop_point;
 };
 exports.User = User;
 __decorate([
@@ -33,9 +35,18 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "publicKey", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ unique: true, nullable: true }),
+    (0, typeorm_1.Index)({ unique: true }),
+    __metadata("design:type", String)
+], User.prototype, "telegramId", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'text', default: PlayerSide.NOT_CHOSEN }),
     __metadata("design:type", String)
 ], User.prototype, "chosenSide", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', default: 0 }),
+    __metadata("design:type", Number)
+], User.prototype, "airdrop_point", void 0);
 exports.User = User = __decorate([
     (0, typeorm_1.Entity)('users')
 ], User);

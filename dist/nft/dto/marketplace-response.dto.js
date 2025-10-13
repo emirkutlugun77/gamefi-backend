@@ -92,6 +92,7 @@ class NFTItemTypeDto {
     bump;
     mainImage;
     additionalImages;
+    stakingAmount;
 }
 exports.NFTItemTypeDto = NFTItemTypeDto;
 __decorate([
@@ -130,6 +131,10 @@ __decorate([
     (0, swagger_1.ApiProperty)({ description: 'Additional images array', required: false }),
     __metadata("design:type", Array)
 ], NFTItemTypeDto.prototype, "additionalImages", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Staking reward amount per month', required: false, example: 100 }),
+    __metadata("design:type", Number)
+], NFTItemTypeDto.prototype, "stakingAmount", void 0);
 class UserNFTDto {
     mint;
     metadata;

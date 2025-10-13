@@ -16,6 +16,8 @@ exports.UserController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const user_service_1 = require("./user.service");
+const choose_side_dto_1 = require("./dto/choose-side.dto");
+const register_dto_1 = require("./dto/register.dto");
 let UserController = class UserController {
     userService;
     constructor(userService) {
@@ -26,34 +28,60 @@ let UserController = class UserController {
     }
     async getByPublicKey(publicKey) {
         if (!publicKey) {
-            throw new Error('publicKey is required');
+            return { success: false, data: null };
         }
-        return this.userService.findByPublicKey(publicKey);
+        const user = await this.userService.findByPublicKey(publicKey);
+        return { success: true, data: user };
+    }
+    async getByTelegramId(telegramId) {
+        if (!telegramId) {
+            return { success: false, data: null };
+        }
+        const user = await this.userService.findByTelegramId(telegramId);
+        return { success: true, data: user };
     }
     async getUser(id) {
         return this.userService.findOneById(id);
     }
-    async register(publicKey) {
-        return this.userService.register(publicKey);
+    async register(body) {
+        const user = await this.userService.register(body.publicKey, body.telegramId);
+        return { success: true, data: user };
     }
-    async chooseSide(publicKey, side) {
-        return this.userService.chooseSide(publicKey, side);
+    async chooseSide(body) {
+        const user = await this.userService.chooseSide(body.publicKey, body.side);
+        return { success: true, data: user };
     }
 };
 exports.UserController = UserController;
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'List users' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], UserController.prototype, "getUsers", null);
 __decorate([
     (0, common_1.Get)('by-public-key'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get user by public key' }),
+    (0, swagger_1.ApiQuery)({ name: 'publicKey', required: true }),
+    (0, swagger_1.ApiQuery)({ name: 'telegramId', required: false }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'User found' }),
     __param(0, (0, common_1.Query)('publicKey')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], UserController.prototype, "getByPublicKey", null);
+__decorate([
+    (0, common_1.Get)('by-telegram-id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get user by telegram ID' }),
+    (0, swagger_1.ApiQuery)({ name: 'telegramId', required: true }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'User found' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'User not found' }),
+    __param(0, (0, common_1.Query)('telegramId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "getByTelegramId", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
@@ -63,17 +91,18 @@ __decorate([
 ], UserController.prototype, "getUser", null);
 __decorate([
     (0, common_1.Post)('register'),
-    __param(0, (0, common_1.Body)('publicKey')),
+    (0, swagger_1.ApiOperation)({ summary: 'Register user by public key' }),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [register_dto_1.RegisterDto]),
     __metadata("design:returntype", Promise)
 ], UserController.prototype, "register", null);
 __decorate([
     (0, common_1.Post)('choose-side'),
-    __param(0, (0, common_1.Body)('publicKey')),
-    __param(1, (0, common_1.Body)('side')),
+    (0, swagger_1.ApiOperation)({ summary: 'Choose side for user' }),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [choose_side_dto_1.ChooseSideDto]),
     __metadata("design:returntype", Promise)
 ], UserController.prototype, "chooseSide", null);
 exports.UserController = UserController = __decorate([

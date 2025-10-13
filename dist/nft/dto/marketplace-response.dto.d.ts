@@ -25,6 +25,7 @@ export declare class NFTItemTypeDto {
     bump: number;
     mainImage?: string;
     additionalImages?: string[];
+    stakingAmount?: number;
 }
 export declare class UserNFTDto {
     mint: string;

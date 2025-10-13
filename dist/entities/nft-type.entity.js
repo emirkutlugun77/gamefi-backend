@@ -23,6 +23,7 @@ let NftType = class NftType {
     currentSupply;
     mainImage;
     additionalImages;
+    stakingAmount;
     createdAt;
     updatedAt;
     collection;
@@ -65,6 +66,10 @@ __decorate([
     (0, typeorm_1.Column)('text', { nullable: true }),
     __metadata("design:type", String)
 ], NftType.prototype, "additionalImages", void 0);
+__decorate([
+    (0, typeorm_1.Column)('bigint', { nullable: true, default: '0' }),
+    __metadata("design:type", String)
+], NftType.prototype, "stakingAmount", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Date)

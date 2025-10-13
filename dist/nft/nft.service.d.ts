@@ -23,6 +23,7 @@ export interface NFTItemType {
     price: number;
     max_supply: number;
     current_supply: number;
+    staking_amount: number;
     bump: number;
 }
 export interface MarketplaceData {

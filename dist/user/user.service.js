@@ -22,12 +22,12 @@ let UserService = class UserService {
     constructor(userRepository) {
         this.userRepository = userRepository;
     }
-    async register(publicKey) {
+    async register(publicKey, telegramId) {
         const existing = await this.userRepository.findOne({ where: { publicKey } });
         if (existing) {
             throw new common_1.BadRequestException('User already exists');
         }
-        const user = this.userRepository.create({ publicKey });
+        const user = this.userRepository.create({ publicKey, telegramId });
         return this.userRepository.save(user);
     }
     async chooseSide(publicKey, side) {
@@ -35,7 +35,11 @@ let UserService = class UserService {
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }
+        const wasNotChosen = user.chosenSide === 'NOT_CHOSEN';
         user.chosenSide = side;
+        if (wasNotChosen && side !== 'NOT_CHOSEN') {
+            user.airdrop_point += 100;
+        }
         return this.userRepository.save(user);
     }
     async findAll() {
@@ -50,6 +54,13 @@ let UserService = class UserService {
     }
     async findByPublicKey(publicKey) {
         const user = await this.userRepository.findOne({ where: { publicKey } });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        return user;
+    }
+    async findByTelegramId(telegramId) {
+        const user = await this.userRepository.findOne({ where: { telegramId } });
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }

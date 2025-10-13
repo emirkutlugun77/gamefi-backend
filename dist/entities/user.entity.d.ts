@@ -6,5 +6,7 @@ export declare enum PlayerSide {
 export declare class User {
     id: number;
     publicKey: string;
+    telegramId: string;
     chosenSide: PlayerSide;
+    airdrop_point: number;
 }
