@@ -5,6 +5,7 @@ import { User } from '../entities/user.entity';
 import { ChooseSideDto } from './dto/choose-side.dto';
 import { RegisterDto } from './dto/register.dto';
 import { GetByPublicKeyDto } from './dto/get-by-public-key.dto';
+import { GetByTelegramIdDto } from './dto/get-by-telegram-id.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -27,6 +28,19 @@ export class UserController {
       return { success: false, data: null } as any;
     }
     const user = await this.userService.findByPublicKey(publicKey);
+    return { success: true, data: user };
+  }
+
+  @Get('by-telegram-id')
+  @ApiOperation({ summary: 'Get user by telegram ID' })
+  @ApiQuery({ name: 'telegramId', required: true })
+  @ApiResponse({ status: 200, description: 'User found' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getByTelegramId(@Query('telegramId') telegramId: GetByTelegramIdDto['telegramId']): Promise<{ success: boolean; data: User | null }> {
+    if (!telegramId) {
+      return { success: false, data: null } as any;
+    }
+    const user = await this.userService.findByTelegramId(telegramId);
     return { success: true, data: user };
   }
 

@@ -25,7 +25,16 @@ export class UserService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    // Award 100 points if side is chosen for the first time
+    const wasNotChosen = user.chosenSide === 'NOT_CHOSEN';
+
     user.chosenSide = side as any;
+
+    if (wasNotChosen && side !== 'NOT_CHOSEN') {
+      user.airdrop_point += 100;
+    }
+
     return this.userRepository.save(user);
   }
 
@@ -43,6 +52,14 @@ export class UserService {
 
   async findByPublicKey(publicKey: string): Promise<User> {
     const user = await this.userRepository.findOne({ where: { publicKey } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  async findByTelegramId(telegramId: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { telegramId } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
