@@ -14,6 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NftAdminController = void 0;
 const common_1 = require("@nestjs/common");
+const platform_express_1 = require("@nestjs/platform-express");
 const swagger_1 = require("@nestjs/swagger");
 const nft_admin_service_1 = require("./nft-admin.service");
 const create_collection_dto_1 = require("./dto/create-collection.dto");
@@ -24,9 +25,9 @@ let NftAdminController = class NftAdminController {
     constructor(nftAdminService) {
         this.nftAdminService = nftAdminService;
     }
-    async createCollection(dto) {
+    async createCollection(dto, image) {
         try {
-            return await this.nftAdminService.createCollection(dto);
+            return await this.nftAdminService.createCollectionWithFile(dto, image);
         }
         catch (error) {
             if (error instanceof common_1.HttpException) {
@@ -40,9 +41,9 @@ let NftAdminController = class NftAdminController {
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    async createType(dto) {
+    async createType(dto, files) {
         try {
-            return await this.nftAdminService.createType(dto);
+            return await this.nftAdminService.createTypeWithFiles(dto, files);
         }
         catch (error) {
             if (error instanceof common_1.HttpException) {
@@ -202,11 +203,26 @@ let NftAdminController = class NftAdminController {
 exports.NftAdminController = NftAdminController;
 __decorate([
     (0, common_1.Post)('collection'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('image')),
+    (0, swagger_1.ApiConsumes)('multipart/form-data'),
     (0, swagger_1.ApiOperation)({
         summary: 'Create NFT collection with IPFS metadata',
-        description: 'Creates a new NFT collection and uploads metadata to IPFS via QuickNode'
+        description: 'Creates a new NFT collection and uploads image + metadata to IPFS via QuickNode'
     }),
-    (0, swagger_1.ApiBody)({ type: create_collection_dto_1.CreateCollectionDto }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            required: ['adminPublicKey', 'name', 'symbol', 'royalty', 'description'],
+            properties: {
+                adminPublicKey: { type: 'string', example: 'Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M' },
+                name: { type: 'string', example: 'VYBE_BUILDINGS_COLLECTION' },
+                symbol: { type: 'string', example: 'VYBEB' },
+                royalty: { type: 'number', example: 5 },
+                description: { type: 'string', example: 'Buildings collection for VYBE game' },
+                image: { type: 'string', format: 'binary', description: 'Collection image file' }
+            }
+        }
+    }),
     (0, swagger_1.ApiResponse)({
         status: 201,
         description: 'Collection created successfully',
@@ -235,17 +251,40 @@ __decorate([
         description: 'Internal server error'
     }),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.UploadedFile)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [create_collection_dto_1.CreateCollectionDto]),
+    __metadata("design:paramtypes", [create_collection_dto_1.CreateCollectionDto, Object]),
     __metadata("design:returntype", Promise)
 ], NftAdminController.prototype, "createCollection", null);
 __decorate([
     (0, common_1.Post)('type'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileFieldsInterceptor)([
+        { name: 'mainImage', maxCount: 1 },
+        { name: 'additionalImages', maxCount: 10 }
+    ])),
+    (0, swagger_1.ApiConsumes)('multipart/form-data'),
     (0, swagger_1.ApiOperation)({
         summary: 'Create NFT type with IPFS metadata',
-        description: 'Creates a new NFT type for a collection and uploads metadata to IPFS via QuickNode'
+        description: 'Creates a new NFT type for a collection and uploads images + metadata to IPFS via QuickNode'
     }),
-    (0, swagger_1.ApiBody)({ type: create_type_dto_1.CreateTypeDto }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            required: ['adminPublicKey', 'collectionName', 'name', 'price', 'maxSupply', 'description'],
+            properties: {
+                adminPublicKey: { type: 'string', example: 'Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M' },
+                collectionName: { type: 'string', example: 'VYBE_BUILDINGS_COLLECTION' },
+                name: { type: 'string', example: 'Wooden House' },
+                price: { type: 'number', example: 0.5 },
+                maxSupply: { type: 'number', example: 1000 },
+                stakingAmount: { type: 'number', example: 0.01 },
+                description: { type: 'string', example: 'A basic wooden house for your village' },
+                attributes: { type: 'string', example: '[{"trait_type":"Rarity","value":"Common"}]' },
+                mainImage: { type: 'string', format: 'binary', description: 'Main NFT image file' },
+                additionalImages: { type: 'array', items: { type: 'string', format: 'binary' }, description: 'Additional image files (optional)' }
+            }
+        }
+    }),
     (0, swagger_1.ApiResponse)({
         status: 201,
         description: 'NFT type created successfully',
@@ -280,8 +319,9 @@ __decorate([
         description: 'Internal server error'
     }),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.UploadedFiles)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [create_type_dto_1.CreateTypeDto]),
+    __metadata("design:paramtypes", [create_type_dto_1.CreateTypeDto, Object]),
     __metadata("design:returntype", Promise)
 ], NftAdminController.prototype, "createType", null);
 __decorate([

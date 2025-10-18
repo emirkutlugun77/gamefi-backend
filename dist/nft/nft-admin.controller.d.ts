@@ -5,8 +5,11 @@ import { CreateStoreConfigDto, UpdateStoreConfigDto } from './dto/store-config.d
 export declare class NftAdminController {
     private readonly nftAdminService;
     constructor(nftAdminService: NftAdminService);
-    createCollection(dto: CreateCollectionDto): Promise<any>;
-    createType(dto: CreateTypeDto): Promise<any>;
+    createCollection(dto: CreateCollectionDto, image: Express.Multer.File): Promise<any>;
+    createType(dto: CreateTypeDto, files: {
+        mainImage?: Express.Multer.File[];
+        additionalImages?: Express.Multer.File[];
+    }): Promise<any>;
     getAllCollections(): Promise<{
         success: boolean;
         data: import("../entities/nft-collection.entity").NftCollection[];

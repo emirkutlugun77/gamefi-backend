@@ -12,6 +12,7 @@ export declare class NftAdminService {
     private connection;
     constructor(nftCollectionRepo: Repository<NftCollection>, nftTypeRepo: Repository<NftType>, storeConfigRepo: Repository<StoreConfig>);
     uploadToIPFS(metadata: any): Promise<string>;
+    uploadFileToIPFS(fileBuffer: Buffer, filename: string): Promise<string>;
     uploadImageToIPFS(imageData: string): Promise<string>;
     createCollection(dto: CreateCollectionDto): Promise<any>;
     createType(dto: CreateTypeDto): Promise<any>;
@@ -22,4 +23,9 @@ export declare class NftAdminService {
     getAllStoreConfigs(): Promise<StoreConfig[]>;
     getStoreConfig(tabName: string): Promise<StoreConfig>;
     deleteStoreConfig(tabName: string): Promise<void>;
+    createCollectionWithFile(dto: CreateCollectionDto, imageFile: Express.Multer.File): Promise<any>;
+    createTypeWithFiles(dto: CreateTypeDto, files: {
+        mainImage?: Express.Multer.File[];
+        additionalImages?: Express.Multer.File[];
+    }): Promise<any>;
 }

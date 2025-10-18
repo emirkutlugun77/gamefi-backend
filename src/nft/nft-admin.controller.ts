@@ -1,5 +1,6 @@
-import { Controller, Post, Get, Put, Delete, Body, Query, Param, HttpException, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBody, ApiParam } from '@nestjs/swagger';
+import { Controller, Post, Get, Put, Delete, Body, Query, Param, HttpException, HttpStatus, UseInterceptors, UploadedFile, UploadedFiles } from '@nestjs/common';
+import { FileInterceptor, FilesInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBody, ApiParam, ApiConsumes } from '@nestjs/swagger';
 import { NftAdminService } from './nft-admin.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { CreateTypeDto } from './dto/create-type.dto';
@@ -11,11 +12,26 @@ export class NftAdminController {
   constructor(private readonly nftAdminService: NftAdminService) {}
 
   @Post('collection')
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Create NFT collection with IPFS metadata',
-    description: 'Creates a new NFT collection and uploads metadata to IPFS via QuickNode'
+    description: 'Creates a new NFT collection and uploads image + metadata to IPFS via QuickNode'
   })
-  @ApiBody({ type: CreateCollectionDto })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['adminPublicKey', 'name', 'symbol', 'royalty', 'description'],
+      properties: {
+        adminPublicKey: { type: 'string', example: 'Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M' },
+        name: { type: 'string', example: 'VYBE_BUILDINGS_COLLECTION' },
+        symbol: { type: 'string', example: 'VYBEB' },
+        royalty: { type: 'number', example: 5 },
+        description: { type: 'string', example: 'Buildings collection for VYBE game' },
+        image: { type: 'string', format: 'binary', description: 'Collection image file' }
+      }
+    }
+  })
   @ApiResponse({
     status: 201,
     description: 'Collection created successfully',
@@ -43,9 +59,12 @@ export class NftAdminController {
     status: 500,
     description: 'Internal server error'
   })
-  async createCollection(@Body() dto: CreateCollectionDto) {
+  async createCollection(
+    @Body() dto: CreateCollectionDto,
+    @UploadedFile() image: Express.Multer.File
+  ) {
     try {
-      return await this.nftAdminService.createCollection(dto);
+      return await this.nftAdminService.createCollectionWithFile(dto, image);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -64,11 +83,33 @@ export class NftAdminController {
   }
 
   @Post('type')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'mainImage', maxCount: 1 },
+    { name: 'additionalImages', maxCount: 10 }
+  ]))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Create NFT type with IPFS metadata',
-    description: 'Creates a new NFT type for a collection and uploads metadata to IPFS via QuickNode'
+    description: 'Creates a new NFT type for a collection and uploads images + metadata to IPFS via QuickNode'
   })
-  @ApiBody({ type: CreateTypeDto })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['adminPublicKey', 'collectionName', 'name', 'price', 'maxSupply', 'description'],
+      properties: {
+        adminPublicKey: { type: 'string', example: 'Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M' },
+        collectionName: { type: 'string', example: 'VYBE_BUILDINGS_COLLECTION' },
+        name: { type: 'string', example: 'Wooden House' },
+        price: { type: 'number', example: 0.5 },
+        maxSupply: { type: 'number', example: 1000 },
+        stakingAmount: { type: 'number', example: 0.01 },
+        description: { type: 'string', example: 'A basic wooden house for your village' },
+        attributes: { type: 'string', example: '[{"trait_type":"Rarity","value":"Common"}]' },
+        mainImage: { type: 'string', format: 'binary', description: 'Main NFT image file' },
+        additionalImages: { type: 'array', items: { type: 'string', format: 'binary' }, description: 'Additional image files (optional)' }
+      }
+    }
+  })
   @ApiResponse({
     status: 201,
     description: 'NFT type created successfully',
@@ -102,9 +143,12 @@ export class NftAdminController {
     status: 500,
     description: 'Internal server error'
   })
-  async createType(@Body() dto: CreateTypeDto) {
+  async createType(
+    @Body() dto: CreateTypeDto,
+    @UploadedFiles() files: { mainImage?: Express.Multer.File[], additionalImages?: Express.Multer.File[] }
+  ) {
     try {
-      return await this.nftAdminService.createType(dto);
+      return await this.nftAdminService.createTypeWithFiles(dto, files);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
