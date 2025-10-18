@@ -13,6 +13,7 @@ export declare class NftAdminService {
     constructor(nftCollectionRepo: Repository<NftCollection>, nftTypeRepo: Repository<NftType>, storeConfigRepo: Repository<StoreConfig>);
     uploadToIPFS(metadata: any): Promise<string>;
     uploadFileToIPFS(fileBuffer: Buffer, filename: string): Promise<string>;
+    private getMimeType;
     uploadImageToIPFS(imageData: string): Promise<string>;
     createCollection(dto: CreateCollectionDto): Promise<any>;
     createType(dto: CreateTypeDto): Promise<any>;

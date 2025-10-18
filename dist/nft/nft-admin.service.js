@@ -21,7 +21,6 @@ const nft_collection_entity_1 = require("../entities/nft-collection.entity");
 const nft_type_entity_1 = require("../entities/nft-type.entity");
 const store_config_entity_1 = require("../entities/store-config.entity");
 const PROGRAM_ID = new web3_js_1.PublicKey('Cvz71nzvusTyvH6GzeuHSVKPAGABH2q5tw2HRJdmzvEj');
-const QUICKNODE_IPFS_URL = 'https://skilled-aged-lambo.solana-devnet.quiknode.pro/e9123242ac843b701a00c0975743cf7f13953692';
 let NftAdminService = class NftAdminService {
     nftCollectionRepo;
     nftTypeRepo;
@@ -35,30 +34,47 @@ let NftAdminService = class NftAdminService {
     }
     async uploadToIPFS(metadata) {
         try {
-            console.log('Uploading to QuickNode IPFS:', JSON.stringify(metadata, null, 2));
-            const response = await fetch(`${QUICKNODE_IPFS_URL}/ipfs/api/v0/add`, {
+            console.log('Uploading metadata to QuickNode IPFS:', JSON.stringify(metadata, null, 2));
+            const apiKey = process.env.QUICKNODE_IPFS_API_KEY;
+            if (!apiKey) {
+                throw new Error('QUICKNODE_IPFS_API_KEY is not configured');
+            }
+            const metadataBuffer = Buffer.from(JSON.stringify(metadata), 'utf-8');
+            const fileName = `metadata_${Date.now()}.json`;
+            const FormData = require('form-data');
+            const form = new FormData();
+            form.append('Body', metadataBuffer, {
+                filename: fileName
+            });
+            form.append('Key', fileName);
+            form.append('ContentType', 'application/json');
+            const response = await fetch('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey,
+                    ...form.getHeaders()
                 },
-                body: JSON.stringify({
-                    path: 'metadata.json',
-                    content: JSON.stringify(metadata)
-                })
+                body: form
             });
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('IPFS upload failed:', errorText);
-                throw new Error(`IPFS upload failed: ${response.statusText}`);
+                console.error('QuickNode IPFS upload failed:', errorText);
+                throw new Error(`IPFS upload failed: ${response.statusText} - ${errorText}`);
             }
             const result = await response.json();
-            const ipfsHash = result.Hash;
-            const ipfsUri = `ipfs://${ipfsHash}`;
-            console.log('✅ Uploaded to IPFS:', ipfsUri);
+            console.log('QuickNode IPFS response:', result);
+            const cid = result.requestid || result.pin?.cid || result.cid || result.ipfsHash || result.IpfsHash;
+            if (!cid) {
+                console.error('No CID in response:', result);
+                throw new Error('Failed to get CID from IPFS upload response');
+            }
+            const ipfsUri = `ipfs://${cid}`;
+            console.log('✅ Uploaded metadata to IPFS:', ipfsUri);
+            console.log('   Gateway URL:', `https://gateway.quicknode.com/ipfs/${cid}`);
             return ipfsUri;
         }
         catch (error) {
-            console.error('Error uploading to IPFS:', error);
+            console.error('Error uploading metadata to IPFS:', error);
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to upload metadata to IPFS',
@@ -68,23 +84,44 @@ let NftAdminService = class NftAdminService {
     }
     async uploadFileToIPFS(fileBuffer, filename) {
         try {
-            console.log('Uploading file to IPFS:', filename);
+            console.log('Uploading file to QuickNode IPFS:', filename);
+            const apiKey = process.env.QUICKNODE_IPFS_API_KEY;
+            if (!apiKey) {
+                throw new Error('QUICKNODE_IPFS_API_KEY is not configured');
+            }
+            const fileKey = `${Date.now()}_${filename}`;
+            const contentType = this.getMimeType(filename);
             const FormData = require('form-data');
             const form = new FormData();
-            form.append('file', fileBuffer, filename);
-            const response = await fetch(`${QUICKNODE_IPFS_URL}/ipfs/api/v0/add`, {
+            form.append('Body', fileBuffer, {
+                filename: filename,
+                contentType: contentType
+            });
+            form.append('Key', fileKey);
+            form.append('ContentType', contentType);
+            const response = await fetch('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', {
                 method: 'POST',
-                body: form,
-                headers: form.getHeaders(),
+                headers: {
+                    'x-api-key': apiKey,
+                    ...form.getHeaders()
+                },
+                body: form
             });
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('IPFS file upload failed:', errorText);
-                throw new Error(`File upload failed: ${response.statusText}`);
+                console.error('QuickNode IPFS file upload failed:', errorText);
+                throw new Error(`File upload failed: ${response.statusText} - ${errorText}`);
             }
             const result = await response.json();
-            const ipfsUri = `ipfs://${result.Hash}`;
+            console.log('QuickNode IPFS response:', result);
+            const cid = result.requestid || result.pin?.cid || result.cid || result.ipfsHash || result.IpfsHash;
+            if (!cid) {
+                console.error('No CID in response:', result);
+                throw new Error('Failed to get CID from IPFS upload response');
+            }
+            const ipfsUri = `ipfs://${cid}`;
             console.log('✅ File uploaded to IPFS:', ipfsUri);
+            console.log('   Gateway URL:', `https://gateway.quicknode.com/ipfs/${cid}`);
             return ipfsUri;
         }
         catch (error) {
@@ -95,6 +132,19 @@ let NftAdminService = class NftAdminService {
                 error: error.message
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+    getMimeType(filename) {
+        const ext = filename.split('.').pop()?.toLowerCase();
+        const mimeTypes = {
+            'png': 'image/png',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'svg': 'image/svg+xml',
+            'json': 'application/json',
+        };
+        return mimeTypes[ext || ''] || 'application/octet-stream';
     }
     async uploadImageToIPFS(imageData) {
         try {

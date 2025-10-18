@@ -126,14 +126,6 @@ export class NftAdminService {
       form.append('Key', fileKey);
       form.append('ContentType', contentType);
 
-      // Convert FormData stream to buffer to ensure complete transmission
-      const formBuffer = await new Promise<Buffer>((resolve, reject) => {
-        const chunks: Buffer[] = [];
-        form.on('data', (chunk: Buffer) => chunks.push(chunk));
-        form.on('end', () => resolve(Buffer.concat(chunks)));
-        form.on('error', reject);
-      });
-
       // Use QuickNode IPFS S3 put-object endpoint
       const response = await fetch('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', {
         method: 'POST',
@@ -141,7 +133,7 @@ export class NftAdminService {
           'x-api-key': apiKey,
           ...form.getHeaders()
         },
-        body: formBuffer
+        body: form as any
       });
 
       if (!response.ok) {
