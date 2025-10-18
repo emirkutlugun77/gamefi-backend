@@ -18,13 +18,18 @@ fetch(`${process.env.QUICKNODE_IPFS_URL}/ipfs/api/v0/add`, {...})
 
 **After:**
 ```typescript
-fetch('https://api.quicknode.com/ipfs/rest/v1/pinning/pinFileToIPFS', {
+const form = new FormData();
+form.append('Body', metadataBuffer, { filename: fileName });
+form.append('Key', fileName);
+form.append('ContentType', 'application/json');
+
+fetch('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', {
   method: 'POST',
   headers: {
     'x-api-key': process.env.QUICKNODE_IPFS_API_KEY,
     ...form.getHeaders()
   },
-  body: form  // FormData with 'file' field
+  body: form
 })
 ```
 
@@ -36,13 +41,18 @@ fetch(`${process.env.QUICKNODE_IPFS_URL}/ipfs/api/v0/add`, {...})
 
 **After:**
 ```typescript
-fetch('https://api.quicknode.com/ipfs/rest/v1/pinning/pinFileToIPFS', {
+const form = new FormData();
+form.append('Body', fileBuffer, { filename });
+form.append('Key', fileKey);
+form.append('ContentType', contentType);
+
+fetch('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', {
   method: 'POST',
   headers: {
     'x-api-key': process.env.QUICKNODE_IPFS_API_KEY,
     ...form.getHeaders()
   },
-  body: form  // FormData with 'file' field
+  body: form
 })
 ```
 
@@ -66,22 +76,23 @@ private getMimeType(filename: string): string {
 
 ## 🔄 API Changes
 
-### Endpoint Updated
+### Endpoint
 ```
-OLD: https://api.quicknode.com/ipfs/rest/v1/s3/put-object
-NEW: https://api.quicknode.com/ipfs/rest/v1/pinning/pinFileToIPFS
+https://api.quicknode.com/ipfs/rest/v1/s3/put-object
 ```
 
-### FormData Field Updated
-```
-OLD: form.append('Body', buffer, {...})
-NEW: form.append('file', buffer, {...})
+### FormData Fields (3 required fields)
+```javascript
+form.append('Body', fileBuffer, { filename });  // The file content
+form.append('Key', uniqueFileName);              // Unique file key/name
+form.append('ContentType', mimeType);            // MIME type
 ```
 
 ### Response Format
 ```javascript
-// QuickNode returns CID in IpfsHash field
-const cid = result.IpfsHash || result.ipfsHash || result.pin?.cid || result.cid;
+// QuickNode S3 returns requestid as CID
+const cid = result.requestid || result.pin?.cid || result.cid;
+const ipfsUri = `ipfs://${cid}`;
 ```
 
 ### Old Environment Variables (Removed)

@@ -30,11 +30,14 @@ QUICKNODE_IPFS_API_KEY=your-actual-api-key-here
 
 The service uses the following QuickNode IPFS REST API endpoints:
 
-- **Pinning Endpoint**: `https://api.quicknode.com/ipfs/rest/v1/pinning/pinFileToIPFS`
+- **S3 Put-Object Endpoint**: `https://api.quicknode.com/ipfs/rest/v1/s3/put-object`
   - Method: POST
   - Headers: `x-api-key: <your-api-key>`
-  - Body: FormData with `file` field (not `Body`)
-  - Response: `{ IpfsHash: "Qm..." }`
+  - Body: FormData with 3 required fields:
+    - `Body`: File buffer/content
+    - `Key`: Unique file name/key
+    - `ContentType`: MIME type
+  - Response: `{ requestid: "Qm..." }` (requestid is the CID)
 
 ### 4. Usage in Code
 
@@ -90,6 +93,26 @@ For more information, refer to:
 ✅ Gateway URL generation  
 ✅ Error handling and logging  
 
+## Manual Testing with cURL
+
+You can test the QuickNode IPFS API directly with cURL:
+
+```bash
+curl --location 'https://api.quicknode.com/ipfs/rest/v1/s3/put-object' \
+  --header 'x-api-key: YOUR_API_KEY' \
+  --form 'Body=@"/path/to/your/file.png"' \
+  --form 'Key="test_file.png"' \
+  --form 'ContentType="image/png"'
+```
+
+Expected response:
+```json
+{
+  "requestid": "QmXxxx...",
+  "status": "pinned"
+}
+```
+
 ## Troubleshooting
 
 ### Error: "QUICKNODE_IPFS_API_KEY is not configured"
@@ -97,13 +120,20 @@ For more information, refer to:
 - Check that `QUICKNODE_IPFS_API_KEY` is set correctly
 - Restart the server after changing `.env`
 
+### Error: "Multipart: Unexpected end of form"
+- Ensure you're sending all 3 required fields: `Body`, `Key`, `ContentType`
+- Check that `Body` contains the actual file buffer
+- Verify `Key` is a string (unique filename)
+- Verify `ContentType` matches the file type
+
 ### Error: "IPFS upload failed"
 - Verify your API key is valid
 - Check QuickNode dashboard for API usage limits
 - Ensure the file size is within QuickNode limits
 
 ### Error: "Failed to get CID from IPFS upload response"
-- Check the API response format in logs
+- Check the API response format in logs (`console.log('QuickNode IPFS response:', result)`)
+- The CID should be in `result.requestid` field
 - Verify QuickNode API hasn't changed response structure
 - Contact QuickNode support if issue persists
 

@@ -29,7 +29,7 @@ export class NftAdminService {
   }
 
   /**
-   * Upload JSON metadata to IPFS via QuickNode REST API
+   * Upload JSON metadata to IPFS via QuickNode S3 API
    * Documentation: https://www.quicknode.com/docs/ipfs
    */
   async uploadToIPFS(metadata: any): Promise<string> {
@@ -43,19 +43,19 @@ export class NftAdminService {
 
       // Convert metadata to Buffer
       const metadataBuffer = Buffer.from(JSON.stringify(metadata), 'utf-8');
+      const fileName = `metadata_${Date.now()}.json`;
 
-      // Create FormData with the metadata JSON file
+      // Create FormData with Body, Key, and ContentType
       const FormData = require('form-data');
       const form = new FormData();
-      
-      // QuickNode expects 'file' field, not 'Body'
-      form.append('file', metadataBuffer, {
-        filename: 'metadata.json',
-        contentType: 'application/json'
+      form.append('Body', metadataBuffer, {
+        filename: fileName
       });
+      form.append('Key', fileName);
+      form.append('ContentType', 'application/json');
 
-      // Use QuickNode IPFS Pinning API endpoint
-      const response = await fetch('https://api.quicknode.com/ipfs/rest/v1/pinning/pinFileToIPFS', {
+      // Use QuickNode IPFS S3 put-object endpoint
+      const response = await fetch('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', {
         method: 'POST',
         headers: {
           'x-api-key': apiKey,
@@ -71,9 +71,10 @@ export class NftAdminService {
       }
 
       const result = await response.json();
+      console.log('QuickNode IPFS response:', result);
       
-      // QuickNode returns the CID in IpfsHash field
-      const cid = result.IpfsHash || result.ipfsHash || result.pin?.cid || result.cid;
+      // QuickNode S3 returns various CID formats
+      const cid = result.requestid || result.pin?.cid || result.cid || result.ipfsHash || result.IpfsHash;
       if (!cid) {
         console.error('No CID in response:', result);
         throw new Error('Failed to get CID from IPFS upload response');
@@ -99,7 +100,7 @@ export class NftAdminService {
   }
 
   /**
-   * Upload file buffer to IPFS via QuickNode REST API
+   * Upload file buffer to IPFS via QuickNode S3 API
    * Documentation: https://www.quicknode.com/docs/ipfs
    */
   async uploadFileToIPFS(fileBuffer: Buffer, filename: string): Promise<string> {
@@ -111,18 +112,21 @@ export class NftAdminService {
         throw new Error('QUICKNODE_IPFS_API_KEY is not configured');
       }
 
-      // Create FormData with the file
+      // Generate unique key for the file
+      const fileKey = `${Date.now()}_${filename}`;
+      const contentType = this.getMimeType(filename);
+
+      // Create FormData with Body, Key, and ContentType
       const FormData = require('form-data');
       const form = new FormData();
-      
-      // QuickNode expects 'file' field, not 'Body'
-      form.append('file', fileBuffer, {
-        filename: filename,
-        contentType: this.getMimeType(filename)
+      form.append('Body', fileBuffer, {
+        filename: filename
       });
+      form.append('Key', fileKey);
+      form.append('ContentType', contentType);
 
-      // Use QuickNode IPFS Pinning API endpoint
-      const response = await fetch('https://api.quicknode.com/ipfs/rest/v1/pinning/pinFileToIPFS', {
+      // Use QuickNode IPFS S3 put-object endpoint
+      const response = await fetch('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', {
         method: 'POST',
         headers: {
           'x-api-key': apiKey,
@@ -138,9 +142,10 @@ export class NftAdminService {
       }
 
       const result = await response.json();
+      console.log('QuickNode IPFS response:', result);
       
-      // QuickNode returns the CID in IpfsHash field
-      const cid = result.IpfsHash || result.ipfsHash || result.pin?.cid || result.cid;
+      // QuickNode S3 returns various CID formats
+      const cid = result.requestid || result.pin?.cid || result.cid || result.ipfsHash || result.IpfsHash;
       if (!cid) {
         console.error('No CID in response:', result);
         throw new Error('Failed to get CID from IPFS upload response');
