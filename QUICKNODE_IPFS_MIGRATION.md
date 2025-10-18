@@ -18,13 +18,13 @@ fetch(`${process.env.QUICKNODE_IPFS_URL}/ipfs/api/v0/add`, {...})
 
 **After:**
 ```typescript
-fetch('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', {
+fetch('https://api.quicknode.com/ipfs/rest/v1/pinning/pinFileToIPFS', {
   method: 'POST',
   headers: {
     'x-api-key': process.env.QUICKNODE_IPFS_API_KEY,
     ...form.getHeaders()
   },
-  body: form
+  body: form  // FormData with 'file' field
 })
 ```
 
@@ -36,13 +36,13 @@ fetch(`${process.env.QUICKNODE_IPFS_URL}/ipfs/api/v0/add`, {...})
 
 **After:**
 ```typescript
-fetch('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', {
+fetch('https://api.quicknode.com/ipfs/rest/v1/pinning/pinFileToIPFS', {
   method: 'POST',
   headers: {
     'x-api-key': process.env.QUICKNODE_IPFS_API_KEY,
     ...form.getHeaders()
   },
-  body: form
+  body: form  // FormData with 'file' field
 })
 ```
 
@@ -65,6 +65,24 @@ private getMimeType(filename: string): string {
 ```
 
 ## 🔄 API Changes
+
+### Endpoint Updated
+```
+OLD: https://api.quicknode.com/ipfs/rest/v1/s3/put-object
+NEW: https://api.quicknode.com/ipfs/rest/v1/pinning/pinFileToIPFS
+```
+
+### FormData Field Updated
+```
+OLD: form.append('Body', buffer, {...})
+NEW: form.append('file', buffer, {...})
+```
+
+### Response Format
+```javascript
+// QuickNode returns CID in IpfsHash field
+const cid = result.IpfsHash || result.ipfsHash || result.pin?.cid || result.cid;
+```
 
 ### Old Environment Variables (Removed)
 ```env

@@ -47,13 +47,15 @@ export class NftAdminService {
       // Create FormData with the metadata JSON file
       const FormData = require('form-data');
       const form = new FormData();
-      form.append('Body', metadataBuffer, {
+      
+      // QuickNode expects 'file' field, not 'Body'
+      form.append('file', metadataBuffer, {
         filename: 'metadata.json',
         contentType: 'application/json'
       });
 
-      // Use QuickNode IPFS REST API endpoint
-      const response = await fetch('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', {
+      // Use QuickNode IPFS Pinning API endpoint
+      const response = await fetch('https://api.quicknode.com/ipfs/rest/v1/pinning/pinFileToIPFS', {
         method: 'POST',
         headers: {
           'x-api-key': apiKey,
@@ -70,8 +72,8 @@ export class NftAdminService {
 
       const result = await response.json();
       
-      // QuickNode returns the pin with CID
-      const cid = result.pin?.cid || result.cid;
+      // QuickNode returns the CID in IpfsHash field
+      const cid = result.IpfsHash || result.ipfsHash || result.pin?.cid || result.cid;
       if (!cid) {
         console.error('No CID in response:', result);
         throw new Error('Failed to get CID from IPFS upload response');
@@ -112,13 +114,15 @@ export class NftAdminService {
       // Create FormData with the file
       const FormData = require('form-data');
       const form = new FormData();
-      form.append('Body', fileBuffer, {
+      
+      // QuickNode expects 'file' field, not 'Body'
+      form.append('file', fileBuffer, {
         filename: filename,
         contentType: this.getMimeType(filename)
       });
 
-      // Use QuickNode IPFS REST API endpoint
-      const response = await fetch('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', {
+      // Use QuickNode IPFS Pinning API endpoint
+      const response = await fetch('https://api.quicknode.com/ipfs/rest/v1/pinning/pinFileToIPFS', {
         method: 'POST',
         headers: {
           'x-api-key': apiKey,
@@ -135,8 +139,8 @@ export class NftAdminService {
 
       const result = await response.json();
       
-      // QuickNode returns the pin with CID
-      const cid = result.pin?.cid || result.cid;
+      // QuickNode returns the CID in IpfsHash field
+      const cid = result.IpfsHash || result.ipfsHash || result.pin?.cid || result.cid;
       if (!cid) {
         console.error('No CID in response:', result);
         throw new Error('Failed to get CID from IPFS upload response');

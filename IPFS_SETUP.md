@@ -30,10 +30,11 @@ QUICKNODE_IPFS_API_KEY=your-actual-api-key-here
 
 The service uses the following QuickNode IPFS REST API endpoints:
 
-- **Upload Endpoint**: `https://api.quicknode.com/ipfs/rest/v1/s3/put-object`
+- **Pinning Endpoint**: `https://api.quicknode.com/ipfs/rest/v1/pinning/pinFileToIPFS`
   - Method: POST
   - Headers: `x-api-key: <your-api-key>`
-  - Body: FormData with file
+  - Body: FormData with `file` field (not `Body`)
+  - Response: `{ IpfsHash: "Qm..." }`
 
 ### 4. Usage in Code
 
