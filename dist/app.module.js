@@ -20,6 +20,7 @@ const user_nft_entity_1 = require("./entities/user-nft.entity");
 const user_entity_1 = require("./entities/user.entity");
 const task_entity_1 = require("./entities/task.entity");
 const user_task_entity_1 = require("./entities/user-task.entity");
+const store_config_entity_1 = require("./entities/store-config.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -31,7 +32,7 @@ exports.AppModule = AppModule = __decorate([
                 url: process.env.DATABASE_URL || 'postgresql://postgres:ZinjEqdWdceEXeFYFsFUeMgtSfyrSKZA@hopper.proxy.rlwy.net:31815/railway',
                 autoLoadEntities: true,
                 synchronize: true,
-                entities: [nft_collection_entity_1.NftCollection, nft_type_entity_1.NftType, user_nft_entity_1.UserNft, user_entity_1.User, task_entity_1.Task, user_task_entity_1.UserTask],
+                entities: [nft_collection_entity_1.NftCollection, nft_type_entity_1.NftType, user_nft_entity_1.UserNft, user_entity_1.User, task_entity_1.Task, user_task_entity_1.UserTask, store_config_entity_1.StoreConfig],
             }),
             nft_module_1.NftModule,
             user_module_1.UserModule,

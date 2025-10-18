@@ -11,6 +11,7 @@ import { UserNft } from './entities/user-nft.entity';
 import { User } from './entities/user.entity';
 import { Task } from './entities/task.entity';
 import { UserTask } from './entities/user-task.entity';
+import { StoreConfig } from './entities/store-config.entity';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { UserTask } from './entities/user-task.entity';
       url: process.env.DATABASE_URL || 'postgresql://postgres:ZinjEqdWdceEXeFYFsFUeMgtSfyrSKZA@hopper.proxy.rlwy.net:31815/railway',
       autoLoadEntities: true,
       synchronize: true,
-      entities: [NftCollection, NftType, UserNft, User, Task, UserTask],
+      entities: [NftCollection, NftType, UserNft, User, Task, UserTask, StoreConfig],
     }),
     NftModule,
     UserModule,
