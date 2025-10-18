@@ -11,7 +11,7 @@ import { CreateTypeDto } from './dto/create-type.dto';
 import { CreateStoreConfigDto, UpdateStoreConfigDto } from './dto/store-config.dto';
 
 const PROGRAM_ID = new PublicKey('Cvz71nzvusTyvH6GzeuHSVKPAGABH2q5tw2HRJdmzvEj');
-const QUICKNODE_IPFS_URL = 'https://skilled-aged-lambo.solana-devnet.quiknode.pro/e9123242ac843b701a00c0975743cf7f13953692';
+
 
 @Injectable()
 export class NftAdminService {
@@ -35,7 +35,7 @@ export class NftAdminService {
     try {
       console.log('Uploading to QuickNode IPFS:', JSON.stringify(metadata, null, 2));
 
-      const response = await fetch(`${QUICKNODE_IPFS_URL}/ipfs/api/v0/add`, {
+      const response = await fetch(`${process.env.QUICKNODE_IPFS_URL}/ipfs/api/v0/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ export class NftAdminService {
       const form = new FormData();
       form.append('file', fileBuffer, filename);
 
-      const response = await fetch(`${QUICKNODE_IPFS_URL}/ipfs/api/v0/add`, {
+      const response = await fetch(`${process.env.QUICKNODE_IPFS_URL}/ipfs/api/v0/add`, {
         method: 'POST',
         body: form,
         headers: form.getHeaders(),
