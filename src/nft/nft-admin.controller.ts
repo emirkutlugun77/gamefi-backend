@@ -4,6 +4,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBody, ApiParam, ApiCon
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { NftAdminService } from './nft-admin.service';
+import { NftService } from './nft.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { CreateTypeDto } from './dto/create-type.dto';
 import { CreateStoreConfigDto, UpdateStoreConfigDto } from './dto/store-config.dto';
@@ -21,6 +22,7 @@ interface RequestWithUser extends Request {
 export class NftAdminController {
   constructor(
     private readonly nftAdminService: NftAdminService,
+    private readonly nftService: NftService,
   ) {}
 
   @Post('initialize-marketplace')
@@ -301,12 +303,12 @@ export class NftAdminController {
 
   @Get('collections')
   @ApiOperation({
-    summary: 'Get all collections',
-    description: 'Retrieves all NFT collections from the database'
+    summary: 'Get all collections from blockchain',
+    description: 'Retrieves all NFT collections directly from the Solana blockchain (blockchain is source of truth)'
   })
   @ApiResponse({
     status: 200,
-    description: 'Collections retrieved successfully',
+    description: 'Collections retrieved successfully from blockchain',
     schema: {
       type: 'object',
       properties: {
@@ -324,7 +326,8 @@ export class NftAdminController {
   })
   async getAllCollections() {
     try {
-      const collections = await this.nftAdminService.getAllCollections();
+      // Fetch from blockchain instead of database (blockchain is source of truth)
+      const { collections } = await this.nftService.fetchCollections();
       return {
         success: true,
         data: collections
@@ -334,7 +337,7 @@ export class NftAdminController {
       throw new HttpException(
         {
           success: false,
-          message: 'Failed to fetch collections',
+          message: 'Failed to fetch collections from blockchain',
           error: error.message
         },
         HttpStatus.INTERNAL_SERVER_ERROR

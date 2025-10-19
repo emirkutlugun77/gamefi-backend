@@ -1,5 +1,6 @@
 import type { Request } from 'express';
 import { NftAdminService } from './nft-admin.service';
+import { NftService } from './nft.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { CreateTypeDto } from './dto/create-type.dto';
 import { CreateStoreConfigDto, UpdateStoreConfigDto } from './dto/store-config.dto';
@@ -11,7 +12,8 @@ interface RequestWithUser extends Request {
 }
 export declare class NftAdminController {
     private readonly nftAdminService;
-    constructor(nftAdminService: NftAdminService);
+    private readonly nftService;
+    constructor(nftAdminService: NftAdminService, nftService: NftService);
     initializeMarketplace(req: RequestWithUser, body?: {
         feeBps?: number;
     }): Promise<any>;
@@ -23,7 +25,7 @@ export declare class NftAdminController {
     }): Promise<any>;
     getAllCollections(): Promise<{
         success: boolean;
-        data: import("../entities/nft-collection.entity").NftCollection[];
+        data: import("./nft.service").NFTCollection[];
     }>;
     getTypesByCollection(collectionName: string): Promise<{
         success: boolean;

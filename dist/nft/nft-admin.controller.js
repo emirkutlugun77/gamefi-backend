@@ -18,13 +18,16 @@ const platform_express_1 = require("@nestjs/platform-express");
 const swagger_1 = require("@nestjs/swagger");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const nft_admin_service_1 = require("./nft-admin.service");
+const nft_service_1 = require("./nft.service");
 const create_collection_dto_1 = require("./dto/create-collection.dto");
 const create_type_dto_1 = require("./dto/create-type.dto");
 const store_config_dto_1 = require("./dto/store-config.dto");
 let NftAdminController = class NftAdminController {
     nftAdminService;
-    constructor(nftAdminService) {
+    nftService;
+    constructor(nftAdminService, nftService) {
         this.nftAdminService = nftAdminService;
+        this.nftService = nftService;
     }
     async initializeMarketplace(req, body) {
         try {
@@ -93,7 +96,7 @@ let NftAdminController = class NftAdminController {
     }
     async getAllCollections() {
         try {
-            const collections = await this.nftAdminService.getAllCollections();
+            const { collections } = await this.nftService.fetchCollections();
             return {
                 success: true,
                 data: collections
@@ -103,7 +106,7 @@ let NftAdminController = class NftAdminController {
             console.error('Error in getAllCollections controller:', error);
             throw new common_1.HttpException({
                 success: false,
-                message: 'Failed to fetch collections',
+                message: 'Failed to fetch collections from blockchain',
                 error: error.message
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -450,12 +453,12 @@ __decorate([
 __decorate([
     (0, common_1.Get)('collections'),
     (0, swagger_1.ApiOperation)({
-        summary: 'Get all collections',
-        description: 'Retrieves all NFT collections from the database'
+        summary: 'Get all collections from blockchain',
+        description: 'Retrieves all NFT collections directly from the Solana blockchain (blockchain is source of truth)'
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
-        description: 'Collections retrieved successfully',
+        description: 'Collections retrieved successfully from blockchain',
         schema: {
             type: 'object',
             properties: {
@@ -649,6 +652,7 @@ __decorate([
 exports.NftAdminController = NftAdminController = __decorate([
     (0, swagger_1.ApiTags)('nft-admin'),
     (0, common_1.Controller)('nft-admin'),
-    __metadata("design:paramtypes", [nft_admin_service_1.NftAdminService])
+    __metadata("design:paramtypes", [nft_admin_service_1.NftAdminService,
+        nft_service_1.NftService])
 ], NftAdminController);
 //# sourceMappingURL=nft-admin.controller.js.map
