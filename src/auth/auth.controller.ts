@@ -5,7 +5,7 @@ import { LoginDto } from './dto/login.dto';
 import { IsString, IsNotEmpty } from 'class-validator';
 
 class CheckPasswordDto {
-  @ApiProperty({ example: '514Vybes229!' })
+  
   @IsString()
   @IsNotEmpty()
   password: string;
@@ -65,7 +65,7 @@ export class AuthController {
   @Post('check-password')
   @ApiOperation({
     summary: 'Check access password for protected pages',
-    description: 'Validates password for accessing Admin, Presale, and Airdrop pages. Password: 514Vybes229!',
+    description: 'Validates password for accessing Admin, Presale, and Airdrop pages. ',
   })
   @ApiResponse({
     status: 200,
@@ -94,7 +94,7 @@ export class AuthController {
     },
   })
   async checkPassword(@Body() checkPasswordDto: CheckPasswordDto) {
-    const CORRECT_PASSWORD = '514Vybes229!';
+    const CORRECT_PASSWORD = process.env.PASSWORD;
     const isValid = checkPasswordDto.password === CORRECT_PASSWORD;
 
     return {
