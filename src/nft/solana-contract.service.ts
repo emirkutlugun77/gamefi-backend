@@ -422,4 +422,168 @@ export class SolanaContractService {
       );
     }
   }
+
+  /**
+   * Mint NFT from collection type
+   * Note: Requires BOTH collection_admin and buyer signatures as per smart contract
+   */
+  async mintNftFromCollection(
+    collectionAdminKeypair: Keypair,
+    buyerKeypair: Keypair,
+    collectionName: string,
+    typeName: string,
+    collectionMintAddress: string
+  ): Promise<{
+    signature: string;
+    nftMint: string;
+    buyerTokenAccount: string;
+  }> {
+    try {
+      console.log('Minting NFT:', { collectionName, typeName });
+
+      const collectionAdmin = collectionAdminKeypair.publicKey;
+      const buyer = buyerKeypair.publicKey;
+
+      // Generate new NFT mint keypair
+      const nftMintKeypair = Keypair.generate();
+      const nftMint = nftMintKeypair.publicKey;
+
+      // Derive PDAs
+      const [collectionPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('collection'), Buffer.from(collectionName)],
+        PROGRAM_ID
+      );
+
+      const [nftTypePda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('type'), collectionPda.toBuffer(), Buffer.from(typeName)],
+        PROGRAM_ID
+      );
+
+      // Get buyer's token account
+      const buyerTokenAccount = await getAssociatedTokenAddress(
+        nftMint,
+        buyer
+      );
+
+      // Use provided collection mint
+      const collectionMintAccount = new PublicKey(collectionMintAddress);
+
+      // Get collection metadata PDAs
+      const [collectionMetadataPda] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('metadata'),
+          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+          collectionMintAccount.toBuffer(),
+        ],
+        TOKEN_METADATA_PROGRAM_ID
+      );
+
+      const [collectionMasterEditionPda] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('metadata'),
+          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+          collectionMintAccount.toBuffer(),
+          Buffer.from('edition'),
+        ],
+        TOKEN_METADATA_PROGRAM_ID
+      );
+
+      // Get NFT metadata PDA
+      const [nftMetadataPda] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('metadata'),
+          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+          nftMint.toBuffer(),
+        ],
+        TOKEN_METADATA_PROGRAM_ID
+      );
+
+      console.log('PDAs derived:', {
+        collection: collectionPda.toString(),
+        nftType: nftTypePda.toString(),
+        nftMint: nftMint.toString(),
+        buyerTokenAccount: buyerTokenAccount.toString(),
+        collectionMintAccount: collectionMintAccount.toString(),
+      });
+
+      // Create instruction using Anchor - account names must match IDL exactly
+      const instruction = await this.program.methods
+        .mintNftFromCollection(typeName)
+        .accounts({
+          collection: collectionPda,
+          nftType: nftTypePda,
+          nftMint,
+          buyerTokenAccount,
+          nftMetadata: nftMetadataPda,
+          collectionMetadata: collectionMetadataPda,
+          collectionMasterEdition: collectionMasterEditionPda,
+          collectionMintAccount, // Must match IDL name exactly
+          collectionAdmin, // Required signer per IDL
+          buyer, // Required signer per IDL
+          systemProgram: SystemProgram.programId,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+          rent: SYSVAR_RENT_PUBKEY,
+        })
+        .instruction();
+
+      // Create transaction with increased compute budget
+      const transaction = new Transaction();
+
+      // Add compute budget instructions
+      const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+        units: 500000 // Increased for NFT minting with metadata
+      });
+
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: 1
+      });
+
+      transaction.add(modifyComputeUnits);
+      transaction.add(addPriorityFee);
+      transaction.add(instruction);
+
+      // Get recent blockhash
+      const { blockhash } = await this.connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = buyer;
+
+      // Sign transaction with all required signers: admin, buyer, and nft mint
+      transaction.sign(collectionAdminKeypair, buyerKeypair, nftMintKeypair);
+
+      // Send and confirm transaction
+      console.log('Sending transaction to Solana...');
+      const signature = await sendAndConfirmTransaction(
+        this.connection,
+        transaction,
+        [collectionAdminKeypair, buyerKeypair, nftMintKeypair],
+        {
+          commitment: 'confirmed',
+        }
+      );
+
+      console.log('✅ NFT minted successfully!');
+      console.log('   Signature:', signature);
+      console.log('   NFT Mint:', nftMint.toString());
+      console.log('   Buyer Token Account:', buyerTokenAccount.toString());
+      console.log('   Explorer:', `https://explorer.solana.com/tx/${signature}?cluster=devnet`);
+
+      return {
+        signature,
+        nftMint: nftMint.toString(),
+        buyerTokenAccount: buyerTokenAccount.toString(),
+      };
+    } catch (error) {
+      console.error('Error minting NFT:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to mint NFT',
+          error: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
 }

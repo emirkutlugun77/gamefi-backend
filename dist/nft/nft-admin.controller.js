@@ -112,14 +112,14 @@ let NftAdminController = class NftAdminController {
         }
     }
     async getTypesByCollection(collectionName) {
-        if (!collectionName) {
-            throw new common_1.HttpException({
-                success: false,
-                message: 'Collection name is required'
-            }, common_1.HttpStatus.BAD_REQUEST);
-        }
         try {
-            const types = await this.nftAdminService.getTypesByCollection(collectionName);
+            let types;
+            if (collectionName) {
+                types = await this.nftAdminService.getTypesByCollection(collectionName);
+            }
+            else {
+                types = await this.nftAdminService.getAllTypes();
+            }
             return {
                 success: true,
                 data: types
@@ -492,13 +492,13 @@ __decorate([
     (0, common_1.Get)('types'),
     (0, swagger_1.ApiOperation)({
         summary: 'Get NFT types by collection',
-        description: 'Retrieves all NFT types for a specific collection'
+        description: 'Retrieves all NFT types for a specific collection, or all types if no collection specified'
     }),
     (0, swagger_1.ApiQuery)({
         name: 'collection',
-        description: 'Collection name',
+        description: 'Collection name (optional - if not provided, returns all types)',
         example: 'VYBE_BUILDINGS_COLLECTION',
-        required: true
+        required: false
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
@@ -513,10 +513,6 @@ __decorate([
                 }
             }
         }
-    }),
-    (0, swagger_1.ApiResponse)({
-        status: 400,
-        description: 'Collection name is required'
     }),
     (0, swagger_1.ApiResponse)({
         status: 404,

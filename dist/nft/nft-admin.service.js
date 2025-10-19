@@ -24,6 +24,7 @@ const nft_collection_entity_1 = require("../entities/nft-collection.entity");
 const nft_type_entity_1 = require("../entities/nft-type.entity");
 const store_config_entity_1 = require("../entities/store-config.entity");
 const solana_contract_service_1 = require("./solana-contract.service");
+const nft_service_1 = require("./nft.service");
 const auth_service_1 = require("../auth/auth.service");
 const axios_1 = __importDefault(require("axios"));
 const PROGRAM_ID = new web3_js_1.PublicKey('Cvz71nzvusTyvH6GzeuHSVKPAGABH2q5tw2HRJdmzvEj');
@@ -32,13 +33,15 @@ let NftAdminService = class NftAdminService {
     nftTypeRepo;
     storeConfigRepo;
     solanaContractService;
+    nftService;
     authService;
     connection;
-    constructor(nftCollectionRepo, nftTypeRepo, storeConfigRepo, solanaContractService, authService) {
+    constructor(nftCollectionRepo, nftTypeRepo, storeConfigRepo, solanaContractService, nftService, authService) {
         this.nftCollectionRepo = nftCollectionRepo;
         this.nftTypeRepo = nftTypeRepo;
         this.storeConfigRepo = storeConfigRepo;
         this.solanaContractService = solanaContractService;
+        this.nftService = nftService;
         this.authService = authService;
         this.connection = new web3_js_1.Connection('https://api.devnet.solana.com', 'confirmed');
     }
@@ -355,6 +358,11 @@ let NftAdminService = class NftAdminService {
             order: { createdAt: 'DESC' }
         });
     }
+    async getAllTypes() {
+        return this.nftTypeRepo.find({
+            order: { createdAt: 'DESC' }
+        });
+    }
     async setStoreConfig(dto) {
         const collection = await this.nftCollectionRepo.findOne({
             where: { name: dto.collectionName }
@@ -400,17 +408,16 @@ let NftAdminService = class NftAdminService {
             }, common_1.HttpStatus.NOT_FOUND);
         }
         if (dto.collectionName) {
-            const collection = await this.nftCollectionRepo.findOne({
-                where: { name: dto.collectionName }
-            });
+            const { collections } = await this.nftService.fetchCollections();
+            const collection = collections.find(c => c.name === dto.collectionName);
             if (!collection) {
                 throw new common_1.HttpException({
                     success: false,
-                    message: `Collection not found: ${dto.collectionName}`
+                    message: `Collection not found on blockchain: ${dto.collectionName}`
                 }, common_1.HttpStatus.NOT_FOUND);
             }
             config.collectionName = dto.collectionName;
-            config.collectionId = collection.id;
+            config.collectionId = `${dto.collectionName}_${Date.now()}`;
         }
         if (dto.displayName !== undefined)
             config.displayName = dto.displayName;
@@ -881,6 +888,7 @@ exports.NftAdminService = NftAdminService = __decorate([
         typeorm_2.Repository,
         typeorm_2.Repository,
         solana_contract_service_1.SolanaContractService,
+        nft_service_1.NftService,
         auth_service_1.AuthService])
 ], NftAdminService);
 //# sourceMappingURL=nft-admin.service.js.map

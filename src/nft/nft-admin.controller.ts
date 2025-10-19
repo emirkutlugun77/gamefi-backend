@@ -358,13 +358,13 @@ export class NftAdminController {
   @Get('types')
   @ApiOperation({
     summary: 'Get NFT types by collection',
-    description: 'Retrieves all NFT types for a specific collection'
+    description: 'Retrieves all NFT types for a specific collection, or all types if no collection specified'
   })
   @ApiQuery({
     name: 'collection',
-    description: 'Collection name',
+    description: 'Collection name (optional - if not provided, returns all types)',
     example: 'VYBE_BUILDINGS_COLLECTION',
-    required: true
+    required: false
   })
   @ApiResponse({
     status: 200,
@@ -381,10 +381,6 @@ export class NftAdminController {
     }
   })
   @ApiResponse({
-    status: 400,
-    description: 'Collection name is required'
-  })
-  @ApiResponse({
     status: 404,
     description: 'Collection not found'
   })
@@ -392,19 +388,18 @@ export class NftAdminController {
     status: 500,
     description: 'Internal server error'
   })
-  async getTypesByCollection(@Query('collection') collectionName: string) {
-    if (!collectionName) {
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Collection name is required'
-        },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+  async getTypesByCollection(@Query('collection') collectionName?: string) {
     try {
-      const types = await this.nftAdminService.getTypesByCollection(collectionName);
+      let types: any[];
+      
+      if (collectionName) {
+        // Get types for specific collection
+        types = await this.nftAdminService.getTypesByCollection(collectionName);
+      } else {
+        // Get all types from all collections
+        types = await this.nftAdminService.getAllTypes();
+      }
+      
       return {
         success: true,
         data: types

@@ -10,6 +10,7 @@ import { CreateCollectionDto } from './dto/create-collection.dto';
 import { CreateTypeDto } from './dto/create-type.dto';
 import { CreateStoreConfigDto, UpdateStoreConfigDto } from './dto/store-config.dto';
 import { SolanaContractService } from './solana-contract.service';
+import { NftService } from './nft.service';
 import { AuthService } from '../auth/auth.service';
 import axios from 'axios';
 
@@ -28,6 +29,7 @@ export class NftAdminService {
     @InjectRepository(StoreConfig)
     private storeConfigRepo: Repository<StoreConfig>,
     public solanaContractService: SolanaContractService,
+    private nftService: NftService,
     private authService: AuthService,
   ) {
     this.connection = new Connection('https://api.devnet.solana.com', 'confirmed');
@@ -493,6 +495,15 @@ export class NftAdminService {
   }
 
   /**
+   * Get all NFT types from all collections
+   */
+  async getAllTypes(): Promise<NftType[]> {
+    return this.nftTypeRepo.find({
+      order: { createdAt: 'DESC' }
+    });
+  }
+
+  /**
    * Create or update store configuration for a tab
    */
   async setStoreConfig(dto: CreateStoreConfigDto): Promise<StoreConfig> {
@@ -558,24 +569,23 @@ export class NftAdminService {
       );
     }
 
-    // Validate collection if provided
+    // Validate collection if provided (check blockchain)
     if (dto.collectionName) {
-      const collection = await this.nftCollectionRepo.findOne({
-        where: { name: dto.collectionName }
-      });
+      const { collections } = await this.nftService.fetchCollections();
+      const collection = collections.find(c => c.name === dto.collectionName);
 
       if (!collection) {
         throw new HttpException(
           {
             success: false,
-            message: `Collection not found: ${dto.collectionName}`
+            message: `Collection not found on blockchain: ${dto.collectionName}`
           },
           HttpStatus.NOT_FOUND
         );
       }
 
       config.collectionName = dto.collectionName;
-      config.collectionId = collection.id;
+      config.collectionId = `${dto.collectionName}_${Date.now()}`;
     }
 
     if (dto.displayName !== undefined) config.displayName = dto.displayName;

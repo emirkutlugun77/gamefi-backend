@@ -17,7 +17,6 @@ const digital_asset_standard_api_1 = require("@metaplex-foundation/digital-asset
 const umi_1 = require("@metaplex-foundation/umi");
 const PROGRAM_ID = new web3_js_1.PublicKey('Cvz71nzvusTyvH6GzeuHSVKPAGABH2q5tw2HRJdmzvEj');
 const TOKEN_METADATA_PROGRAM_ID = new web3_js_1.PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
-const TARGET_COLLECTION_NAME = 'VYBE_SUPERHEROES_w89yuli8p3l';
 const TARGET_COLLECTION_MINT = 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN';
 const MARKETPLACE_ACCOUNT_DISCRIMINATOR = [70, 222, 41, 62, 78, 3, 32, 174];
 const COLLECTION_ACCOUNT_DISCRIMINATOR = [243, 209, 195, 150, 192, 176, 151, 165];
@@ -513,7 +512,7 @@ let NftService = class NftService {
                 const collectionMintBuf = d.slice(off, off + 32);
                 const collectionMint = new web3_js_1.PublicKey(collectionMintBuf);
                 for (const c of collections) {
-                    if (c.mint.equals(collectionMint) && c.name === TARGET_COLLECTION_NAME) {
+                    if (c.mint.equals(collectionMint)) {
                         belongsToOurCollection = true;
                         matchedCollectionName = c.name;
                         break;
@@ -592,7 +591,7 @@ let NftService = class NftService {
                 off += 32;
                 const collectionMint = new web3_js_1.PublicKey(collectionMintBuf);
                 for (const c of collections) {
-                    if (c.mint.equals(collectionMint) && c.name === TARGET_COLLECTION_NAME) {
+                    if (c.mint.equals(collectionMint)) {
                         belongsToOurCollection = true;
                         matchedCollectionName = c.name;
                         break;
