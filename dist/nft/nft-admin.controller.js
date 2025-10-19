@@ -236,6 +236,76 @@ let NftAdminController = class NftAdminController {
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    async syncCollections() {
+        try {
+            const result = await this.nftAdminService.syncCollectionsFromBlockchain();
+            return {
+                success: true,
+                data: result,
+                message: `Synced ${result.synced} collections (${result.created} created, ${result.updated} updated)`
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.HttpException) {
+                throw error;
+            }
+            console.error('Error in syncCollections controller:', error);
+            throw new common_1.HttpException({
+                success: false,
+                message: 'Failed to sync collections',
+                error: error.message
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async syncTypes() {
+        try {
+            const result = await this.nftAdminService.syncTypesFromBlockchain();
+            return {
+                success: true,
+                data: result,
+                message: `Synced ${result.synced} types (${result.created} created, ${result.updated} updated, ${result.skipped} skipped)`
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.HttpException) {
+                throw error;
+            }
+            console.error('Error in syncTypes controller:', error);
+            throw new common_1.HttpException({
+                success: false,
+                message: 'Failed to sync NFT types',
+                error: error.message
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async syncAll() {
+        try {
+            console.log('Starting full blockchain sync...');
+            const collectionsResult = await this.nftAdminService.syncCollectionsFromBlockchain();
+            console.log('Collections synced:', collectionsResult);
+            const typesResult = await this.nftAdminService.syncTypesFromBlockchain();
+            console.log('Types synced:', typesResult);
+            return {
+                success: true,
+                data: {
+                    collections: collectionsResult,
+                    types: typesResult
+                },
+                message: `Full sync complete: ${collectionsResult.synced} collections, ${typesResult.synced} types`
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.HttpException) {
+                throw error;
+            }
+            console.error('Error in syncAll controller:', error);
+            throw new common_1.HttpException({
+                success: false,
+                message: 'Failed to sync all data',
+                error: error.message
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 };
 exports.NftAdminController = NftAdminController;
 __decorate([
@@ -655,6 +725,91 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], NftAdminController.prototype, "deleteStoreConfig", null);
+__decorate([
+    (0, common_1.Post)('sync/collections'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Sync collections from Solana blockchain',
+        description: 'Fetches all collections from the Solana program and syncs them to the database'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Collections synced successfully',
+        schema: {
+            type: 'object',
+            properties: {
+                success: { type: 'boolean', example: true },
+                data: {
+                    type: 'object',
+                    properties: {
+                        synced: { type: 'number', example: 3 },
+                        created: { type: 'number', example: 1 },
+                        updated: { type: 'number', example: 2 },
+                        collections: { type: 'array', items: { type: 'object' } }
+                    }
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error'
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], NftAdminController.prototype, "syncCollections", null);
+__decorate([
+    (0, common_1.Post)('sync/types'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Sync NFT types from Solana blockchain',
+        description: 'Fetches all NFT types from the Solana program and syncs them to the database'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'NFT types synced successfully',
+        schema: {
+            type: 'object',
+            properties: {
+                success: { type: 'boolean', example: true },
+                data: {
+                    type: 'object',
+                    properties: {
+                        synced: { type: 'number', example: 5 },
+                        created: { type: 'number', example: 2 },
+                        updated: { type: 'number', example: 3 },
+                        skipped: { type: 'number', example: 0 },
+                        types: { type: 'array', items: { type: 'object' } }
+                    }
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error'
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], NftAdminController.prototype, "syncTypes", null);
+__decorate([
+    (0, common_1.Post)('sync/all'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Sync all data from Solana blockchain',
+        description: 'Syncs both collections and NFT types from the Solana program to the database'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'All data synced successfully'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error'
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], NftAdminController.prototype, "syncAll", null);
 exports.NftAdminController = NftAdminController = __decorate([
     (0, swagger_1.ApiTags)('nft-admin'),
     (0, common_1.Controller)('nft-admin'),

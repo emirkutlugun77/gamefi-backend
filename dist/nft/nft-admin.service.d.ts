@@ -26,6 +26,19 @@ export declare class NftAdminService {
     createType(dto: CreateTypeDto): Promise<any>;
     getAllCollections(): Promise<NftCollection[]>;
     getTypesByCollection(collectionName: string): Promise<NftType[]>;
+    syncCollectionsFromBlockchain(): Promise<{
+        synced: number;
+        updated: number;
+        created: number;
+        collections: any[];
+    }>;
+    syncTypesFromBlockchain(): Promise<{
+        synced: number;
+        updated: number;
+        created: number;
+        skipped: number;
+        types: any[];
+    }>;
     getAllTypes(): Promise<NftType[]>;
     setStoreConfig(dto: CreateStoreConfigDto): Promise<StoreConfig>;
     updateStoreConfig(tabName: string, dto: UpdateStoreConfigDto): Promise<StoreConfig>;

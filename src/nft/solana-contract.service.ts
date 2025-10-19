@@ -586,4 +586,139 @@ export class SolanaContractService {
       );
     }
   }
+
+  /**
+   * Sync all collections from Solana blockchain to database
+   * Returns array of collection data from blockchain
+   */
+  async syncCollectionsFromBlockchain(): Promise<any[]> {
+    try {
+      console.log('🔄 Starting blockchain sync...');
+      console.log('Program ID:', PROGRAM_ID.toString());
+
+      // Get all program accounts for NFTCollection
+      const accounts = await this.connection.getProgramAccounts(PROGRAM_ID, {
+        filters: [
+          {
+            // Filter by account discriminator for NFTCollection
+            // First 8 bytes are the discriminator
+            memcmp: {
+              offset: 0,
+              bytes: 'base58' // We'll need to get the actual discriminator from IDL
+            }
+          }
+        ]
+      });
+
+      console.log(`Found ${accounts.length} program accounts`);
+
+      // Alternatively, fetch all accounts and decode them
+      const allAccounts = await this.connection.getProgramAccounts(PROGRAM_ID);
+      console.log(`Total program accounts: ${allAccounts.length}`);
+
+      const collections: any[] = [];
+
+      for (const account of allAccounts) {
+        try {
+          // Try to decode as NFTCollection
+          const collectionData: any = await (this.program.account as any).nftCollection.fetch(account.pubkey);
+          
+          console.log('✅ Found collection:', {
+            pubkey: account.pubkey.toString(),
+            name: collectionData.name,
+            symbol: collectionData.symbol,
+            mint: collectionData.mint.toString(),
+            admin: collectionData.admin.toString(),
+            royalty: collectionData.royalty,
+            isActive: collectionData.isActive,
+          });
+
+          collections.push({
+            pubkey: account.pubkey.toString(),
+            name: collectionData.name,
+            symbol: collectionData.symbol,
+            uri: collectionData.uri,
+            royalty: collectionData.royalty,
+            mint: collectionData.mint.toString(),
+            admin: collectionData.admin.toString(),
+            isActive: collectionData.isActive,
+            bump: collectionData.bump,
+          });
+        } catch (err) {
+          // Not a collection account, skip
+          continue;
+        }
+      }
+
+      console.log(`✅ Synced ${collections.length} collections from blockchain`);
+      return collections;
+    } catch (error) {
+      console.error('Error syncing collections from blockchain:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to sync collections from blockchain',
+          error: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Sync all NFT types from Solana blockchain to database
+   * Returns array of NFT type data from blockchain
+   */
+  async syncTypesFromBlockchain(): Promise<any[]> {
+    try {
+      console.log('🔄 Starting NFT types blockchain sync...');
+
+      const allAccounts = await this.connection.getProgramAccounts(PROGRAM_ID);
+      const nftTypes: any[] = [];
+
+      for (const account of allAccounts) {
+        try {
+          // Try to decode as NFTType
+          const typeData: any = await (this.program.account as any).nftType.fetch(account.pubkey);
+          
+          console.log('✅ Found NFT type:', {
+            pubkey: account.pubkey.toString(),
+            name: typeData.name,
+            collection: typeData.collection.toString(),
+            price: typeData.price.toString(),
+            maxSupply: typeData.maxSupply.toString(),
+            currentSupply: typeData.currentSupply.toString(),
+          });
+
+          nftTypes.push({
+            pubkey: account.pubkey.toString(),
+            collection: typeData.collection.toString(),
+            name: typeData.name,
+            uri: typeData.uri,
+            price: typeData.price.toString(),
+            maxSupply: typeData.maxSupply.toString(),
+            currentSupply: typeData.currentSupply.toString(),
+            stakingAmount: typeData.stakingAmount.toString(),
+            bump: typeData.bump,
+          });
+        } catch (err) {
+          // Not an NFT type account, skip
+          continue;
+        }
+      }
+
+      console.log(`✅ Synced ${nftTypes.length} NFT types from blockchain`);
+      return nftTypes;
+    } catch (error) {
+      console.error('Error syncing NFT types from blockchain:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to sync NFT types from blockchain',
+          error: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
 }

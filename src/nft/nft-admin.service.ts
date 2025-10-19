@@ -495,6 +495,228 @@ export class NftAdminService {
   }
 
   /**
+   * Sync collections from Solana blockchain to database
+   */
+  async syncCollectionsFromBlockchain(): Promise<{
+    synced: number;
+    updated: number;
+    created: number;
+    collections: any[];
+  }> {
+    try {
+      console.log('🔄 Syncing collections from blockchain...');
+      
+      // Fetch collections from blockchain
+      const blockchainCollections = await this.solanaContractService.syncCollectionsFromBlockchain();
+      
+      let created = 0;
+      let updated = 0;
+      const syncedCollections: any[] = [];
+
+      for (const bcCollection of blockchainCollections) {
+        // Check if collection exists in DB
+        let dbCollection = await this.nftCollectionRepo.findOne({
+          where: { name: bcCollection.name }
+        });
+
+        if (dbCollection) {
+          // Update existing collection
+          dbCollection.symbol = bcCollection.symbol;
+          dbCollection.uri = bcCollection.uri;
+          dbCollection.royalty = bcCollection.royalty;
+          dbCollection.admin = bcCollection.admin;
+          dbCollection.isActive = bcCollection.isActive;
+          dbCollection.updatedAt = new Date();
+          
+          await this.nftCollectionRepo.save(dbCollection);
+          updated++;
+          
+          console.log(`✅ Updated collection: ${bcCollection.name}`);
+        } else {
+          // Create new collection
+          dbCollection = this.nftCollectionRepo.create({
+            id: `${bcCollection.name}_${Date.now()}`,
+            name: bcCollection.name,
+            symbol: bcCollection.symbol,
+            uri: bcCollection.uri,
+            royalty: bcCollection.royalty,
+            admin: bcCollection.admin,
+            isActive: bcCollection.isActive,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+          
+          await this.nftCollectionRepo.save(dbCollection);
+          created++;
+          
+          console.log(`✅ Created collection: ${bcCollection.name}`);
+        }
+
+        syncedCollections.push({
+          ...bcCollection,
+          dbId: dbCollection.id,
+        });
+      }
+
+      console.log(`✅ Sync complete: ${created} created, ${updated} updated`);
+
+      return {
+        synced: blockchainCollections.length,
+        created,
+        updated,
+        collections: syncedCollections,
+      };
+    } catch (error) {
+      console.error('Error syncing collections:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to sync collections from blockchain',
+          error: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Sync NFT types from Solana blockchain to database
+   */
+  async syncTypesFromBlockchain(): Promise<{
+    synced: number;
+    updated: number;
+    created: number;
+    skipped: number;
+    types: any[];
+  }> {
+    try {
+      console.log('🔄 Syncing NFT types from blockchain...');
+      
+      // Fetch types from blockchain
+      const blockchainTypes = await this.solanaContractService.syncTypesFromBlockchain();
+      
+      let created = 0;
+      let updated = 0;
+      let skipped = 0;
+      const syncedTypes: any[] = [];
+
+      for (const bcType of blockchainTypes) {
+        console.log(`\n🔍 Processing type: ${bcType.name}, collection PDA: ${bcType.collection}`);
+        
+        // Find the collection in DB - we need to get all collections and match by PDA
+        const allCollections = await this.nftCollectionRepo.find();
+        
+        // Get collection PDA from blockchain data
+        const collectionPDA = bcType.collection;
+        
+        // Try to find matching collection by checking blockchain collection names
+        // Since we just synced, we can fetch collection data from blockchain
+        let collection: NftCollection | null = null;
+        
+        try {
+          // Fetch the collection account from blockchain to get its name
+          const collectionAccountData: any = await this.solanaContractService.syncCollectionsFromBlockchain();
+          const matchingBcCollection = collectionAccountData.find((c: any) => c.pubkey === collectionPDA);
+          
+          console.log(`  Matching blockchain collection:`, matchingBcCollection ? matchingBcCollection.name : 'NOT FOUND');
+          
+          if (matchingBcCollection) {
+            collection = await this.nftCollectionRepo.findOne({
+              where: { name: matchingBcCollection.name }
+            });
+            console.log(`  DB collection found:`, collection ? collection.name : 'NOT FOUND');
+          }
+        } catch (err) {
+          console.error(`  ❌ Error fetching collection for type ${bcType.name}:`, err.message);
+        }
+
+        if (!collection) {
+          console.warn(`  ⚠️ Collection not found for type: ${bcType.name} (collection PDA: ${bcType.collection})`);
+          skipped++;
+          continue;
+        }
+
+        // Check if type exists in DB by name and collection
+        let dbType = await this.nftTypeRepo.findOne({
+          where: { 
+            name: bcType.name,
+            collectionId: collection.id
+          }
+        });
+
+        if (dbType) {
+          // Update existing type
+          dbType.uri = bcType.uri;
+          dbType.price = bcType.price;
+          dbType.maxSupply = bcType.maxSupply;
+          dbType.currentSupply = bcType.currentSupply;
+          dbType.stakingAmount = bcType.stakingAmount;
+          dbType.updatedAt = new Date();
+          
+          await this.nftTypeRepo.save(dbType);
+          updated++;
+          
+          console.log(`✅ Updated NFT type: ${bcType.name}`);
+        } else {
+          // Create new type (need to fetch metadata from URI)
+          try {
+            const metadataResponse = await fetch(bcType.uri);
+            const metadata = await metadataResponse.json();
+
+            dbType = this.nftTypeRepo.create({
+              id: bcType.pubkey,
+              collectionId: collection.id,
+              name: bcType.name,
+              uri: bcType.uri,
+              price: bcType.price,
+              maxSupply: bcType.maxSupply,
+              currentSupply: bcType.currentSupply,
+              stakingAmount: bcType.stakingAmount,
+              mainImage: metadata.image || metadata.properties?.files?.[0]?.uri || '',
+              additionalImages: JSON.stringify(metadata.additionalImages || []),
+            });
+            
+            await this.nftTypeRepo.save(dbType);
+            created++;
+            
+            console.log(`✅ Created NFT type: ${bcType.name}`);
+          } catch (fetchError) {
+            console.error(`❌ Failed to fetch metadata for ${bcType.name}:`, fetchError.message);
+            skipped++;
+            continue;
+          }
+        }
+
+        syncedTypes.push({
+          ...bcType,
+          dbId: dbType.id,
+          collectionName: collection.name,
+        });
+      }
+
+      console.log(`✅ Sync complete: ${created} created, ${updated} updated, ${skipped} skipped`);
+
+      return {
+        synced: blockchainTypes.length,
+        created,
+        updated,
+        skipped,
+        types: syncedTypes,
+      };
+    } catch (error) {
+      console.error('Error syncing NFT types:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to sync NFT types from blockchain',
+          error: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
    * Get all NFT types from all collections
    */
   async getAllTypes(): Promise<NftType[]> {

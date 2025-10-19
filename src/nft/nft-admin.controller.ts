@@ -639,4 +639,161 @@ export class NftAdminController {
       );
     }
   }
+
+  @Post('sync/collections')
+  @ApiOperation({
+    summary: 'Sync collections from Solana blockchain',
+    description: 'Fetches all collections from the Solana program and syncs them to the database'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Collections synced successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            synced: { type: 'number', example: 3 },
+            created: { type: 'number', example: 1 },
+            updated: { type: 'number', example: 2 },
+            collections: { type: 'array', items: { type: 'object' } }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error'
+  })
+  async syncCollections() {
+    try {
+      const result = await this.nftAdminService.syncCollectionsFromBlockchain();
+      return {
+        success: true,
+        data: result,
+        message: `Synced ${result.synced} collections (${result.created} created, ${result.updated} updated)`
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      console.error('Error in syncCollections controller:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to sync collections',
+          error: error.message
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Post('sync/types')
+  @ApiOperation({
+    summary: 'Sync NFT types from Solana blockchain',
+    description: 'Fetches all NFT types from the Solana program and syncs them to the database'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'NFT types synced successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            synced: { type: 'number', example: 5 },
+            created: { type: 'number', example: 2 },
+            updated: { type: 'number', example: 3 },
+            skipped: { type: 'number', example: 0 },
+            types: { type: 'array', items: { type: 'object' } }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error'
+  })
+  async syncTypes() {
+    try {
+      const result = await this.nftAdminService.syncTypesFromBlockchain();
+      return {
+        success: true,
+        data: result,
+        message: `Synced ${result.synced} types (${result.created} created, ${result.updated} updated, ${result.skipped} skipped)`
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      console.error('Error in syncTypes controller:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to sync NFT types',
+          error: error.message
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Post('sync/all')
+  @ApiOperation({
+    summary: 'Sync all data from Solana blockchain',
+    description: 'Syncs both collections and NFT types from the Solana program to the database'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'All data synced successfully'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error'
+  })
+  async syncAll() {
+    try {
+      console.log('Starting full blockchain sync...');
+      
+      // First sync collections
+      const collectionsResult = await this.nftAdminService.syncCollectionsFromBlockchain();
+      console.log('Collections synced:', collectionsResult);
+      
+      // Then sync types
+      const typesResult = await this.nftAdminService.syncTypesFromBlockchain();
+      console.log('Types synced:', typesResult);
+      
+      return {
+        success: true,
+        data: {
+          collections: collectionsResult,
+          types: typesResult
+        },
+        message: `Full sync complete: ${collectionsResult.synced} collections, ${typesResult.synced} types`
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      console.error('Error in syncAll controller:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to sync all data',
+          error: error.message
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
 }

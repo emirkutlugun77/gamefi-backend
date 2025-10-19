@@ -53,5 +53,45 @@ export declare class NftAdminController {
         success: boolean;
         message: string;
     }>;
+    syncCollections(): Promise<{
+        success: boolean;
+        data: {
+            synced: number;
+            updated: number;
+            created: number;
+            collections: any[];
+        };
+        message: string;
+    }>;
+    syncTypes(): Promise<{
+        success: boolean;
+        data: {
+            synced: number;
+            updated: number;
+            created: number;
+            skipped: number;
+            types: any[];
+        };
+        message: string;
+    }>;
+    syncAll(): Promise<{
+        success: boolean;
+        data: {
+            collections: {
+                synced: number;
+                updated: number;
+                created: number;
+                collections: any[];
+            };
+            types: {
+                synced: number;
+                updated: number;
+                created: number;
+                skipped: number;
+                types: any[];
+            };
+        };
+        message: string;
+    }>;
 }
 export {};
