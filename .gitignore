@@ -37,10 +37,13 @@ lerna-debug.log*
 
 # dotenv environment variable files
 .env
+.env.local
 .env.development.local
 .env.test.local
 .env.production.local
-.env.local
+# Exclude environment files with real credentials
+# Keep .env.development and .env.production as templates in git
+# Users should copy and update with their own credentials
 
 # temp directory
 .temp

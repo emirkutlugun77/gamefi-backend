@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
+const auth_module_1 = require("./auth/auth.module");
 const nft_module_1 = require("./nft/nft.module");
 const user_module_1 = require("./user/user.module");
 const achievements_module_1 = require("./achievements/achievements.module");
@@ -34,6 +35,7 @@ exports.AppModule = AppModule = __decorate([
                 synchronize: true,
                 entities: [nft_collection_entity_1.NftCollection, nft_type_entity_1.NftType, user_nft_entity_1.UserNft, user_entity_1.User, task_entity_1.Task, user_task_entity_1.UserTask, store_config_entity_1.StoreConfig],
             }),
+            auth_module_1.AuthModule,
             nft_module_1.NftModule,
             user_module_1.UserModule,
             achievements_module_1.AchievementsModule,

@@ -16,6 +16,7 @@ exports.NftAdminController = void 0;
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
 const swagger_1 = require("@nestjs/swagger");
+const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const nft_admin_service_1 = require("./nft-admin.service");
 const create_collection_dto_1 = require("./dto/create-collection.dto");
 const create_type_dto_1 = require("./dto/create-type.dto");
@@ -25,9 +26,42 @@ let NftAdminController = class NftAdminController {
     constructor(nftAdminService) {
         this.nftAdminService = nftAdminService;
     }
-    async createCollection(dto, image) {
+    async initializeMarketplace(req, body) {
         try {
-            return await this.nftAdminService.createCollectionWithFile(dto, image);
+            const feeBps = body?.feeBps || 500;
+            return await this.nftAdminService.initializeMarketplaceWithAuth(req.user.encryptedPrivateKey, feeBps);
+        }
+        catch (error) {
+            if (error instanceof common_1.HttpException) {
+                throw error;
+            }
+            console.error('Error in initializeMarketplace controller:', error);
+            throw new common_1.HttpException({
+                success: false,
+                message: 'Failed to initialize marketplace',
+                error: error.message
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async getMarketplaceStatus() {
+        try {
+            return await this.nftAdminService.checkMarketplaceStatus();
+        }
+        catch (error) {
+            if (error instanceof common_1.HttpException) {
+                throw error;
+            }
+            console.error('Error in getMarketplaceStatus controller:', error);
+            throw new common_1.HttpException({
+                success: false,
+                message: 'Failed to get marketplace status',
+                error: error.message
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async createCollection(req, dto, image) {
+        try {
+            return await this.nftAdminService.createCollectionWithAuth(req.user.encryptedPrivateKey, dto, image);
         }
         catch (error) {
             if (error instanceof common_1.HttpException) {
@@ -202,19 +236,106 @@ let NftAdminController = class NftAdminController {
 };
 exports.NftAdminController = NftAdminController;
 __decorate([
-    (0, common_1.Post)('collection'),
-    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('image')),
-    (0, swagger_1.ApiConsumes)('multipart/form-data'),
+    (0, common_1.Post)('initialize-marketplace'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)('JWT-auth'),
     (0, swagger_1.ApiOperation)({
-        summary: 'Create NFT collection with IPFS metadata',
-        description: 'Creates a new NFT collection and uploads image + metadata to IPFS via QuickNode'
+        summary: 'Initialize marketplace on Solana',
+        description: 'Initializes the NFT marketplace smart contract. This must be done once before creating any collections. Requires JWT authentication.'
     }),
     (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
-            required: ['adminPublicKey', 'name', 'symbol', 'royalty', 'description'],
             properties: {
-                adminPublicKey: { type: 'string', example: 'Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M' },
+                feeBps: { type: 'number', example: 500, description: 'Marketplace fee in basis points (500 = 5%)' }
+            }
+        },
+        required: false
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'Marketplace initialized successfully',
+        schema: {
+            type: 'object',
+            properties: {
+                success: { type: 'boolean', example: true },
+                data: {
+                    type: 'object',
+                    properties: {
+                        signature: { type: 'string', example: '5Kq...' },
+                        marketplacePda: { type: 'string', example: '9Aqrcm...' },
+                        feeBps: { type: 'number', example: 500 },
+                        explorerUrl: { type: 'string', example: 'https://explorer.solana.com/tx/...?cluster=devnet' }
+                    }
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 401,
+        description: 'Unauthorized - Invalid or missing JWT token'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 409,
+        description: 'Marketplace already initialized'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error'
+    }),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], NftAdminController.prototype, "initializeMarketplace", null);
+__decorate([
+    (0, common_1.Get)('marketplace-status'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Check marketplace initialization status',
+        description: 'Check if the marketplace has been initialized on Solana'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Marketplace status retrieved successfully',
+        schema: {
+            type: 'object',
+            properties: {
+                success: { type: 'boolean', example: true },
+                data: {
+                    type: 'object',
+                    properties: {
+                        isInitialized: { type: 'boolean', example: true },
+                        marketplacePda: { type: 'string', example: '9Aqrcm...' },
+                        message: { type: 'string', example: 'Marketplace is initialized and ready!' }
+                    }
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error'
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], NftAdminController.prototype, "getMarketplaceStatus", null);
+__decorate([
+    (0, common_1.Post)('collection'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)('JWT-auth'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('image')),
+    (0, swagger_1.ApiConsumes)('multipart/form-data'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Create NFT collection on Solana',
+        description: 'Uploads image + metadata to IPFS, creates collection on-chain and returns transaction signature. Requires JWT authentication. Note: Marketplace must be initialized first.'
+    }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            required: ['name', 'symbol', 'royalty', 'description'],
+            properties: {
                 name: { type: 'string', example: 'VYBE_BUILDINGS_COLLECTION' },
                 symbol: { type: 'string', example: 'VYBEB' },
                 royalty: { type: 'number', example: 5 },
@@ -225,7 +346,7 @@ __decorate([
     }),
     (0, swagger_1.ApiResponse)({
         status: 201,
-        description: 'Collection created successfully',
+        description: 'Collection created successfully on Solana',
         schema: {
             type: 'object',
             properties: {
@@ -233,27 +354,29 @@ __decorate([
                 data: {
                     type: 'object',
                     properties: {
-                        collection: { type: 'object' },
-                        metadata: { type: 'object' },
+                        signature: { type: 'string', example: '5Kq...' },
+                        collectionPda: { type: 'string', example: '9Aqrcm...' },
+                        collectionMint: { type: 'string', example: 'Cv7jep...' },
                         metadataUri: { type: 'string', example: 'ipfs://QmX...' },
-                        message: { type: 'string' }
+                        explorerUrl: { type: 'string', example: 'https://explorer.solana.com/tx/...?cluster=devnet' }
                     }
                 }
             }
         }
     }),
     (0, swagger_1.ApiResponse)({
-        status: 400,
-        description: 'Bad request - Invalid input data'
+        status: 401,
+        description: 'Unauthorized - Invalid or missing JWT token'
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
         description: 'Internal server error'
     }),
-    __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.UploadedFile)()),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.UploadedFile)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [create_collection_dto_1.CreateCollectionDto, Object]),
+    __metadata("design:paramtypes", [Object, create_collection_dto_1.CreateCollectionDto, Object]),
     __metadata("design:returntype", Promise)
 ], NftAdminController.prototype, "createCollection", null);
 __decorate([

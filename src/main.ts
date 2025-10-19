@@ -17,7 +17,20 @@ async function bootstrap() {
     .setTitle('NFT Marketplace API')
     .setDescription('Solana NFT Marketplace Backend API - Blockchain\'den doğrudan NFT verilerini çeker')
     .setVersion('1.0')
+    .addTag('auth', 'Authentication operations')
     .addTag('nft', 'NFT marketplace operations')
+    .addTag('nft-admin', 'NFT admin operations (requires JWT authentication)')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token (obtained from /auth/login)',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
     .build();
   
   const document = SwaggerModule.createDocument(app, config);

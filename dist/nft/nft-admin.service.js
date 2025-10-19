@@ -11,6 +11,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NftAdminService = void 0;
 const common_1 = require("@nestjs/common");
@@ -20,16 +23,23 @@ const web3_js_1 = require("@solana/web3.js");
 const nft_collection_entity_1 = require("../entities/nft-collection.entity");
 const nft_type_entity_1 = require("../entities/nft-type.entity");
 const store_config_entity_1 = require("../entities/store-config.entity");
+const solana_contract_service_1 = require("./solana-contract.service");
+const auth_service_1 = require("../auth/auth.service");
+const axios_1 = __importDefault(require("axios"));
 const PROGRAM_ID = new web3_js_1.PublicKey('Cvz71nzvusTyvH6GzeuHSVKPAGABH2q5tw2HRJdmzvEj');
 let NftAdminService = class NftAdminService {
     nftCollectionRepo;
     nftTypeRepo;
     storeConfigRepo;
+    solanaContractService;
+    authService;
     connection;
-    constructor(nftCollectionRepo, nftTypeRepo, storeConfigRepo) {
+    constructor(nftCollectionRepo, nftTypeRepo, storeConfigRepo, solanaContractService, authService) {
         this.nftCollectionRepo = nftCollectionRepo;
         this.nftTypeRepo = nftTypeRepo;
         this.storeConfigRepo = storeConfigRepo;
+        this.solanaContractService = solanaContractService;
+        this.authService = authService;
         this.connection = new web3_js_1.Connection('https://api.devnet.solana.com', 'confirmed');
     }
     async uploadToIPFS(metadata) {
@@ -48,48 +58,40 @@ let NftAdminService = class NftAdminService {
             });
             form.append('Key', fileName);
             form.append('ContentType', 'application/json');
-            const response = await fetch('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', {
-                method: 'POST',
+            const response = await axios_1.default.post('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', form, {
                 headers: {
                     'x-api-key': apiKey,
                     ...form.getHeaders()
-                },
-                body: form
+                }
             });
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('QuickNode IPFS upload failed:', errorText);
-                throw new Error(`IPFS upload failed: ${response.statusText} - ${errorText}`);
-            }
-            const result = await response.json();
-            console.log('QuickNode IPFS response:', result);
-            const cid = result.requestid || result.pin?.cid || result.cid || result.ipfsHash || result.IpfsHash;
-            if (!cid) {
-                console.error('No CID in response:', result);
-                throw new Error('Failed to get CID from IPFS upload response');
-            }
-            const ipfsUri = `ipfs://${cid}`;
-            console.log('✅ Uploaded metadata to IPFS:', ipfsUri);
-            console.log('   Gateway URL:', `https://gateway.quicknode.com/ipfs/${cid}`);
-            return ipfsUri;
+            const result = response.data;
+            const cid = this.extractCIDFromResponse(result);
+            const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL || 'https://gateway.quicknode.com/ipfs';
+            const gatewayUrl = `${gatewayBaseUrl}/${cid}`;
+            console.log('✅ Uploaded metadata to IPFS');
+            console.log('   CID:', cid);
+            console.log('   Gateway URL:', gatewayUrl);
+            return gatewayUrl;
         }
         catch (error) {
             console.error('Error uploading metadata to IPFS:', error);
+            const errorMessage = error.response?.data?.message || error.message;
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to upload metadata to IPFS',
-                error: error.message
+                error: errorMessage
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    async uploadFileToIPFS(fileBuffer, filename) {
+    async uploadFileToIPFS(fileBuffer, filename, customName) {
         try {
             console.log('Uploading file to QuickNode IPFS:', filename);
             const apiKey = process.env.QUICKNODE_IPFS_API_KEY;
             if (!apiKey) {
                 throw new Error('QUICKNODE_IPFS_API_KEY is not configured');
             }
-            const fileKey = `${Date.now()}_${filename}`;
+            const finalFilename = customName || filename;
+            const fileKey = `${finalFilename}_${Date.now()}`;
             const contentType = this.getMimeType(filename);
             const FormData = require('form-data');
             const form = new FormData();
@@ -99,39 +101,51 @@ let NftAdminService = class NftAdminService {
             });
             form.append('Key', fileKey);
             form.append('ContentType', contentType);
-            const response = await fetch('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', {
-                method: 'POST',
+            const response = await axios_1.default.post('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', form, {
                 headers: {
                     'x-api-key': apiKey,
                     ...form.getHeaders()
-                },
-                body: form
+                }
             });
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('QuickNode IPFS file upload failed:', errorText);
-                throw new Error(`File upload failed: ${response.statusText} - ${errorText}`);
-            }
-            const result = await response.json();
-            console.log('QuickNode IPFS response:', result);
-            const cid = result.requestid || result.pin?.cid || result.cid || result.ipfsHash || result.IpfsHash;
-            if (!cid) {
-                console.error('No CID in response:', result);
-                throw new Error('Failed to get CID from IPFS upload response');
-            }
-            const ipfsUri = `ipfs://${cid}`;
-            console.log('✅ File uploaded to IPFS:', ipfsUri);
-            console.log('   Gateway URL:', `https://gateway.quicknode.com/ipfs/${cid}`);
-            return ipfsUri;
+            const result = response.data;
+            const cid = this.extractCIDFromResponse(result);
+            const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL || 'https://gateway.quicknode.com/ipfs';
+            const gatewayUrl = `${gatewayBaseUrl}/${cid}`;
+            console.log('✅ File uploaded to IPFS');
+            console.log('   CID:', cid);
+            console.log('   Gateway URL:', gatewayUrl);
+            return gatewayUrl;
         }
         catch (error) {
             console.error('Error uploading file to IPFS:', error);
+            const errorMessage = error.response?.data?.message || error.message;
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to upload file to IPFS',
-                error: error.message
+                error: errorMessage
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+    extractCIDFromResponse(result) {
+        console.log('QuickNode IPFS response (full):', JSON.stringify(result, null, 2));
+        let cid = result.pin?.cid || result.cid || result.ipfsHash || result.IpfsHash || result.hash;
+        if (!cid && result.requestid) {
+            const reqId = result.requestid;
+            if (reqId.startsWith('Qm') || reqId.startsWith('b')) {
+                cid = reqId;
+            }
+            else {
+                console.warn('⚠️  requestid does not look like a valid CID:', reqId);
+                console.warn('   Expected CID to start with "Qm" or "b"');
+            }
+        }
+        if (!cid) {
+            console.error('❌ No valid CID found in response');
+            console.error('   Available fields:', Object.keys(result));
+            console.error('   Full response:', result);
+            throw new Error('Failed to get CID from IPFS upload response. Check QuickNode API response format.');
+        }
+        return cid;
     }
     getMimeType(filename) {
         const ext = filename.split('.').pop()?.toLowerCase();
@@ -173,15 +187,16 @@ let NftAdminService = class NftAdminService {
     }
     async createCollection(dto) {
         try {
-            let adminPubkey;
-            try {
-                adminPubkey = new web3_js_1.PublicKey(dto.adminPublicKey);
-            }
-            catch (error) {
-                throw new common_1.HttpException({
-                    success: false,
-                    message: 'Invalid admin public key'
-                }, common_1.HttpStatus.BAD_REQUEST);
+            if (dto.adminPublicKey) {
+                try {
+                    new web3_js_1.PublicKey(dto.adminPublicKey);
+                }
+                catch (error) {
+                    throw new common_1.HttpException({
+                        success: false,
+                        message: 'Invalid admin public key'
+                    }, common_1.HttpStatus.BAD_REQUEST);
+                }
             }
             const imageUri = await this.uploadImageToIPFS(dto.image);
             const metadata = {
@@ -204,7 +219,7 @@ let NftAdminService = class NftAdminService {
             const metadataUri = await this.uploadToIPFS(metadata);
             const collection = this.nftCollectionRepo.create({
                 id: `${dto.name}_${Date.now()}`,
-                admin: dto.adminPublicKey,
+                admin: dto.adminPublicKey || 'pending',
                 name: dto.name,
                 symbol: dto.symbol,
                 uri: metadataUri,
@@ -446,15 +461,16 @@ let NftAdminService = class NftAdminService {
     }
     async createCollectionWithFile(dto, imageFile) {
         try {
-            let adminPubkey;
-            try {
-                adminPubkey = new web3_js_1.PublicKey(dto.adminPublicKey);
-            }
-            catch (error) {
-                throw new common_1.HttpException({
-                    success: false,
-                    message: 'Invalid admin public key'
-                }, common_1.HttpStatus.BAD_REQUEST);
+            if (dto.adminPublicKey) {
+                try {
+                    new web3_js_1.PublicKey(dto.adminPublicKey);
+                }
+                catch (error) {
+                    throw new common_1.HttpException({
+                        success: false,
+                        message: 'Invalid admin public key'
+                    }, common_1.HttpStatus.BAD_REQUEST);
+                }
             }
             if (!imageFile) {
                 throw new common_1.HttpException({
@@ -462,7 +478,8 @@ let NftAdminService = class NftAdminService {
                     message: 'Image file is required'
                 }, common_1.HttpStatus.BAD_REQUEST);
             }
-            const imageUri = await this.uploadFileToIPFS(imageFile.buffer, imageFile.originalname);
+            const imageFilename = `${dto.name}_collection_image`;
+            const imageUri = await this.uploadFileToIPFS(imageFile.buffer, imageFile.originalname, imageFilename);
             const metadata = {
                 name: dto.name,
                 symbol: dto.symbol,
@@ -481,37 +498,25 @@ let NftAdminService = class NftAdminService {
                 }
             };
             const metadataUri = await this.uploadToIPFS(metadata);
-            const collection = this.nftCollectionRepo.create({
-                id: `${dto.name}_${Date.now()}`,
-                admin: dto.adminPublicKey,
-                name: dto.name,
-                symbol: dto.symbol,
-                uri: metadataUri,
-                royalty: dto.royalty,
-                isActive: true,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            });
-            await this.nftCollectionRepo.save(collection);
-            console.log('✅ Collection created with file upload:', collection);
+            console.log('✅ Metadata uploaded to IPFS:', metadataUri);
             return {
                 success: true,
                 data: {
-                    collection,
                     metadata,
                     metadataUri,
-                    message: 'Collection created successfully. Please create the collection on-chain using the provided metadata URI.'
+                    imageUri,
+                    message: 'Metadata uploaded to IPFS successfully! Now create a new Keypair for collection mint and call /nft-admin/collection/create-transaction endpoint with the mint public key.'
                 }
             };
         }
         catch (error) {
-            console.error('Error creating collection with file:', error);
+            console.error('Error creating collection metadata:', error);
             if (error instanceof common_1.HttpException) {
                 throw error;
             }
             throw new common_1.HttpException({
                 success: false,
-                message: 'Failed to create collection',
+                message: 'Failed to create collection metadata',
                 error: error.message
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -627,6 +632,137 @@ let NftAdminService = class NftAdminService {
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    async createCollectionWithAuth(encryptedPrivateKey, dto, imageFile) {
+        try {
+            console.log('Creating collection with auth:', dto.name);
+            const isInitialized = await this.solanaContractService.isMarketplaceInitialized();
+            if (!isInitialized) {
+                throw new common_1.HttpException({
+                    success: false,
+                    message: 'Marketplace is not initialized. Please initialize the marketplace first using POST /nft-admin/initialize-marketplace endpoint.',
+                    error: 'MARKETPLACE_NOT_INITIALIZED'
+                }, common_1.HttpStatus.PRECONDITION_FAILED);
+            }
+            const adminKeypair = this.authService.getKeypairFromToken(encryptedPrivateKey);
+            const collectionMintKeypair = web3_js_1.Keypair.generate();
+            console.log('Admin:', adminKeypair.publicKey.toString());
+            console.log('Collection Mint:', collectionMintKeypair.publicKey.toString());
+            const imageFilename = `${dto.name}_collection_image`;
+            const imageUri = await this.uploadFileToIPFS(imageFile.buffer, imageFile.originalname, imageFilename);
+            const metadata = {
+                name: dto.name,
+                symbol: dto.symbol,
+                description: dto.description,
+                image: imageUri,
+                external_url: 'https://vybe.game',
+                attributes: [],
+                properties: {
+                    category: 'image',
+                    files: [
+                        {
+                            uri: imageUri,
+                            type: this.getMimeType(imageFile.originalname)
+                        }
+                    ]
+                },
+                seller_fee_basis_points: dto.royalty * 100,
+            };
+            const metadataUri = await this.uploadToIPFS(metadata);
+            const result = await this.solanaContractService.createAndSubmitCollection(adminKeypair, collectionMintKeypair, dto.name, dto.symbol, metadataUri, dto.royalty);
+            const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
+            console.log('✅ Collection created successfully!');
+            console.log('   Signature:', result.signature);
+            console.log('   Explorer:', explorerUrl);
+            return {
+                success: true,
+                data: {
+                    signature: result.signature,
+                    collectionPda: result.collectionPda,
+                    collectionMint: result.collectionMint,
+                    metadataUri,
+                    imageUri,
+                    explorerUrl,
+                    message: 'Collection created successfully on Solana!'
+                }
+            };
+        }
+        catch (error) {
+            console.error('Error in createCollectionWithAuth:', error);
+            if (error instanceof common_1.HttpException) {
+                throw error;
+            }
+            throw new common_1.HttpException({
+                success: false,
+                message: 'Failed to create collection',
+                error: error.message
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async initializeMarketplaceWithAuth(encryptedPrivateKey, feeBps = 500) {
+        try {
+            console.log('Initializing marketplace with auth, fee:', feeBps, 'bps');
+            const isInitialized = await this.solanaContractService.isMarketplaceInitialized();
+            if (isInitialized) {
+                throw new common_1.HttpException({
+                    success: false,
+                    message: 'Marketplace is already initialized'
+                }, common_1.HttpStatus.CONFLICT);
+            }
+            const adminKeypair = this.authService.getKeypairFromToken(encryptedPrivateKey);
+            console.log('Admin:', adminKeypair.publicKey.toString());
+            const result = await this.solanaContractService.initializeMarketplace(adminKeypair, feeBps);
+            const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
+            console.log('✅ Marketplace initialized successfully!');
+            console.log('   Signature:', result.signature);
+            console.log('   Marketplace PDA:', result.marketplacePda);
+            console.log('   Explorer:', explorerUrl);
+            return {
+                success: true,
+                data: {
+                    signature: result.signature,
+                    marketplacePda: result.marketplacePda,
+                    feeBps,
+                    explorerUrl,
+                    message: 'Marketplace initialized successfully! You can now create collections.'
+                }
+            };
+        }
+        catch (error) {
+            console.error('Error in initializeMarketplaceWithAuth:', error);
+            if (error instanceof common_1.HttpException) {
+                throw error;
+            }
+            throw new common_1.HttpException({
+                success: false,
+                message: 'Failed to initialize marketplace',
+                error: error.message
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async checkMarketplaceStatus() {
+        try {
+            const isInitialized = await this.solanaContractService.isMarketplaceInitialized();
+            const marketplacePda = this.solanaContractService.getMarketplacePda();
+            return {
+                success: true,
+                data: {
+                    isInitialized,
+                    marketplacePda: marketplacePda.toString(),
+                    message: isInitialized
+                        ? 'Marketplace is initialized and ready!'
+                        : 'Marketplace is not initialized. Please initialize it first.'
+                }
+            };
+        }
+        catch (error) {
+            console.error('Error checking marketplace status:', error);
+            throw new common_1.HttpException({
+                success: false,
+                message: 'Failed to check marketplace status',
+                error: error.message
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 };
 exports.NftAdminService = NftAdminService;
 exports.NftAdminService = NftAdminService = __decorate([
@@ -636,6 +772,8 @@ exports.NftAdminService = NftAdminService = __decorate([
     __param(2, (0, typeorm_1.InjectRepository)(store_config_entity_1.StoreConfig)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        solana_contract_service_1.SolanaContractService,
+        auth_service_1.AuthService])
 ], NftAdminService);
 //# sourceMappingURL=nft-admin.service.js.map

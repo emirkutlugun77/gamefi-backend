@@ -1,11 +1,22 @@
+import type { Request } from 'express';
 import { NftAdminService } from './nft-admin.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { CreateTypeDto } from './dto/create-type.dto';
 import { CreateStoreConfigDto, UpdateStoreConfigDto } from './dto/store-config.dto';
+interface RequestWithUser extends Request {
+    user: {
+        encryptedPrivateKey: string;
+        publicKey: string;
+    };
+}
 export declare class NftAdminController {
     private readonly nftAdminService;
     constructor(nftAdminService: NftAdminService);
-    createCollection(dto: CreateCollectionDto, image: Express.Multer.File): Promise<any>;
+    initializeMarketplace(req: RequestWithUser, body?: {
+        feeBps?: number;
+    }): Promise<any>;
+    getMarketplaceStatus(): Promise<any>;
+    createCollection(req: RequestWithUser, dto: CreateCollectionDto, image: Express.Multer.File): Promise<any>;
     createType(dto: CreateTypeDto, files: {
         mainImage?: Express.Multer.File[];
         additionalImages?: Express.Multer.File[];
@@ -41,3 +52,4 @@ export declare class NftAdminController {
         message: string;
     }>;
 }
+export {};

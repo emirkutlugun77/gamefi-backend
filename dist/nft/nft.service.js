@@ -15,7 +15,7 @@ const web3_js_1 = require("@solana/web3.js");
 const umi_bundle_defaults_1 = require("@metaplex-foundation/umi-bundle-defaults");
 const digital_asset_standard_api_1 = require("@metaplex-foundation/digital-asset-standard-api");
 const umi_1 = require("@metaplex-foundation/umi");
-const PROGRAM_ID = new web3_js_1.PublicKey('8KzE3LCicxv13iJx2v2V4VQQNWt4QHuvfuH8jxYnkGQ1');
+const PROGRAM_ID = new web3_js_1.PublicKey('Cvz71nzvusTyvH6GzeuHSVKPAGABH2q5tw2HRJdmzvEj');
 const TOKEN_METADATA_PROGRAM_ID = new web3_js_1.PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 const TARGET_COLLECTION_NAME = 'VYBE_SUPERHEROES_w89yuli8p3l';
 const TARGET_COLLECTION_MINT = 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN';
@@ -246,18 +246,9 @@ let NftService = class NftService {
                     continue;
                 }
             }
-            const targetCollections = collectionsData.filter(c => c.name === TARGET_COLLECTION_NAME);
-            const filteredItemTypesMap = {};
-            for (const collection of targetCollections) {
-                const collectionKey = collection.pda?.toString() || '';
-                if (itemTypesMap[collectionKey]) {
-                    filteredItemTypesMap[collectionKey] = itemTypesMap[collectionKey];
-                }
-            }
             console.log('Total collections found:', collectionsData.length);
-            console.log('Target collections after filter:', targetCollections.length);
-            console.log('Total item types for target collection:', Object.values(filteredItemTypesMap).flat().length);
-            const result = { collections: targetCollections, itemTypesByCollection: filteredItemTypesMap };
+            console.log('Total item types:', Object.values(itemTypesMap).flat().length);
+            const result = { collections: collectionsData, itemTypesByCollection: itemTypesMap };
             this.collectionsCache = result;
             this.collectionsCacheTime = Date.now();
             return result;
@@ -275,17 +266,16 @@ let NftService = class NftService {
             return cachedData.data;
         }
         try {
-            console.log('🚀 Fetching user NFTs with searchAssets (owner + collection filter):', walletAddress);
+            console.log('🚀 Fetching user NFTs with searchAssets (owner filter only):', walletAddress);
             const startTime = Date.now();
             const result = await this.umi.rpc.searchAssets({
                 owner: (0, umi_1.publicKey)(walletAddress),
-                grouping: ['collection', TARGET_COLLECTION_MINT],
                 options: {
                     showCollectionMetadata: true,
                     showInscription: true
                 }
             });
-            console.log(`📦 DAS searchAssets found ${result.items.length} NFTs from target collection`);
+            console.log(`📦 DAS searchAssets found ${result.items.length} NFTs`);
             const transformedNFTs = result.items.map(asset => this.transformDasAsset(asset));
             const duration = Date.now() - startTime;
             console.log(`✅ searchAssets completed in ${duration}ms, found ${transformedNFTs.length} NFTs`);
@@ -304,19 +294,21 @@ let NftService = class NftService {
         }
     }
     transformDasAsset(asset) {
+        const collectionAddress = asset.grouping?.find(g => g.group_key === 'collection')?.group_value || '';
+        const collectionName = asset.content?.metadata?.collection?.name || asset.grouping?.find(g => g.group_key === 'collection')?.group_value || 'Unknown Collection';
         return {
             mint: asset.id,
             metadata: asset.content?.metadata || null,
             name: asset.content?.metadata?.name || 'Unknown NFT',
             image: asset.content?.files?.[0]?.uri || asset.content?.metadata?.image || '/placeholder.svg',
-            collectionName: TARGET_COLLECTION_NAME,
+            collectionName: collectionName,
             symbol: asset.content?.metadata?.symbol || '',
             description: asset.content?.metadata?.description || '',
             attributes: asset.content?.metadata?.attributes || [],
             uri: asset.content?.json_uri || '',
             collection: {
-                address: asset.grouping?.find(g => g.group_key === 'collection')?.group_value || '',
-                verified: true,
+                address: collectionAddress,
+                verified: asset.grouping?.find(g => g.group_key === 'collection')?.collection_verified || true,
             },
             creators: asset.creators?.map((creator) => ({
                 address: creator.address,
