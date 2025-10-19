@@ -19,7 +19,7 @@ export declare class NftAdminController {
     }): Promise<any>;
     getMarketplaceStatus(): Promise<any>;
     createCollection(req: RequestWithUser, dto: CreateCollectionDto, image: Express.Multer.File): Promise<any>;
-    createType(dto: CreateTypeDto, files: {
+    createType(req: RequestWithUser, dto: CreateTypeDto, files: {
         mainImage?: Express.Multer.File[];
         additionalImages?: Express.Multer.File[];
     }): Promise<any>;

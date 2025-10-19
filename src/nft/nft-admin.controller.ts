@@ -218,28 +218,29 @@ export class NftAdminController {
   }
 
   @Post('type')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @UseInterceptors(FileFieldsInterceptor([
     { name: 'mainImage', maxCount: 1 },
     { name: 'additionalImages', maxCount: 10 }
   ]))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
-    summary: 'Create NFT type with IPFS metadata',
-    description: 'Creates a new NFT type for a collection and uploads images + metadata to IPFS via QuickNode'
+    summary: 'Create NFT type on Solana',
+    description: 'Uploads images + metadata to IPFS, creates NFT type on-chain and returns transaction signature. Requires JWT authentication.'
   })
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['adminPublicKey', 'collectionName', 'name', 'price', 'maxSupply', 'description'],
+      required: ['collectionName', 'name', 'price', 'maxSupply', 'description'],
       properties: {
-        adminPublicKey: { type: 'string', example: 'Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M' },
         collectionName: { type: 'string', example: 'VYBE_BUILDINGS_COLLECTION' },
         name: { type: 'string', example: 'Wooden House' },
-        price: { type: 'number', example: 0.5 },
+        price: { type: 'number', example: 0.01, description: 'Price in SOL' },
         maxSupply: { type: 'number', example: 1000 },
-        stakingAmount: { type: 'number', example: 0.01 },
+        stakingAmount: { type: 'number', example: 0.001, description: 'Staking amount in SOL (optional)' },
         description: { type: 'string', example: 'A basic wooden house for your village' },
-        attributes: { type: 'string', example: '[{"trait_type":"Rarity","value":"Common"}]' },
+        attributes: { type: 'string', example: '[{"trait_type":"Rarity","value":"Common"}]', description: 'JSON string of attributes (optional)' },
         mainImage: { type: 'string', format: 'binary', description: 'Main NFT image file' },
         additionalImages: { type: 'array', items: { type: 'string', format: 'binary' }, description: 'Additional image files (optional)' }
       }
@@ -247,7 +248,7 @@ export class NftAdminController {
   })
   @ApiResponse({
     status: 201,
-    description: 'NFT type created successfully',
+    description: 'NFT type created successfully on Solana',
     schema: {
       type: 'object',
       properties: {
@@ -255,16 +256,24 @@ export class NftAdminController {
         data: {
           type: 'object',
           properties: {
+            signature: { type: 'string', example: '5Kq...' },
+            nftTypePda: { type: 'string', example: '9Aqrcm...' },
             nftType: { type: 'object' },
             metadata: { type: 'object' },
             metadataUri: { type: 'string', example: 'ipfs://QmX...' },
+            mainImageUri: { type: 'string', example: 'ipfs://QmY...' },
+            additionalImageUris: { type: 'array', items: { type: 'string' } },
             priceLamports: { type: 'number' },
             stakingLamports: { type: 'number' },
-            message: { type: 'string' }
+            explorerUrl: { type: 'string', example: 'https://explorer.solana.com/tx/...?cluster=devnet' }
           }
         }
       }
     }
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token'
   })
   @ApiResponse({
     status: 400,
@@ -279,11 +288,12 @@ export class NftAdminController {
     description: 'Internal server error'
   })
   async createType(
+    @Req() req: RequestWithUser,
     @Body() dto: CreateTypeDto,
     @UploadedFiles() files: { mainImage?: Express.Multer.File[], additionalImages?: Express.Multer.File[] }
   ) {
     try {
-      return await this.nftAdminService.createTypeWithFiles(dto, files);
+      return await this.nftAdminService.createTypeWithAuth(req.user.encryptedPrivateKey, dto, files);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

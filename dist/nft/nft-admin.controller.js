@@ -78,9 +78,9 @@ let NftAdminController = class NftAdminController {
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    async createType(dto, files) {
+    async createType(req, dto, files) {
         try {
-            return await this.nftAdminService.createTypeWithFiles(dto, files);
+            return await this.nftAdminService.createTypeWithAuth(req.user.encryptedPrivateKey, dto, files);
         }
         catch (error) {
             if (error instanceof common_1.HttpException) {
@@ -384,28 +384,29 @@ __decorate([
 ], NftAdminController.prototype, "createCollection", null);
 __decorate([
     (0, common_1.Post)('type'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)('JWT-auth'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileFieldsInterceptor)([
         { name: 'mainImage', maxCount: 1 },
         { name: 'additionalImages', maxCount: 10 }
     ])),
     (0, swagger_1.ApiConsumes)('multipart/form-data'),
     (0, swagger_1.ApiOperation)({
-        summary: 'Create NFT type with IPFS metadata',
-        description: 'Creates a new NFT type for a collection and uploads images + metadata to IPFS via QuickNode'
+        summary: 'Create NFT type on Solana',
+        description: 'Uploads images + metadata to IPFS, creates NFT type on-chain and returns transaction signature. Requires JWT authentication.'
     }),
     (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
-            required: ['adminPublicKey', 'collectionName', 'name', 'price', 'maxSupply', 'description'],
+            required: ['collectionName', 'name', 'price', 'maxSupply', 'description'],
             properties: {
-                adminPublicKey: { type: 'string', example: 'Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M' },
                 collectionName: { type: 'string', example: 'VYBE_BUILDINGS_COLLECTION' },
                 name: { type: 'string', example: 'Wooden House' },
-                price: { type: 'number', example: 0.5 },
+                price: { type: 'number', example: 0.01, description: 'Price in SOL' },
                 maxSupply: { type: 'number', example: 1000 },
-                stakingAmount: { type: 'number', example: 0.01 },
+                stakingAmount: { type: 'number', example: 0.001, description: 'Staking amount in SOL (optional)' },
                 description: { type: 'string', example: 'A basic wooden house for your village' },
-                attributes: { type: 'string', example: '[{"trait_type":"Rarity","value":"Common"}]' },
+                attributes: { type: 'string', example: '[{"trait_type":"Rarity","value":"Common"}]', description: 'JSON string of attributes (optional)' },
                 mainImage: { type: 'string', format: 'binary', description: 'Main NFT image file' },
                 additionalImages: { type: 'array', items: { type: 'string', format: 'binary' }, description: 'Additional image files (optional)' }
             }
@@ -413,7 +414,7 @@ __decorate([
     }),
     (0, swagger_1.ApiResponse)({
         status: 201,
-        description: 'NFT type created successfully',
+        description: 'NFT type created successfully on Solana',
         schema: {
             type: 'object',
             properties: {
@@ -421,16 +422,24 @@ __decorate([
                 data: {
                     type: 'object',
                     properties: {
+                        signature: { type: 'string', example: '5Kq...' },
+                        nftTypePda: { type: 'string', example: '9Aqrcm...' },
                         nftType: { type: 'object' },
                         metadata: { type: 'object' },
                         metadataUri: { type: 'string', example: 'ipfs://QmX...' },
+                        mainImageUri: { type: 'string', example: 'ipfs://QmY...' },
+                        additionalImageUris: { type: 'array', items: { type: 'string' } },
                         priceLamports: { type: 'number' },
                         stakingLamports: { type: 'number' },
-                        message: { type: 'string' }
+                        explorerUrl: { type: 'string', example: 'https://explorer.solana.com/tx/...?cluster=devnet' }
                     }
                 }
             }
         }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 401,
+        description: 'Unauthorized - Invalid or missing JWT token'
     }),
     (0, swagger_1.ApiResponse)({
         status: 400,
@@ -444,10 +453,11 @@ __decorate([
         status: 500,
         description: 'Internal server error'
     }),
-    __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.UploadedFiles)()),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.UploadedFiles)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [create_type_dto_1.CreateTypeDto, Object]),
+    __metadata("design:paramtypes", [Object, create_type_dto_1.CreateTypeDto, Object]),
     __metadata("design:returntype", Promise)
 ], NftAdminController.prototype, "createType", null);
 __decorate([

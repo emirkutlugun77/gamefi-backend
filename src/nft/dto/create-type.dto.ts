@@ -3,14 +3,6 @@ import { IsString, IsNotEmpty, IsNumber, Min, IsOptional, IsArray } from 'class-
 
 export class CreateTypeDto {
   @ApiProperty({
-    description: 'Admin wallet public key',
-    example: 'Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M'
-  })
-  @IsString()
-  @IsNotEmpty()
-  adminPublicKey: string;
-
-  @ApiProperty({
     description: 'Collection name to add this type to',
     example: 'VYBE_BUILDINGS_COLLECTION'
   })

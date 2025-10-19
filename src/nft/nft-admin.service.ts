@@ -347,24 +347,10 @@ export class NftAdminService {
   }
 
   /**
-   * Create NFT type with IPFS metadata
+   * Create NFT type with IPFS metadata (DEPRECATED - use createTypeWithAuth instead)
    */
   async createType(dto: CreateTypeDto): Promise<any> {
     try {
-      // Validate admin public key
-      let adminPubkey: PublicKey;
-      try {
-        adminPubkey = new PublicKey(dto.adminPublicKey);
-      } catch (error) {
-        throw new HttpException(
-          {
-            success: false,
-            message: 'Invalid admin public key'
-          },
-          HttpStatus.BAD_REQUEST
-        );
-      }
-
       // Find collection in database
       const collection = await this.nftCollectionRepo.findOne({
         where: { name: dto.collectionName }
@@ -737,27 +723,13 @@ export class NftAdminService {
   }
 
   /**
-   * Create NFT type with uploaded files
+   * Create NFT type with uploaded files (DEPRECATED - use createTypeWithAuth instead)
    */
   async createTypeWithFiles(
     dto: CreateTypeDto,
     files: { mainImage?: Express.Multer.File[], additionalImages?: Express.Multer.File[] }
   ): Promise<any> {
     try {
-      // Validate admin public key
-      let adminPubkey: PublicKey;
-      try {
-        adminPubkey = new PublicKey(dto.adminPublicKey);
-      } catch (error) {
-        throw new HttpException(
-          {
-            success: false,
-            message: 'Invalid admin public key'
-          },
-          HttpStatus.BAD_REQUEST
-        );
-      }
-
       // Find collection in database
       const collection = await this.nftCollectionRepo.findOne({
         where: { name: dto.collectionName }
@@ -1090,6 +1062,189 @@ export class NftAdminService {
         {
           success: false,
           message: 'Failed to check marketplace status',
+          error: error.message
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Create NFT type with authentication - full workflow
+   */
+  async createTypeWithAuth(
+    encryptedPrivateKey: string,
+    dto: CreateTypeDto,
+    files: { mainImage?: Express.Multer.File[], additionalImages?: Express.Multer.File[] }
+  ): Promise<any> {
+    try {
+      console.log('Creating NFT type with auth:', dto.name);
+
+      // Get admin keypair from encrypted private key
+      const adminKeypair = this.authService.getKeypairFromToken(encryptedPrivateKey);
+
+      console.log('Admin:', adminKeypair.publicKey.toString());
+      console.log('Collection:', dto.collectionName);
+      console.log('Type:', dto.name);
+
+      // Find collection in database
+      const collection = await this.nftCollectionRepo.findOne({
+        where: { name: dto.collectionName }
+      });
+
+      if (!collection) {
+        throw new HttpException(
+          {
+            success: false,
+            message: `Collection not found: ${dto.collectionName}`
+          },
+          HttpStatus.NOT_FOUND
+        );
+      }
+
+      if (!files.mainImage || files.mainImage.length === 0) {
+        throw new HttpException(
+          {
+            success: false,
+            message: 'Main image file is required'
+          },
+          HttpStatus.BAD_REQUEST
+        );
+      }
+
+      // Upload main image to IPFS
+      const mainImageFile = files.mainImage[0];
+      const imageFilename = `${dto.collectionName}_${dto.name}_main`;
+      const mainImageUri = await this.uploadFileToIPFS(mainImageFile.buffer, mainImageFile.originalname, imageFilename);
+
+      // Upload additional images if provided
+      let additionalImageUris: string[] = [];
+      if (files.additionalImages && files.additionalImages.length > 0) {
+        console.log('Uploading additional images...');
+        additionalImageUris = await Promise.all(
+          files.additionalImages.map((file, idx) => {
+            const additionalFilename = `${dto.collectionName}_${dto.name}_additional_${idx}`;
+            return this.uploadFileToIPFS(file.buffer, file.originalname, additionalFilename);
+          })
+        );
+      }
+
+      // Parse attributes if provided as JSON string
+      let attributes = [];
+      if (dto.attributes) {
+        try {
+          attributes = typeof dto.attributes === 'string'
+            ? JSON.parse(dto.attributes)
+            : dto.attributes;
+        } catch (e) {
+          console.warn('Failed to parse attributes:', e);
+        }
+      }
+
+      // Create metadata JSON
+      const allFiles = [
+        {
+          uri: mainImageUri,
+          type: mainImageFile.mimetype
+        },
+        ...additionalImageUris.map((uri, idx) => ({
+          uri,
+          type: files.additionalImages ? files.additionalImages[idx].mimetype : 'image/png'
+        }))
+      ];
+
+      const metadata = {
+        name: dto.name,
+        symbol: collection.symbol,
+        description: dto.description,
+        image: mainImageUri,
+        external_url: 'https://vybe.game',
+        attributes,
+        properties: {
+          category: 'image',
+          files: allFiles
+        },
+        additionalImages: additionalImageUris
+      };
+
+      // Upload metadata to IPFS
+      const metadataUri = await this.uploadToIPFS(metadata);
+
+      // Convert price to lamports
+      const priceLamports = Math.floor(Number(dto.price) * 1_000_000_000);
+      const stakingLamports = dto.stakingAmount ? Math.floor(Number(dto.stakingAmount) * 1_000_000_000) : 0;
+
+      console.log('Creating NFT type on-chain:', {
+        collection: dto.collectionName,
+        type: dto.name,
+        uri: metadataUri,
+        price: priceLamports,
+        maxSupply: dto.maxSupply,
+        stakingAmount: stakingLamports
+      });
+
+      // Create NFT type on-chain
+      const result = await this.solanaContractService.createAndSubmitNftType(
+        adminKeypair,
+        dto.collectionName,
+        dto.name,
+        metadataUri,
+        priceLamports,
+        Number(dto.maxSupply),
+        stakingLamports
+      );
+
+      // Save to database
+      const nftType = this.nftTypeRepo.create({
+        id: result.nftTypePda,
+        collectionId: collection.id,
+        name: dto.name,
+        uri: metadataUri,
+        price: priceLamports.toString(),
+        maxSupply: dto.maxSupply.toString(),
+        currentSupply: '0',
+        stakingAmount: stakingLamports.toString(),
+        mainImage: mainImageUri,
+        additionalImages: JSON.stringify(additionalImageUris),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      await this.nftTypeRepo.save(nftType);
+
+      const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
+
+      console.log('✅ NFT type created successfully!');
+      console.log('   Signature:', result.signature);
+      console.log('   Explorer:', explorerUrl);
+
+      return {
+        success: true,
+        data: {
+          signature: result.signature,
+          nftTypePda: result.nftTypePda,
+          nftType,
+          metadata,
+          metadataUri,
+          mainImageUri,
+          additionalImageUris,
+          priceLamports,
+          stakingLamports,
+          explorerUrl,
+          message: 'NFT type created successfully on Solana!'
+        }
+      };
+    } catch (error) {
+      console.error('Error in createTypeWithAuth:', error);
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to create NFT type',
           error: error.message
         },
         HttpStatus.INTERNAL_SERVER_ERROR

@@ -37,4 +37,8 @@ export declare class NftAdminService {
     createCollectionWithAuth(encryptedPrivateKey: string, dto: CreateCollectionDto, imageFile: Express.Multer.File): Promise<any>;
     initializeMarketplaceWithAuth(encryptedPrivateKey: string, feeBps?: number): Promise<any>;
     checkMarketplaceStatus(): Promise<any>;
+    createTypeWithAuth(encryptedPrivateKey: string, dto: CreateTypeDto, files: {
+        mainImage?: Express.Multer.File[];
+        additionalImages?: Express.Multer.File[];
+    }): Promise<any>;
 }
