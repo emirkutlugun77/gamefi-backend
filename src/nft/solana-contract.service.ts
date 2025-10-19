@@ -13,6 +13,7 @@ import {
   Program,
   AnchorProvider,
   Wallet,
+  BN,
 } from '@coral-xyz/anchor';
 import {
   TOKEN_PROGRAM_ID,
@@ -99,8 +100,11 @@ export class SolanaContractService {
       console.log('Admin:', admin.toString());
 
       // Create instruction using Anchor
+      // Convert feeBps to BN for Anchor
+      const feeBpsBN = new BN(feeBps);
+
       const instruction = await this.program.methods
-        .initializeMarketplace(feeBps)
+        .initializeMarketplace(feeBpsBN)
         .accounts({
           marketplace: marketplacePda,
           admin,
@@ -229,8 +233,11 @@ export class SolanaContractService {
       });
 
       // Create instruction using Anchor
+      // Convert royalty to BN for Anchor
+      const royaltyBN = new BN(royalty);
+
       const instruction = await this.program.methods
-        .createNftCollection(collectionName, symbol, uri, royalty)
+        .createNftCollection(collectionName, symbol, uri, royaltyBN)
         .accounts({
           marketplace: marketplacePda,
           collection: collectionPda,
@@ -345,8 +352,13 @@ export class SolanaContractService {
       });
 
       // Create instruction using Anchor
+      // Convert numbers to BN for Anchor
+      const priceBN = new BN(price);
+      const maxSupplyBN = new BN(maxSupply);
+      const stakingAmountBN = new BN(stakingAmount);
+
       const instruction = await this.program.methods
-        .createNftType(typeName, uri, price, maxSupply, stakingAmount)
+        .createNftType(typeName, uri, priceBN, maxSupplyBN, stakingAmountBN)
         .accounts({
           collection: collectionPda,
           nftType: nftTypePda,
