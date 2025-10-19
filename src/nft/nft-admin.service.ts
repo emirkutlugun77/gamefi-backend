@@ -79,7 +79,7 @@ export class NftAdminService {
       const cid = this.extractCIDFromResponse(result);
 
       // Use custom QuickNode gateway URL from environment variable
-      const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL || 'https://gateway.quicknode.com/ipfs';
+      const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL || 'https://husband-toy-slight.quicknode-ipfs.com/ipfs';
       const gatewayUrl = `${gatewayBaseUrl}/${cid}`;
 
       console.log('✅ Uploaded metadata to IPFS');
@@ -147,7 +147,7 @@ export class NftAdminService {
       const cid = this.extractCIDFromResponse(result);
 
       // Use custom QuickNode gateway URL from environment variable
-      const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL || 'https://gateway.quicknode.com/ipfs';
+      const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL || 'https://husband-toy-slight.quicknode-ipfs.com/ipfs';
       const gatewayUrl = `${gatewayBaseUrl}/${cid}`;
 
       console.log('✅ File uploaded to IPFS');

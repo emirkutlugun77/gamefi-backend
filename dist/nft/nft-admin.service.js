@@ -69,7 +69,7 @@ let NftAdminService = class NftAdminService {
             });
             const result = response.data;
             const cid = this.extractCIDFromResponse(result);
-            const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL || 'https://gateway.quicknode.com/ipfs';
+            const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL || 'https://husband-toy-slight.quicknode-ipfs.com/ipfs';
             const gatewayUrl = `${gatewayBaseUrl}/${cid}`;
             console.log('✅ Uploaded metadata to IPFS');
             console.log('   CID:', cid);
@@ -112,7 +112,7 @@ let NftAdminService = class NftAdminService {
             });
             const result = response.data;
             const cid = this.extractCIDFromResponse(result);
-            const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL || 'https://gateway.quicknode.com/ipfs';
+            const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL || 'https://husband-toy-slight.quicknode-ipfs.com/ipfs';
             const gatewayUrl = `${gatewayBaseUrl}/${cid}`;
             console.log('✅ File uploaded to IPFS');
             console.log('   CID:', cid);

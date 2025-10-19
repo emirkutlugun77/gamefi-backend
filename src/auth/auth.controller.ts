@@ -1,7 +1,15 @@
 import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiProperty } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { IsString, IsNotEmpty } from 'class-validator';
+
+class CheckPasswordDto {
+  @ApiProperty({ example: '514Vybes229!' })
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+}
 
 @ApiTags('auth')
 @Controller('auth')
@@ -52,5 +60,49 @@ export class AuthController {
         HttpStatus.UNAUTHORIZED
       );
     }
+  }
+
+  @Post('check-password')
+  @ApiOperation({
+    summary: 'Check access password for protected pages',
+    description: 'Validates password for accessing Admin, Presale, and Airdrop pages. Password: 514Vybes229!',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password validation result',
+    schema: {
+      example: {
+        success: true,
+        data: {
+          isValid: true,
+          message: 'Password is correct',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Invalid password',
+    schema: {
+      example: {
+        success: true,
+        data: {
+          isValid: false,
+          message: 'Invalid password',
+        },
+      },
+    },
+  })
+  async checkPassword(@Body() checkPasswordDto: CheckPasswordDto) {
+    const CORRECT_PASSWORD = '514Vybes229!';
+    const isValid = checkPasswordDto.password === CORRECT_PASSWORD;
+
+    return {
+      success: true,
+      data: {
+        isValid,
+        message: isValid ? 'Password is correct' : 'Invalid password',
+      },
+    };
   }
 }
