@@ -5,19 +5,16 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS for frontend access
- /* const corsOrigins = process.env.CORS_ORIGIN === '*'
-    ? '*'
-    : process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-      : ['http://localhost:3000', 'http://localhost:3001'];
-
-  app.enableCors({
-    origin: corsOrigins,
-    credentials: corsOrigins !== '*',
+   app.enableCors({
+    origin: '*',
+    credentials: false,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  });*/
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Authorization'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  });
+
 
   // Swagger configuration
   const config = new DocumentBuilder()
