@@ -6,7 +6,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS for frontend access
-  const corsOrigins = process.env.CORS_ORIGIN === '*'
+ /* const corsOrigins = process.env.CORS_ORIGIN === '*'
     ? '*'
     : process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
@@ -17,7 +17,7 @@ async function bootstrap() {
     credentials: corsOrigins !== '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  });
+  });*/
 
   // Swagger configuration
   const config = new DocumentBuilder()
