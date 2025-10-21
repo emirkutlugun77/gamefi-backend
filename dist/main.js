@@ -5,16 +5,14 @@ const swagger_1 = require("@nestjs/swagger");
 const app_module_1 = require("./app.module");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
-    const corsOrigins = process.env.CORS_ORIGIN === '*'
-        ? '*'
-        : process.env.CORS_ORIGIN
-            ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-            : ['http://localhost:3000', 'http://localhost:3001'];
     app.enableCors({
-        origin: corsOrigins,
-        credentials: corsOrigins !== '*',
+        origin: '*',
+        credentials: false,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+        exposedHeaders: ['Authorization'],
+        preflightContinue: false,
+        optionsSuccessStatus: 204,
     });
     const config = new swagger_1.DocumentBuilder()
         .setTitle('NFT Marketplace API')
