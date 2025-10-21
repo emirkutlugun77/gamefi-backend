@@ -1483,4 +1483,98 @@ export class NftAdminService {
       );
     }
   }
+
+  /**
+   * Mint NFT with authentication
+   * Note: The mint instruction requires BOTH collection_admin and buyer signatures
+   * Since we only have admin's private key from JWT, the buyer must also be the admin for this to work
+   * OR we need to implement a two-step process where buyer signs on frontend
+   */
+  async mintNftWithAuth(
+    encryptedPrivateKey: string,
+    collectionName: string,
+    typeName: string,
+    collectionMintAddress: string,
+    buyerPublicKey: string
+  ): Promise<any> {
+    try {
+      console.log('Minting NFT with auth:', { collectionName, typeName, buyerPublicKey });
+
+      // Get admin keypair from encrypted private key
+      const adminKeypair = this.authService.getKeypairFromToken(encryptedPrivateKey);
+
+      console.log('Admin:', adminKeypair.publicKey.toString());
+      console.log('Buyer:', buyerPublicKey);
+
+      // Validate buyer public key
+      let buyerPubkey: PublicKey;
+      try {
+        buyerPubkey = new PublicKey(buyerPublicKey);
+      } catch (error) {
+        throw new HttpException(
+          {
+            success: false,
+            message: 'Invalid buyer public key'
+          },
+          HttpStatus.BAD_REQUEST
+        );
+      }
+
+      // Important: The smart contract requires BOTH collection_admin and buyer to sign
+      // For this endpoint to work, buyer and admin must be the same person
+      // Otherwise, we need a different flow (e.g., create unsigned transaction for buyer to sign)
+      if (adminKeypair.publicKey.toString() !== buyerPublicKey) {
+        throw new HttpException(
+          {
+            success: false,
+            message: 'Minting requires buyer signature. For now, buyer must be the same as admin. Use the admin wallet as buyer.',
+            error: 'BUYER_SIGNATURE_REQUIRED'
+          },
+          HttpStatus.BAD_REQUEST
+        );
+      }
+
+      // Mint NFT on-chain
+      const result = await this.solanaContractService.mintNftFromCollection(
+        adminKeypair,  // collection admin
+        adminKeypair,  // buyer (same as admin for now)
+        collectionName,
+        typeName,
+        collectionMintAddress
+      );
+
+      const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
+
+      console.log('✅ NFT minted successfully!');
+      console.log('   Signature:', result.signature);
+      console.log('   NFT Mint:', result.nftMint);
+      console.log('   Explorer:', explorerUrl);
+
+      return {
+        success: true,
+        data: {
+          signature: result.signature,
+          nftMint: result.nftMint,
+          buyerTokenAccount: result.buyerTokenAccount,
+          explorerUrl,
+          message: 'NFT minted successfully on Solana!'
+        }
+      };
+    } catch (error) {
+      console.error('Error in mintNftWithAuth:', error);
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to mint NFT',
+          error: error.message
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
 }

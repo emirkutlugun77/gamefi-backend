@@ -763,15 +763,15 @@ export class NftAdminController {
   async syncAll() {
     try {
       console.log('Starting full blockchain sync...');
-      
+
       // First sync collections
       const collectionsResult = await this.nftAdminService.syncCollectionsFromBlockchain();
       console.log('Collections synced:', collectionsResult);
-      
+
       // Then sync types
       const typesResult = await this.nftAdminService.syncTypesFromBlockchain();
       console.log('Types synced:', typesResult);
-      
+
       return {
         success: true,
         data: {
@@ -790,6 +790,90 @@ export class NftAdminController {
         {
           success: false,
           message: 'Failed to sync all data',
+          error: error.message
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Post('mint')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Mint NFT from collection',
+    description: 'Mints an NFT from a specific collection type. Requires both collection admin and buyer to sign the transaction. Requires JWT authentication.'
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['collectionName', 'typeName', 'collectionMintAddress', 'buyerPublicKey'],
+      properties: {
+        collectionName: { type: 'string', example: 'VYBE_HEROES_COLLECTION' },
+        typeName: { type: 'string', example: 'Duma_Bright' },
+        collectionMintAddress: { type: 'string', example: 'Cv7jep...' },
+        buyerPublicKey: { type: 'string', example: '7ia7xqc8mLiPbPEfDKWo8xF2UZ8NkEJz7d7pd489rHFe' }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'NFT minted successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            signature: { type: 'string', example: '5Kq...' },
+            nftMint: { type: 'string', example: '9Aqrcm...' },
+            buyerTokenAccount: { type: 'string', example: 'Cv7jep...' },
+            explorerUrl: { type: 'string', example: 'https://explorer.solana.com/tx/...?cluster=devnet' }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token'
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid input data'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error'
+  })
+  async mintNft(
+    @Req() req: RequestWithUser,
+    @Body() body: {
+      collectionName: string;
+      typeName: string;
+      collectionMintAddress: string;
+      buyerPublicKey: string;
+    }
+  ) {
+    try {
+      return await this.nftAdminService.mintNftWithAuth(
+        req.user.encryptedPrivateKey,
+        body.collectionName,
+        body.typeName,
+        body.collectionMintAddress,
+        body.buyerPublicKey
+      );
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      console.error('Error in mintNft controller:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to mint NFT',
           error: error.message
         },
         HttpStatus.INTERNAL_SERVER_ERROR
