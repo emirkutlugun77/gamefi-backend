@@ -1036,6 +1036,58 @@ let NftAdminService = class NftAdminService {
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    async mintNftWithAuth(encryptedPrivateKey, collectionName, typeName, collectionMintAddress, buyerPublicKey) {
+        try {
+            console.log('Minting NFT with auth:', { collectionName, typeName, buyerPublicKey });
+            const adminKeypair = this.authService.getKeypairFromToken(encryptedPrivateKey);
+            console.log('Admin:', adminKeypair.publicKey.toString());
+            console.log('Buyer:', buyerPublicKey);
+            let buyerPubkey;
+            try {
+                buyerPubkey = new web3_js_1.PublicKey(buyerPublicKey);
+            }
+            catch (error) {
+                throw new common_1.HttpException({
+                    success: false,
+                    message: 'Invalid buyer public key'
+                }, common_1.HttpStatus.BAD_REQUEST);
+            }
+            if (adminKeypair.publicKey.toString() !== buyerPublicKey) {
+                throw new common_1.HttpException({
+                    success: false,
+                    message: 'Minting requires buyer signature. For now, buyer must be the same as admin. Use the admin wallet as buyer.',
+                    error: 'BUYER_SIGNATURE_REQUIRED'
+                }, common_1.HttpStatus.BAD_REQUEST);
+            }
+            const result = await this.solanaContractService.mintNftFromCollection(adminKeypair, adminKeypair, collectionName, typeName, collectionMintAddress);
+            const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
+            console.log('✅ NFT minted successfully!');
+            console.log('   Signature:', result.signature);
+            console.log('   NFT Mint:', result.nftMint);
+            console.log('   Explorer:', explorerUrl);
+            return {
+                success: true,
+                data: {
+                    signature: result.signature,
+                    nftMint: result.nftMint,
+                    buyerTokenAccount: result.buyerTokenAccount,
+                    explorerUrl,
+                    message: 'NFT minted successfully on Solana!'
+                }
+            };
+        }
+        catch (error) {
+            console.error('Error in mintNftWithAuth:', error);
+            if (error instanceof common_1.HttpException) {
+                throw error;
+            }
+            throw new common_1.HttpException({
+                success: false,
+                message: 'Failed to mint NFT',
+                error: error.message
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 };
 exports.NftAdminService = NftAdminService;
 exports.NftAdminService = NftAdminService = __decorate([

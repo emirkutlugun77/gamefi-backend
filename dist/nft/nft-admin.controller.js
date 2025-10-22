@@ -306,6 +306,22 @@ let NftAdminController = class NftAdminController {
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    async mintNft(req, body) {
+        try {
+            return await this.nftAdminService.mintNftWithAuth(req.user.encryptedPrivateKey, body.collectionName, body.typeName, body.collectionMintAddress, body.buyerPublicKey);
+        }
+        catch (error) {
+            if (error instanceof common_1.HttpException) {
+                throw error;
+            }
+            console.error('Error in mintNft controller:', error);
+            throw new common_1.HttpException({
+                success: false,
+                message: 'Failed to mint NFT',
+                error: error.message
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 };
 exports.NftAdminController = NftAdminController;
 __decorate([
@@ -810,6 +826,63 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], NftAdminController.prototype, "syncAll", null);
+__decorate([
+    (0, common_1.Post)('mint'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)('JWT-auth'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Mint NFT from collection',
+        description: 'Mints an NFT from a specific collection type. Requires both collection admin and buyer to sign the transaction. Requires JWT authentication.'
+    }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            required: ['collectionName', 'typeName', 'collectionMintAddress', 'buyerPublicKey'],
+            properties: {
+                collectionName: { type: 'string', example: 'VYBE_HEROES_COLLECTION' },
+                typeName: { type: 'string', example: 'Duma_Bright' },
+                collectionMintAddress: { type: 'string', example: 'Cv7jep...' },
+                buyerPublicKey: { type: 'string', example: '7ia7xqc8mLiPbPEfDKWo8xF2UZ8NkEJz7d7pd489rHFe' }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'NFT minted successfully',
+        schema: {
+            type: 'object',
+            properties: {
+                success: { type: 'boolean', example: true },
+                data: {
+                    type: 'object',
+                    properties: {
+                        signature: { type: 'string', example: '5Kq...' },
+                        nftMint: { type: 'string', example: '9Aqrcm...' },
+                        buyerTokenAccount: { type: 'string', example: 'Cv7jep...' },
+                        explorerUrl: { type: 'string', example: 'https://explorer.solana.com/tx/...?cluster=devnet' }
+                    }
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 401,
+        description: 'Unauthorized - Invalid or missing JWT token'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'Bad request - Invalid input data'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error'
+    }),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], NftAdminController.prototype, "mintNft", null);
 exports.NftAdminController = NftAdminController = __decorate([
     (0, swagger_1.ApiTags)('nft-admin'),
     (0, common_1.Controller)('nft-admin'),

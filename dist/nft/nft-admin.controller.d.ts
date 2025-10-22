@@ -93,5 +93,11 @@ export declare class NftAdminController {
         };
         message: string;
     }>;
+    mintNft(req: RequestWithUser, body: {
+        collectionName: string;
+        typeName: string;
+        collectionMintAddress: string;
+        buyerPublicKey: string;
+    }): Promise<any>;
 }
 export {};
