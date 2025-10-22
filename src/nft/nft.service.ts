@@ -361,48 +361,70 @@ export class NftService {
     // User NFTs cache kontrolü
     const cacheKey = walletAddress;
     const cachedData = this.userNFTsCache.get(cacheKey);
-    
+
     if (cachedData && (Date.now() - cachedData.timestamp) < this.USER_NFTS_CACHE_DURATION) {
       console.log('✅ Returning cached user NFTs for:', walletAddress);
       return cachedData.data;
     }
 
     try {
-      console.log('🚀 Fetching user NFTs with searchAssets (owner filter only):', walletAddress);
+      console.log('🚀 Fetching user NFTs from VYBE collections:', walletAddress);
       const startTime = Date.now();
 
-      // DAS API searchAssets - get all NFTs for this owner (no collection filter)
-      const result = await this.umi.rpc.searchAssets({
-        owner: umiPublicKey(walletAddress),
-        options: {
-          showCollectionMetadata: true,
-          showInscription: true
+      // Get our collections from blockchain
+      const { collections } = await this.fetchCollections();
+      const collectionMints = collections.map(c => c.mint.toString());
+      console.log('📋 VYBE Collections:', collectionMints);
+
+      // Fetch NFTs from each VYBE collection
+      let allNFTs: any[] = [];
+
+      for (const collectionMint of collectionMints) {
+        try {
+          console.log(`🔍 Searching in collection: ${collectionMint}`);
+
+          // DAS API getAssetsByGroup - filter by collection
+          const result = await this.umi.rpc.getAssetsByGroup({
+            groupKey: 'collection',
+            groupValue: collectionMint,
+          });
+
+          console.log(`  ✓ Found ${result.items.length} total NFTs in collection`);
+
+          // Filter by owner
+          const userAssets = result.items.filter(asset =>
+            asset.ownership?.owner === walletAddress
+          );
+
+          console.log(`  ✓ User owns ${userAssets.length} NFTs in this collection`);
+
+          if (userAssets.length > 0) {
+            const transformed = userAssets.map(asset => this.transformDasAsset(asset));
+            allNFTs = allNFTs.concat(transformed);
+          }
+        } catch (err) {
+          console.warn(`  ⚠️ Error fetching from collection ${collectionMint}:`, err.message);
         }
-      });
+      }
 
-      console.log(`📦 DAS searchAssets found ${result.items.length} NFTs`);
-
-      // Transform assets to our format
-      const transformedNFTs = result.items.map(asset => this.transformDasAsset(asset));
-      
       const duration = Date.now() - startTime;
-      console.log(`✅ searchAssets completed in ${duration}ms, found ${transformedNFTs.length} NFTs`);
-      
+      console.log(`✅ Fetched ${allNFTs.length} NFTs from ${collectionMints.length} collections in ${duration}ms`);
+
       // Metadata'ları URI'lerden yükle (response'u bloklar)
-      await this.loadMetadataFromUrisSync(transformedNFTs);
-      
+      await this.loadMetadataFromUrisSync(allNFTs);
+
       // Cache'e kaydet
       this.userNFTsCache.set(cacheKey, {
-        data: transformedNFTs,
+        data: allNFTs,
         timestamp: Date.now()
       });
-      
+
       const totalDuration = Date.now() - startTime;
       console.log(`✅ Complete fetch with metadata completed in ${totalDuration}ms`);
-      
-      return transformedNFTs;
+
+      return allNFTs;
     } catch (error) {
-      console.error('Error fetching user NFTs with searchAssets:', error);
+      console.error('Error fetching user NFTs:', error);
       throw error;
     }
   }

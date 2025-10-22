@@ -14,7 +14,6 @@ const common_1 = require("@nestjs/common");
 const web3_js_1 = require("@solana/web3.js");
 const umi_bundle_defaults_1 = require("@metaplex-foundation/umi-bundle-defaults");
 const digital_asset_standard_api_1 = require("@metaplex-foundation/digital-asset-standard-api");
-const umi_1 = require("@metaplex-foundation/umi");
 const PROGRAM_ID = new web3_js_1.PublicKey('Cvz71nzvusTyvH6GzeuHSVKPAGABH2q5tw2HRJdmzvEj');
 const TOKEN_METADATA_PROGRAM_ID = new web3_js_1.PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 const TARGET_COLLECTION_MINT = 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN';
@@ -265,30 +264,44 @@ let NftService = class NftService {
             return cachedData.data;
         }
         try {
-            console.log('🚀 Fetching user NFTs with searchAssets (owner filter only):', walletAddress);
+            console.log('🚀 Fetching user NFTs from VYBE collections:', walletAddress);
             const startTime = Date.now();
-            const result = await this.umi.rpc.searchAssets({
-                owner: (0, umi_1.publicKey)(walletAddress),
-                options: {
-                    showCollectionMetadata: true,
-                    showInscription: true
+            const { collections } = await this.fetchCollections();
+            const collectionMints = collections.map(c => c.mint.toString());
+            console.log('📋 VYBE Collections:', collectionMints);
+            let allNFTs = [];
+            for (const collectionMint of collectionMints) {
+                try {
+                    console.log(`🔍 Searching in collection: ${collectionMint}`);
+                    const result = await this.umi.rpc.getAssetsByGroup({
+                        groupKey: 'collection',
+                        groupValue: collectionMint,
+                    });
+                    console.log(`  ✓ Found ${result.items.length} total NFTs in collection`);
+                    const userAssets = result.items.filter(asset => asset.ownership?.owner === walletAddress);
+                    console.log(`  ✓ User owns ${userAssets.length} NFTs in this collection`);
+                    if (userAssets.length > 0) {
+                        const transformed = userAssets.map(asset => this.transformDasAsset(asset));
+                        allNFTs = allNFTs.concat(transformed);
+                    }
                 }
-            });
-            console.log(`📦 DAS searchAssets found ${result.items.length} NFTs`);
-            const transformedNFTs = result.items.map(asset => this.transformDasAsset(asset));
+                catch (err) {
+                    console.warn(`  ⚠️ Error fetching from collection ${collectionMint}:`, err.message);
+                }
+            }
             const duration = Date.now() - startTime;
-            console.log(`✅ searchAssets completed in ${duration}ms, found ${transformedNFTs.length} NFTs`);
-            await this.loadMetadataFromUrisSync(transformedNFTs);
+            console.log(`✅ Fetched ${allNFTs.length} NFTs from ${collectionMints.length} collections in ${duration}ms`);
+            await this.loadMetadataFromUrisSync(allNFTs);
             this.userNFTsCache.set(cacheKey, {
-                data: transformedNFTs,
+                data: allNFTs,
                 timestamp: Date.now()
             });
             const totalDuration = Date.now() - startTime;
             console.log(`✅ Complete fetch with metadata completed in ${totalDuration}ms`);
-            return transformedNFTs;
+            return allNFTs;
         }
         catch (error) {
-            console.error('Error fetching user NFTs with searchAssets:', error);
+            console.error('Error fetching user NFTs:', error);
             throw error;
         }
     }
