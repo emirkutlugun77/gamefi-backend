@@ -58,4 +58,6 @@ export declare class NftAdminService {
         additionalImages?: Express.Multer.File[];
     }): Promise<any>;
     mintNftWithAuth(encryptedPrivateKey: string, collectionName: string, typeName: string, collectionMintAddress: string, buyerPublicKey: string): Promise<any>;
+    deleteCollectionFromDatabase(collectionName: string): Promise<void>;
+    deleteTypeFromDatabase(typeId: string): Promise<void>;
 }

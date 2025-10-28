@@ -111,6 +111,26 @@ let NftAdminController = class NftAdminController {
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    async deleteCollection(name) {
+        try {
+            await this.nftAdminService.deleteCollectionFromDatabase(name);
+            return {
+                success: true,
+                message: 'Collection removed from database (still exists on blockchain)'
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.HttpException) {
+                throw error;
+            }
+            console.error('Error in deleteCollection controller:', error);
+            throw new common_1.HttpException({
+                success: false,
+                message: 'Failed to delete collection',
+                error: error.message
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
     async getTypesByCollection(collectionName) {
         try {
             let types;
@@ -133,6 +153,26 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to fetch NFT types',
+                error: error.message
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async deleteType(id) {
+        try {
+            await this.nftAdminService.deleteTypeFromDatabase(id);
+            return {
+                success: true,
+                message: 'NFT type removed from database (still exists on blockchain)'
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.HttpException) {
+                throw error;
+            }
+            console.error('Error in deleteType controller:', error);
+            throw new common_1.HttpException({
+                success: false,
+                message: 'Failed to delete NFT type',
                 error: error.message
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -575,6 +615,41 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], NftAdminController.prototype, "getAllCollections", null);
 __decorate([
+    (0, common_1.Delete)('collections/:name'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Delete collection from database sync',
+        description: 'Removes collection from database sync. NOTE: This does NOT delete from blockchain (blockchain is immutable). Only removes from local database.'
+    }),
+    (0, swagger_1.ApiParam)({
+        name: 'name',
+        description: 'Collection name',
+        example: 'VYBE_BUILDINGS_COLLECTION'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Collection deleted from database successfully',
+        schema: {
+            type: 'object',
+            properties: {
+                success: { type: 'boolean', example: true },
+                message: { type: 'string', example: 'Collection removed from database (still exists on blockchain)' }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 404,
+        description: 'Collection not found in database'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error'
+    }),
+    __param(0, (0, common_1.Param)('name')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], NftAdminController.prototype, "deleteCollection", null);
+__decorate([
     (0, common_1.Get)('types'),
     (0, swagger_1.ApiOperation)({
         summary: 'Get NFT types by collection',
@@ -613,6 +688,41 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], NftAdminController.prototype, "getTypesByCollection", null);
+__decorate([
+    (0, common_1.Delete)('types/:id'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Delete NFT type from database sync',
+        description: 'Removes NFT type from database sync. NOTE: This does NOT delete from blockchain (blockchain is immutable). Only removes from local database.'
+    }),
+    (0, swagger_1.ApiParam)({
+        name: 'id',
+        description: 'NFT type ID (PDA address)',
+        example: 'DiY16YeswLB1sJceP2HwsWJG5z7LiuDi5Sjcp94HGofV'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'NFT type deleted from database successfully',
+        schema: {
+            type: 'object',
+            properties: {
+                success: { type: 'boolean', example: true },
+                message: { type: 'string', example: 'NFT type removed from database (still exists on blockchain)' }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 404,
+        description: 'NFT type not found in database'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error'
+    }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], NftAdminController.prototype, "deleteType", null);
 __decorate([
     (0, common_1.Post)('store-config'),
     (0, swagger_1.ApiOperation)({

@@ -14,7 +14,7 @@ import { NftService } from './nft.service';
 import { AuthService } from '../auth/auth.service';
 import axios from 'axios';
 
-const PROGRAM_ID = new PublicKey('Cvz71nzvusTyvH6GzeuHSVKPAGABH2q5tw2HRJdmzvEj');
+const PROGRAM_ID = new PublicKey('B6c38JtYJXDiaW2XNJWrueLUULAD4vsxChz1VJk1d9zX');
 
 
 @Injectable()
@@ -1571,6 +1571,100 @@ export class NftAdminService {
         {
           success: false,
           message: 'Failed to mint NFT',
+          error: error.message
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Delete collection from database
+   * NOTE: This does NOT delete from blockchain (blockchain is immutable)
+   * Only removes from local database sync
+   */
+  async deleteCollectionFromDatabase(collectionName: string): Promise<void> {
+    try {
+      console.log(`🗑️ Deleting collection from database: ${collectionName}`);
+
+      const collection = await this.nftCollectionRepo.findOne({
+        where: { name: collectionName }
+      });
+
+      if (!collection) {
+        throw new HttpException(
+          {
+            success: false,
+            message: `Collection '${collectionName}' not found in database`
+          },
+          HttpStatus.NOT_FOUND
+        );
+      }
+
+      // Delete associated NFT types first
+      await this.nftTypeRepo.delete({ collectionId: collection.id });
+      console.log(`  ✓ Deleted associated NFT types`);
+
+      // Delete the collection
+      await this.nftCollectionRepo.delete({ id: collection.id });
+      console.log(`  ✓ Deleted collection from database`);
+
+      console.log(`✅ Collection '${collectionName}' removed from database (still exists on blockchain)`);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      console.error('Error deleting collection from database:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to delete collection from database',
+          error: error.message
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Delete NFT type from database
+   * NOTE: This does NOT delete from blockchain (blockchain is immutable)
+   * Only removes from local database sync
+   */
+  async deleteTypeFromDatabase(typeId: string): Promise<void> {
+    try {
+      console.log(`🗑️ Deleting NFT type from database: ${typeId}`);
+
+      const type = await this.nftTypeRepo.findOne({
+        where: { id: typeId }
+      });
+
+      if (!type) {
+        throw new HttpException(
+          {
+            success: false,
+            message: `NFT type with ID '${typeId}' not found in database`
+          },
+          HttpStatus.NOT_FOUND
+        );
+      }
+
+      // Delete the type
+      await this.nftTypeRepo.delete({ id: typeId });
+      console.log(`  ✓ Deleted NFT type from database`);
+
+      console.log(`✅ NFT type '${type.name}' removed from database (still exists on blockchain)`);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      console.error('Error deleting NFT type from database:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to delete NFT type from database',
           error: error.message
         },
         HttpStatus.INTERNAL_SERVER_ERROR

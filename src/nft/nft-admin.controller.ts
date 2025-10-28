@@ -355,6 +355,59 @@ export class NftAdminController {
     }
   }
 
+  @Delete('collections/:name')
+  @ApiOperation({
+    summary: 'Delete collection from database sync',
+    description: 'Removes collection from database sync. NOTE: This does NOT delete from blockchain (blockchain is immutable). Only removes from local database.'
+  })
+  @ApiParam({
+    name: 'name',
+    description: 'Collection name',
+    example: 'VYBE_BUILDINGS_COLLECTION'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Collection deleted from database successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Collection removed from database (still exists on blockchain)' }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Collection not found in database'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error'
+  })
+  async deleteCollection(@Param('name') name: string) {
+    try {
+      await this.nftAdminService.deleteCollectionFromDatabase(name);
+      return {
+        success: true,
+        message: 'Collection removed from database (still exists on blockchain)'
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      console.error('Error in deleteCollection controller:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to delete collection',
+          error: error.message
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
   @Get('types')
   @ApiOperation({
     summary: 'Get NFT types by collection',
@@ -391,7 +444,7 @@ export class NftAdminController {
   async getTypesByCollection(@Query('collection') collectionName?: string) {
     try {
       let types: any[];
-      
+
       if (collectionName) {
         // Get types for specific collection
         types = await this.nftAdminService.getTypesByCollection(collectionName);
@@ -399,7 +452,7 @@ export class NftAdminController {
         // Get all types from all collections
         types = await this.nftAdminService.getAllTypes();
       }
-      
+
       return {
         success: true,
         data: types
@@ -414,6 +467,59 @@ export class NftAdminController {
         {
           success: false,
           message: 'Failed to fetch NFT types',
+          error: error.message
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Delete('types/:id')
+  @ApiOperation({
+    summary: 'Delete NFT type from database sync',
+    description: 'Removes NFT type from database sync. NOTE: This does NOT delete from blockchain (blockchain is immutable). Only removes from local database.'
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'NFT type ID (PDA address)',
+    example: 'DiY16YeswLB1sJceP2HwsWJG5z7LiuDi5Sjcp94HGofV'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'NFT type deleted from database successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'NFT type removed from database (still exists on blockchain)' }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'NFT type not found in database'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error'
+  })
+  async deleteType(@Param('id') id: string) {
+    try {
+      await this.nftAdminService.deleteTypeFromDatabase(id);
+      return {
+        success: true,
+        message: 'NFT type removed from database (still exists on blockchain)'
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      console.error('Error in deleteType controller:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to delete NFT type',
           error: error.message
         },
         HttpStatus.INTERNAL_SERVER_ERROR

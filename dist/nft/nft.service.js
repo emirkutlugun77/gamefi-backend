@@ -14,7 +14,7 @@ const common_1 = require("@nestjs/common");
 const web3_js_1 = require("@solana/web3.js");
 const umi_bundle_defaults_1 = require("@metaplex-foundation/umi-bundle-defaults");
 const digital_asset_standard_api_1 = require("@metaplex-foundation/digital-asset-standard-api");
-const PROGRAM_ID = new web3_js_1.PublicKey('Cvz71nzvusTyvH6GzeuHSVKPAGABH2q5tw2HRJdmzvEj');
+const PROGRAM_ID = new web3_js_1.PublicKey('B6c38JtYJXDiaW2XNJWrueLUULAD4vsxChz1VJk1d9zX');
 const TOKEN_METADATA_PROGRAM_ID = new web3_js_1.PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 const TARGET_COLLECTION_MINT = 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN';
 const MARKETPLACE_ACCOUNT_DISCRIMINATOR = [70, 222, 41, 62, 78, 3, 32, 174];
@@ -28,7 +28,7 @@ let NftService = class NftService {
     userNFTsCache = new Map();
     CACHE_DURATION = 5 * 60 * 1000;
     METADATA_CACHE_DURATION = 30 * 60 * 1000;
-    USER_NFTS_CACHE_DURATION = 2 * 60 * 1000;
+    USER_NFTS_CACHE_DURATION = 10 * 1000;
     constructor() {
         this.connection = new web3_js_1.Connection('https://api.devnet.solana.com', 'confirmed');
         this.umi = (0, umi_bundle_defaults_1.createUmi)('https://api.devnet.solana.com').use((0, digital_asset_standard_api_1.dasApi)());

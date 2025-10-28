@@ -65,7 +65,7 @@ export class NftService {
   private userNFTsCache: Map<string, { data: any[], timestamp: number }> = new Map();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 dakika cache
   private readonly METADATA_CACHE_DURATION = 30 * 60 * 1000; // 30 dakika metadata cache
-  private readonly USER_NFTS_CACHE_DURATION = 2 * 60 * 1000; // 2 dakika user NFTs cache
+  private readonly USER_NFTS_CACHE_DURATION = 10 * 1000; // 10 saniye user NFTs cache (mint sonrası hızlı refresh için)
 
   constructor() {
     this.connection = new Connection('https://api.devnet.solana.com', 'confirmed');

@@ -27,9 +27,17 @@ export declare class NftAdminController {
         success: boolean;
         data: import("./nft.service").NFTCollection[];
     }>;
+    deleteCollection(name: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     getTypesByCollection(collectionName?: string): Promise<{
         success: boolean;
         data: any[];
+    }>;
+    deleteType(id: string): Promise<{
+        success: boolean;
+        message: string;
     }>;
     setStoreConfig(dto: CreateStoreConfigDto): Promise<{
         success: boolean;

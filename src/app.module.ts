@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { NftModule } from './nft/nft.module';
 import { UserModule } from './user/user.module';
 import { AchievementsModule } from './achievements/achievements.module';
+import { StakingModule } from './staking/staking.module';
 import { NftCollection } from './entities/nft-collection.entity';
 import { NftType } from './entities/nft-type.entity';
 import { UserNft } from './entities/user-nft.entity';
@@ -27,6 +28,7 @@ import { StoreConfig } from './entities/store-config.entity';
     NftModule,
     UserModule,
     AchievementsModule,
+    StakingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
