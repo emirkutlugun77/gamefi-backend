@@ -5,13 +5,17 @@ import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { dasApi } from '@metaplex-foundation/digital-asset-standard-api';
 import { publicKey as umiPublicKey } from '@metaplex-foundation/umi';
 
-// Constants from the marketplace program (updated from IDL)
-const PROGRAM_ID = new PublicKey('Cvz71nzvusTyvH6GzeuHSVKPAGABH2q5tw2HRJdmzvEj');
+// Constants from the marketplace website
+const PROGRAM_ID = new PublicKey('12LJUQx5mfVfqACGgEac65Xe6PMGnYm5rdaRRcU4HE7V');
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
-// Target collection filter (DEPRECATED - now showing all collections)
-// const TARGET_COLLECTION_NAME = 'VYBE_SUPERHEROES_w89yuli8p3l';
-const TARGET_COLLECTION_MINT = 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN'; // Default collection mint for user NFTs
+// Staking program constants
+const STAKING_PROGRAM_ID = new PublicKey('8KzE3LCicxv13iJx2v2V4VQQNWt4QHuvfuH8jxYnkGQ1');
+const REWARD_TOKEN_MINT = new PublicKey('GshYgeeG5xmeMJ4crtg1SHGafYXBpnCyPz9VNF8DXxSW');
+
+// Target collection filter
+const TARGET_COLLECTION_NAME = 'VYBE_SUPERHEROES_w89yuli8p3l';
+const TARGET_COLLECTION_MINT = '2xXLJU6hbKwTjvqkDsfv8rwFqSB7hRSqzyAvXDmgJi1r'; // VYBE_SUPERHEROES collection mint
 
 // Account discriminators for parsing
 const MARKETPLACE_ACCOUNT_DISCRIMINATOR = [70, 222, 41, 62, 78, 3, 32, 174];
@@ -43,7 +47,6 @@ export interface NFTItemType {
   price: number;
   max_supply: number;
   current_supply: number;
-  staking_amount: number;
   bump: number;
 }
 
@@ -65,7 +68,7 @@ export class NftService {
   private userNFTsCache: Map<string, { data: any[], timestamp: number }> = new Map();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 dakika cache
   private readonly METADATA_CACHE_DURATION = 30 * 60 * 1000; // 30 dakika metadata cache
-  private readonly USER_NFTS_CACHE_DURATION = 10 * 1000; // 10 saniye user NFTs cache (mint sonrası hızlı refresh için)
+  private readonly USER_NFTS_CACHE_DURATION = 2 * 60 * 1000; // 2 dakika user NFTs cache
 
   constructor() {
     this.connection = new Connection('https://api.devnet.solana.com', 'confirmed');
@@ -102,40 +105,6 @@ export class NftService {
     }
     
     return null;
-  }
-
-  private extractImagesFromMetadata(metadata: any): { mainImage?: string; additionalImages?: string[] } {
-    if (!metadata) return {};
-
-    const mainImage = metadata.image || metadata.main_image || metadata.mainImage;
-    const additionalImages: string[] = [];
-
-    // Extract additional images from various possible fields
-    if (metadata.additional_images) {
-      additionalImages.push(...metadata.additional_images);
-    }
-    if (metadata.additionalImages) {
-      additionalImages.push(...metadata.additionalImages);
-    }
-    if (metadata.gallery) {
-      additionalImages.push(...metadata.gallery);
-    }
-    if (metadata.images && Array.isArray(metadata.images)) {
-      additionalImages.push(...metadata.images);
-    }
-
-    // Convert IPFS URLs to HTTP gateway URLs
-    const convertToHttpUrl = (url: string) => {
-      if (url && url.startsWith('ipfs://')) {
-        return url.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
-      }
-      return url;
-    };
-
-    return {
-      mainImage: mainImage ? convertToHttpUrl(mainImage) : undefined,
-      additionalImages: additionalImages.map(convertToHttpUrl).filter(Boolean)
-    };
   }
 
   private getMarketplacePDA(): [PublicKey, number] {
@@ -237,7 +206,7 @@ export class NftService {
               offset += nameLen;
               const uriLen = data.readUInt32LE(offset); 
               offset += 4;
-              if (uriLen === 0 || uriLen > 500 || data.length < offset + uriLen + 8 + 8 + 8 + 8 + 1) continue;
+              if (uriLen === 0 || uriLen > 500 || data.length < offset + uriLen + 8 + 8 + 8 + 1) continue;
               const uri = data.slice(offset, offset + uriLen).toString('utf8'); 
               offset += uriLen;
               const price = Number(data.readBigUInt64LE(offset)); 
@@ -246,15 +215,13 @@ export class NftService {
               offset += 8;
               const current_supply = Number(data.readBigUInt64LE(offset)); 
               offset += 8;
-              const staking_amount = Number(data.readBigUInt64LE(offset)); 
-              offset += 8;
               const bump = data.readUInt8(offset);
               
               // Only include item types for target collection
               // We'll check this after we have all collections parsed
               const key = collection.toString();
               if (!itemTypesMap[key]) itemTypesMap[key] = [];
-              itemTypesMap[key].push({ collection, name, uri, price, max_supply, current_supply, staking_amount, bump });
+              itemTypesMap[key].push({ collection, name, uri, price, max_supply, current_supply, bump });
               continue;
             } catch (_) {
               continue;
@@ -341,12 +308,24 @@ export class NftService {
         }
       }
       
-      // Return all collections (filter removed to show all marketplace collections)
+      // Filter collections to only include target collection
+      const targetCollections = collectionsData.filter(c => c.name === TARGET_COLLECTION_NAME);
+      
+      // Filter item types to only include those from target collection
+      const filteredItemTypesMap: Record<string, NFTItemType[]> = {};
+      for (const collection of targetCollections) {
+        const collectionKey = collection.pda?.toString() || '';
+        if (itemTypesMap[collectionKey]) {
+          filteredItemTypesMap[collectionKey] = itemTypesMap[collectionKey];
+        }
+      }
+      
       console.log('Total collections found:', collectionsData.length);
-      console.log('Total item types:', Object.values(itemTypesMap).flat().length);
-
+      console.log('Target collections after filter:', targetCollections.length);
+      console.log('Total item types for target collection:', Object.values(filteredItemTypesMap).flat().length);
+      
       // Cache'e kaydet
-      const result = { collections: collectionsData, itemTypesByCollection: itemTypesMap };
+      const result = { collections: targetCollections, itemTypesByCollection: filteredItemTypesMap };
       this.collectionsCache = result;
       this.collectionsCacheTime = Date.now();
       
@@ -361,91 +340,67 @@ export class NftService {
     // User NFTs cache kontrolü
     const cacheKey = walletAddress;
     const cachedData = this.userNFTsCache.get(cacheKey);
-
+    
     if (cachedData && (Date.now() - cachedData.timestamp) < this.USER_NFTS_CACHE_DURATION) {
       console.log('✅ Returning cached user NFTs for:', walletAddress);
       return cachedData.data;
     }
 
     try {
-      console.log('🚀 Fetching user NFTs from VYBE collections:', walletAddress);
+      console.log('🚀 Fetching user NFTs with searchAssets (owner + collection filter):', walletAddress);
       const startTime = Date.now();
-
-      // Get our collections from blockchain
-      const { collections } = await this.fetchCollections();
-      const collectionMints = collections.map(c => c.mint.toString());
-      console.log('📋 VYBE Collections:', collectionMints);
-
-      // Fetch NFTs from each VYBE collection
-      let allNFTs: any[] = [];
-
-      for (const collectionMint of collectionMints) {
-        try {
-          console.log(`🔍 Searching in collection: ${collectionMint}`);
-
-          // DAS API getAssetsByGroup - filter by collection
-          const result = await this.umi.rpc.getAssetsByGroup({
-            groupKey: 'collection',
-            groupValue: collectionMint,
-          });
-
-          console.log(`  ✓ Found ${result.items.length} total NFTs in collection`);
-
-          // Filter by owner
-          const userAssets = result.items.filter(asset =>
-            asset.ownership?.owner === walletAddress
-          );
-
-          console.log(`  ✓ User owns ${userAssets.length} NFTs in this collection`);
-
-          if (userAssets.length > 0) {
-            const transformed = userAssets.map(asset => this.transformDasAsset(asset));
-            allNFTs = allNFTs.concat(transformed);
-          }
-        } catch (err) {
-          console.warn(`  ⚠️ Error fetching from collection ${collectionMint}:`, err.message);
+      
+      // DAS API searchAssets - owner ve collection filtresini birlikte kullan
+      const result = await this.umi.rpc.searchAssets({
+        owner: umiPublicKey(walletAddress),
+        grouping: ['collection', TARGET_COLLECTION_MINT],
+        options: {
+          showCollectionMetadata: true,
+          showInscription: true
         }
-      }
-
-      const duration = Date.now() - startTime;
-      console.log(`✅ Fetched ${allNFTs.length} NFTs from ${collectionMints.length} collections in ${duration}ms`);
-
-      // Metadata'ları URI'lerden yükle (response'u bloklar)
-      await this.loadMetadataFromUrisSync(allNFTs);
-
-      // Cache'e kaydet
-      this.userNFTsCache.set(cacheKey, {
-        data: allNFTs,
-        timestamp: Date.now()
       });
 
+      console.log(`📦 DAS searchAssets found ${result.items.length} NFTs from target collection`);
+
+      // Transform assets to our format
+      const transformedNFTs = result.items.map(asset => this.transformDasAsset(asset));
+      
+      const duration = Date.now() - startTime;
+      console.log(`✅ searchAssets completed in ${duration}ms, found ${transformedNFTs.length} NFTs`);
+      
+      // Metadata'ları URI'lerden yükle (response'u bloklar)
+      await this.loadMetadataFromUrisSync(transformedNFTs);
+      
+      // Cache'e kaydet
+      this.userNFTsCache.set(cacheKey, {
+        data: transformedNFTs,
+        timestamp: Date.now()
+      });
+      
       const totalDuration = Date.now() - startTime;
       console.log(`✅ Complete fetch with metadata completed in ${totalDuration}ms`);
-
-      return allNFTs;
+      
+      return transformedNFTs;
     } catch (error) {
-      console.error('Error fetching user NFTs:', error);
+      console.error('Error fetching user NFTs with searchAssets:', error);
       throw error;
     }
   }
 
   private transformDasAsset(asset: any): any {
-    const collectionAddress = asset.grouping?.find(g => g.group_key === 'collection')?.group_value || '';
-    const collectionName = asset.content?.metadata?.collection?.name || asset.grouping?.find(g => g.group_key === 'collection')?.group_value || 'Unknown Collection';
-
     return {
       mint: asset.id,
       metadata: asset.content?.metadata || null,
       name: asset.content?.metadata?.name || 'Unknown NFT',
       image: asset.content?.files?.[0]?.uri || asset.content?.metadata?.image || '/placeholder.svg',
-      collectionName: collectionName,
+      collectionName: TARGET_COLLECTION_NAME,
       symbol: asset.content?.metadata?.symbol || '',
       description: asset.content?.metadata?.description || '',
       attributes: asset.content?.metadata?.attributes || [],
       uri: asset.content?.json_uri || '',
       collection: {
-        address: collectionAddress,
-        verified: asset.grouping?.find(g => g.group_key === 'collection')?.collection_verified || true,
+        address: asset.grouping?.find(g => g.group_key === 'collection')?.group_value || '',
+        verified: true, // DAS API'de filtrelenmiş olarak geliyor
       },
       creators: asset.creators?.map((creator: any) => ({
         address: creator.address,
@@ -479,11 +434,6 @@ export class NftService {
                 if (metadata.image && nft.image === '/placeholder.svg') {
                   nft.image = metadata.image;
                 }
-                
-                // Extract images from metadata
-                const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadata);
-                nft.mainImage = mainImage;
-                nft.additionalImages = additionalImages;
                 if (metadata.description && !nft.description) {
                   nft.description = metadata.description;
                 }
@@ -532,11 +482,6 @@ export class NftService {
                   if (metadata.image && nft.image === '/placeholder.svg') {
                     nft.image = metadata.image;
                   }
-                  
-                  // Extract images from metadata
-                  const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadata);
-                  nft.mainImage = mainImage;
-                  nft.additionalImages = additionalImages;
                   if (metadata.description && !nft.description) {
                     nft.description = metadata.description;
                   }
@@ -583,11 +528,6 @@ export class NftService {
               if (metadata) {
                 nft.metadata = metadata;
                 nft.image = metadata.image || '/placeholder.svg';
-                
-                // Extract images from metadata
-                const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadata);
-                nft.mainImage = mainImage;
-                nft.additionalImages = additionalImages;
               }
               delete nft.uri; // Temizle
             } catch (e) {
@@ -690,9 +630,9 @@ export class NftService {
         const collectionMintBuf = d.slice(off, off + 32);
         const collectionMint = new PublicKey(collectionMintBuf);
         
-        // Check if this NFT belongs to any known collection
+        // Sadece target collection'ı kontrol et - daha hızlı
         for (const c of collections) {
-          if (c.mint.equals(collectionMint)) {
+          if (c.mint.equals(collectionMint) && c.name === TARGET_COLLECTION_NAME) {
             belongsToOurCollection = true;
             matchedCollectionName = c.name;
             break;
@@ -779,7 +719,7 @@ export class NftService {
         const collectionMintBuf = d.slice(off, off + 32); off += 32;
         const collectionMint = new PublicKey(collectionMintBuf);
         for (const c of collections) {
-          if (c.mint.equals(collectionMint)) {
+          if (c.mint.equals(collectionMint) && c.name === TARGET_COLLECTION_NAME) {
             belongsToOurCollection = true;
             matchedCollectionName = c.name;
             break;
@@ -793,15 +733,10 @@ export class NftService {
       // Fetch metadata JSON with cache
       const metadataJson = await this.fetchMetadataWithCache(uri);
       
-      // Extract images from metadata
-      const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadataJson);
-      
       return { 
         mint: mint.toString(), 
         metadata: metadataJson,
         name: name.replace(/\0+$/, ''),
-        mainImage,
-        additionalImages,
         image: metadataJson?.image || '/placeholder.svg',
         collectionName: matchedCollectionName,
       };
@@ -876,5 +811,183 @@ export class NftService {
       collections,
       itemTypesByCollection
     };
+  }
+
+  // ==================== STAKING FUNCTIONS ====================
+
+  private getStakePoolPDA(): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from('stake_pool')],
+      STAKING_PROGRAM_ID
+    );
+  }
+
+  private getStakeAccountPDA(staker: PublicKey, nftMint: PublicKey): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from('stake_account'), staker.toBuffer(), nftMint.toBuffer()],
+      STAKING_PROGRAM_ID
+    );
+  }
+
+  async fetchStakedNFTs(walletAddress: string): Promise<any[]> {
+    try {
+      console.log('🎯 Fetching staked NFTs for wallet:', walletAddress);
+      const startTime = Date.now();
+
+      const walletPubkey = new PublicKey(walletAddress);
+
+      // Get all stake accounts owned by this wallet
+      const accounts = await this.connection.getProgramAccounts(STAKING_PROGRAM_ID, {
+        filters: [
+          {
+            memcmp: {
+              offset: 8, // After discriminator
+              bytes: walletPubkey.toBase58(),
+            },
+          },
+        ],
+      });
+
+      console.log(`📦 Found ${accounts.length} stake accounts`);
+
+      const stakes = [];
+
+      for (const account of accounts) {
+        try {
+          const data = account.account.data;
+
+          // Parse StakeAccount struct
+          let offset = 8; // Skip discriminator
+
+          // owner (Pubkey - 32 bytes)
+          const owner = new PublicKey(data.slice(offset, offset + 32));
+          offset += 32;
+
+          // nft_mint (Pubkey - 32 bytes)
+          const nftMint = new PublicKey(data.slice(offset, offset + 32));
+          offset += 32;
+
+          // nft_type (Pubkey - 32 bytes)
+          const nftType = new PublicKey(data.slice(offset, offset + 32));
+          offset += 32;
+
+          // stake_pool (Pubkey - 32 bytes)
+          const stakePool = new PublicKey(data.slice(offset, offset + 32));
+          offset += 32;
+
+          // stake_timestamp (i64 - 8 bytes)
+          const stakeTimestamp = Number(data.readBigInt64LE(offset));
+          offset += 8;
+
+          // last_claim_timestamp (i64 - 8 bytes)
+          const lastClaimTimestamp = Number(data.readBigInt64LE(offset));
+          offset += 8;
+
+          // stake_multiplier (u64 - 8 bytes)
+          const stakeMultiplier = Number(data.readBigUInt64LE(offset));
+          offset += 8;
+
+          // bump (u8 - 1 byte)
+          const bump = data.readUInt8(offset);
+
+          stakes.push({
+            pda: account.pubkey.toString(),
+            owner: owner.toString(),
+            nftMint: nftMint.toString(),
+            nftType: nftType.toString(),
+            stakePool: stakePool.toString(),
+            stakeTimestamp,
+            lastClaimTimestamp,
+            stakeMultiplier,
+            multiplier: stakeMultiplier / 10000, // Convert basis points to decimal
+            bump,
+          });
+        } catch (parseError) {
+          console.warn('Failed to parse stake account:', account.pubkey.toString(), parseError);
+          continue;
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      console.log(`✅ Fetched ${stakes.length} staked NFTs in ${duration}ms`);
+
+      return stakes;
+    } catch (error) {
+      console.error('Error fetching staked NFTs:', error);
+      throw error;
+    }
+  }
+
+  async calculatePendingRewards(walletAddress: string, nftMint: string): Promise<any> {
+    try {
+      console.log('💰 Calculating pending rewards for NFT:', nftMint);
+
+      const walletPubkey = new PublicKey(walletAddress);
+      const nftMintPubkey = new PublicKey(nftMint);
+
+      // Get stake account PDA
+      const [stakeAccountPDA] = this.getStakeAccountPDA(walletPubkey, nftMintPubkey);
+
+      // Fetch stake account
+      const stakeAccountInfo = await this.connection.getAccountInfo(stakeAccountPDA);
+
+      if (!stakeAccountInfo) {
+        throw new Error(`Stake account not found for NFT: ${nftMint}`);
+      }
+
+      // Parse stake account
+      const data = stakeAccountInfo.data;
+      let offset = 8; // Skip discriminator
+
+      offset += 32; // owner
+      offset += 32; // nft_mint
+      offset += 32; // nft_type
+      offset += 32; // stake_pool
+
+      const stakeTimestamp = Number(data.readBigInt64LE(offset));
+      offset += 8;
+
+      const lastClaimTimestamp = Number(data.readBigInt64LE(offset));
+      offset += 8;
+
+      const stakeMultiplier = Number(data.readBigUInt64LE(offset));
+
+      // Get stake pool to get reward rate
+      const [stakePoolPDA] = this.getStakePoolPDA();
+      const stakePoolInfo = await this.connection.getAccountInfo(stakePoolPDA);
+
+      if (!stakePoolInfo) {
+        throw new Error('Stake pool not found');
+      }
+
+      // Parse stake pool
+      const poolData = stakePoolInfo.data;
+      let poolOffset = 8; // Skip discriminator
+      poolOffset += 32; // admin
+      poolOffset += 32; // reward_token_mint
+
+      const rewardRatePerSecond = Number(poolData.readBigUInt64LE(poolOffset));
+
+      // Calculate pending rewards
+      const currentTime = Math.floor(Date.now() / 1000);
+      const timeSinceLastClaim = currentTime - lastClaimTimestamp;
+      const baseRewards = timeSinceLastClaim * rewardRatePerSecond;
+      const pendingRewards = (baseRewards * stakeMultiplier) / 10000;
+
+      return {
+        nftMint,
+        stakeTimestamp,
+        lastClaimTimestamp,
+        stakeMultiplier,
+        multiplier: stakeMultiplier / 10000,
+        rewardRatePerSecond,
+        timeSinceLastClaim,
+        pendingRewards,
+        pendingRewardsFormatted: (pendingRewards / 1e9).toFixed(4), // Convert lamports to tokens
+      };
+    } catch (error) {
+      console.error('Error calculating pending rewards:', error);
+      throw error;
+    }
   }
 }

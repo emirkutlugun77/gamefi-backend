@@ -1,6 +1,7 @@
-import { Controller, Get, Query, HttpException, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Query, Param, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { NftService, MarketplaceData, NFTCollection, NFTItemType, Marketplace } from './nft.service';
+import { Connection, Keypair, Transaction } from '@solana/web3.js';
 import { 
   MarketplaceDataResponseDto, 
   CollectionsResponseDto, 
@@ -11,7 +12,24 @@ import {
 @ApiTags('nft')
 @Controller('nft')
 export class NftController {
-  constructor(private readonly nftService: NftService) {}
+  private readonly connection: Connection;
+  private readonly adminKeypair: Keypair;
+
+  constructor(private readonly nftService: NftService) {
+    const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+    this.connection = new Connection(rpcUrl, 'confirmed');
+    
+    // Load admin private key from environment variable
+    const adminPrivateKey = process.env.NFT_ADMIN_PRIVATE_KEY;
+    if (!adminPrivateKey) {
+      throw new Error('NFT_ADMIN_PRIVATE_KEY environment variable is required');
+    }
+    this.adminKeypair = Keypair.fromSecretKey(
+      Uint8Array.from(JSON.parse(adminPrivateKey))
+    );
+    
+    console.log(`✅ Admin wallet loaded: ${this.adminKeypair.publicKey.toString()}`);
+  }
 
   @Get('marketplace')
   @ApiOperation({ 
@@ -171,12 +189,12 @@ export class NftController {
   }
 
   @Get('marketplace-info')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get marketplace info',
-    description: 'Sadece marketplace temel bilgilerini blockchain\'den çeker' 
+    description: 'Sadece marketplace temel bilgilerini blockchain\'den çeker'
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Marketplace info successfully retrieved',
     type: MarketplaceInfoResponseDto
   })
@@ -195,6 +213,229 @@ export class NftController {
           success: false,
           message: 'Failed to fetch marketplace info',
           error: error.message
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Get('staked/:walletAddress')
+  @ApiOperation({
+    summary: 'Get staked NFTs for a wallet',
+    description: 'Belirtilen wallet adresine ait stake edilmiş NFT\'leri blockchain\'den çeker'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Staked NFTs successfully retrieved'
+  })
+  @ApiResponse({ status: 400, description: 'Wallet address is required' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async getStakedNFTs(@Param('walletAddress') walletAddress: string) {
+    if (!walletAddress) {
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Wallet address is required'
+        },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    try {
+      const stakes = await this.nftService.fetchStakedNFTs(walletAddress);
+      return {
+        success: true,
+        data: {
+          stakes,
+          count: stakes.length
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching staked NFTs:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to fetch staked NFTs',
+          error: error.message
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Get('rewards/:walletAddress/:nftMint')
+  @ApiOperation({
+    summary: 'Get pending rewards for a staked NFT',
+    description: 'Belirtilen NFT için bekleyen ödülleri hesaplar'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Rewards successfully calculated'
+  })
+  @ApiResponse({ status: 400, description: 'Wallet address and NFT mint are required' })
+  @ApiResponse({ status: 404, description: 'Stake account not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async getPendingRewards(
+    @Param('walletAddress') walletAddress: string,
+    @Param('nftMint') nftMint: string
+  ) {
+    if (!walletAddress || !nftMint) {
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Wallet address and NFT mint are required'
+        },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    try {
+      const rewards = await this.nftService.calculatePendingRewards(walletAddress, nftMint);
+      return {
+        success: true,
+        data: rewards
+      };
+    } catch (error) {
+      console.error('Error calculating pending rewards:', error);
+
+      if (error.message.includes('not found')) {
+        throw new HttpException(
+          {
+            success: false,
+            message: 'Stake account not found',
+            error: error.message
+          },
+          HttpStatus.NOT_FOUND
+        );
+      }
+
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to calculate pending rewards',
+          error: error.message
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Post('admin/mint-nft')
+  @ApiOperation({
+    summary: 'Sign and send NFT mint transaction',
+    description: 'Admin wallet ile transaction\'ı imzalayıp gönderir'
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        transaction: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Serialized transaction bytes'
+        },
+        nftMint: {
+          type: 'string',
+          description: 'NFT mint public key'
+        }
+      },
+      required: ['transaction', 'nftMint']
+    }
+  })
+  @ApiResponse({ status: 200, description: 'Transaction sent successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async mintNft(@Body() body: { transaction: number[]; nftMint: string }) {
+    try {
+      const { transaction: txBytes, nftMint } = body;
+
+      if (!txBytes || !Array.isArray(txBytes)) {
+        throw new HttpException(
+          {
+            success: false,
+            message: 'Invalid transaction data'
+          },
+          HttpStatus.BAD_REQUEST
+        );
+      }
+
+      console.log(`📝 Received transaction for NFT mint: ${nftMint}`);
+      console.log(`📦 Transaction size: ${txBytes.length} bytes`);
+      console.log(`🔑 Admin wallet: ${this.adminKeypair.publicKey.toString()}`);
+
+      // Deserialize transaction (partially signed by frontend)
+      const transaction = Transaction.from(Buffer.from(txBytes));
+      
+      // Verify admin wallet is in the transaction account keys
+      const adminPubkeyStr = this.adminKeypair.publicKey.toString();
+      const adminKeyIndex = transaction.accountKeys.findIndex(
+        key => key?.toString() === adminPubkeyStr
+      );
+      
+      if (adminKeyIndex === -1) {
+        throw new Error(`Admin wallet ${adminPubkeyStr} not found in transaction accounts`);
+      }
+
+      // Check if admin signature is already present
+      const adminSignature = transaction.signatures[adminKeyIndex];
+      if (adminSignature?.signature !== null) {
+        console.warn('⚠️  Admin signature already present in transaction');
+      }
+
+      // Sign with admin keypair (partialSign preserves existing signatures)
+      transaction.partialSign(this.adminKeypair);
+      
+      // Verify signature was added
+      const newAdminSignature = transaction.signatures[adminKeyIndex];
+      if (newAdminSignature?.signature === null) {
+        throw new Error('Failed to add admin signature to transaction');
+      }
+      
+      console.log('✅ Transaction signed by admin');
+      
+      // Serialize fully signed transaction
+      const fullySignedTx = transaction.serialize();
+      console.log(`📤 Sending transaction (${fullySignedTx.length} bytes)...`);
+      
+      // Send transaction
+      const signature = await this.connection.sendRawTransaction(
+        fullySignedTx,
+        {
+          skipPreflight: false,
+          maxRetries: 3,
+        }
+      );
+      
+      console.log(`🚀 Transaction sent: ${signature}`);
+      console.log('⏳ Waiting for confirmation...');
+      
+      // Wait for confirmation
+      const confirmation = await this.connection.confirmTransaction(signature, 'confirmed');
+      
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      }
+      
+      console.log('✅ Transaction confirmed!');
+      
+      return {
+        success: true,
+        signature,
+        message: 'NFT minted successfully'
+      };
+    } catch (error: any) {
+      console.error('❌ Error minting NFT:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to mint NFT',
+          error: error.message || 'Unknown error'
         },
         HttpStatus.INTERNAL_SERVER_ERROR
       );
