@@ -23,7 +23,6 @@ export interface NFTItemType {
     price: number;
     max_supply: number;
     current_supply: number;
-    staking_amount: number;
     bump: number;
 }
 export interface MarketplaceData {
@@ -43,7 +42,6 @@ export declare class NftService {
     private readonly USER_NFTS_CACHE_DURATION;
     constructor();
     private fetchMetadataWithCache;
-    private extractImagesFromMetadata;
     private getMarketplacePDA;
     private getCollectionPDA;
     private getMetadataPDA;
@@ -62,4 +60,8 @@ export declare class NftService {
     private processTokenAccount;
     getCollectionNFTs(collectionAddress?: string): Promise<any[]>;
     getMarketplaceData(): Promise<MarketplaceData>;
+    private getStakePoolPDA;
+    private getStakeAccountPDA;
+    fetchStakedNFTs(walletAddress: string): Promise<any[]>;
+    calculatePendingRewards(walletAddress: string, nftMint: string): Promise<any>;
 }

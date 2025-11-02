@@ -2,10 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Keypair } from '@solana/web3.js';
 import * as crypto from 'crypto';
-import * as bs58Module from 'bs58';
-
-// Get the actual bs58 functions from the module
-const bs58 = (bs58Module as any).default || bs58Module;
+import bs58 from 'bs58';
 
 @Injectable()
 export class AuthService {

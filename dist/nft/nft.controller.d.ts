@@ -1,6 +1,8 @@
 import { NftService, MarketplaceData, NFTCollection, NFTItemType, Marketplace } from './nft.service';
 export declare class NftController {
     private readonly nftService;
+    private readonly connection;
+    private readonly adminKeypair;
     constructor(nftService: NftService);
     getMarketplaceData(): Promise<{
         success: boolean;
@@ -31,5 +33,25 @@ export declare class NftController {
     getMarketplaceInfo(): Promise<{
         success: boolean;
         data: Marketplace | null;
+    }>;
+    getStakedNFTs(walletAddress: string): Promise<{
+        success: boolean;
+        data: {
+            stakes: any[];
+            count: number;
+        };
+    }>;
+    getPendingRewards(walletAddress: string, nftMint: string): Promise<{
+        success: boolean;
+        data: any;
+    }>;
+    mintNft(body: {
+        transaction: number[];
+        nftMint: string;
+        blockhash?: string;
+    }): Promise<{
+        success: boolean;
+        signature: string;
+        message: string;
     }>;
 }

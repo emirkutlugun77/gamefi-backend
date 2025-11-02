@@ -4,8 +4,7 @@ import { Program, AnchorProvider, Wallet, BN } from '@coral-xyz/anchor';
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { SolanaContractService } from '../nft/solana-contract.service';
 import * as IDL from '../nft/nft_marketplace_idl.json';
-import * as bs58Module from 'bs58';
-const bs58 = (bs58Module as any).default || bs58Module;
+import bs58 from 'bs58';
 
 const PROGRAM_ID = new PublicKey('B6c38JtYJXDiaW2XNJWrueLUULAD4vsxChz1VJk1d9zX');
 const VYBE_TOKEN_MINT = new PublicKey('GshYgeeG5xmeMJ4crtg1SHGafYXBpnCyPz9VNF8DXxSW');

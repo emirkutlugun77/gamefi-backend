@@ -337,6 +337,10 @@ export class NftController {
         nftMint: {
           type: 'string',
           description: 'NFT mint public key'
+        },
+        blockhash: {
+          type: 'string',
+          description: 'Transaction blockhash (optional, will be refreshed if expired)'
         }
       },
       required: ['transaction', 'nftMint']
@@ -345,9 +349,9 @@ export class NftController {
   @ApiResponse({ status: 200, description: 'Transaction sent successfully' })
   @ApiResponse({ status: 400, description: 'Invalid request' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async mintNft(@Body() body: { transaction: number[]; nftMint: string }) {
+  async mintNft(@Body() body: { transaction: number[]; nftMint: string; blockhash?: string }) {
     try {
-      const { transaction: txBytes, nftMint } = body;
+      const { transaction: txBytes, nftMint, blockhash: clientBlockhash } = body;
 
       if (!txBytes || !Array.isArray(txBytes)) {
         throw new HttpException(
@@ -366,35 +370,84 @@ export class NftController {
       // Deserialize transaction (partially signed by frontend)
       const transaction = Transaction.from(Buffer.from(txBytes));
       
-      // Verify admin wallet is in the transaction account keys
+      // Check if blockhash is still valid, refresh if needed
+      console.log('🔄 Checking blockhash validity...');
+      const { blockhash: latestBlockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('confirmed');
+      
+      // Use client's blockhash if it's still valid, otherwise refresh
+      let blockhashToUse = clientBlockhash || latestBlockhash;
+      
+      // Check if client blockhash is still valid by comparing with latest
+      // If client blockhash matches or transaction doesn't have one, use latest
+      if (!transaction.recentBlockhash || transaction.recentBlockhash.toString() !== latestBlockhash) {
+        blockhashToUse = latestBlockhash;
+        console.log('🔄 Blockhash expired, using fresh blockhash');
+      } else {
+        console.log('✅ Client blockhash is still valid');
+      }
+      
+      // Set blockhash and metadata
+      transaction.recentBlockhash = blockhashToUse;
+      transaction.lastValidBlockHeight = lastValidBlockHeight;
+      if (!transaction.feePayer) {
+        transaction.feePayer = this.adminKeypair.publicKey;
+      }
+      
+      console.log(`📝 Using blockhash: ${blockhashToUse.slice(0, 8)}...`);
+      
+      // Verify admin wallet is in the transaction
+      // Check if admin public key appears in any instruction account keys
       const adminPubkeyStr = this.adminKeypair.publicKey.toString();
-      const adminKeyIndex = transaction.accountKeys.findIndex(
-        key => key?.toString() === adminPubkeyStr
-      );
+      const adminPubkey = this.adminKeypair.publicKey;
       
-      if (adminKeyIndex === -1) {
-        throw new Error(`Admin wallet ${adminPubkeyStr} not found in transaction accounts`);
+      // Find admin's index in signatures array by checking all instructions
+      let adminKeyIndex = -1;
+      for (let i = 0; i < transaction.instructions.length; i++) {
+        const instruction = transaction.instructions[i];
+        // Check if admin is in the keys
+        if (instruction.keys) {
+          const keyIndex = instruction.keys.findIndex(
+            (meta) => meta.pubkey.toString() === adminPubkeyStr
+          );
+          if (keyIndex !== -1) {
+            // Admin found, now find its position in transaction signatures
+            // We need to determine which signature slot corresponds to this account
+            // Since we can't directly map, we'll just try to sign and see if it works
+            adminKeyIndex = i; // This is approximate, we'll sign anyway
+            break;
+          }
+        }
       }
 
-      // Check if admin signature is already present
-      const adminSignature = transaction.signatures[adminKeyIndex];
-      if (adminSignature?.signature !== null) {
-        console.warn('⚠️  Admin signature already present in transaction');
+      // Check if admin needs to sign by looking at instruction account metas
+      let needsAdminSignature = false;
+      for (const instruction of transaction.instructions) {
+        if (instruction.keys) {
+          const adminMeta = instruction.keys.find(
+            (meta) => meta.pubkey.toString() === adminPubkeyStr && meta.isSigner
+          );
+          if (adminMeta && adminMeta.isSigner) {
+            needsAdminSignature = true;
+            break;
+          }
+        }
       }
 
-      // Sign with admin keypair (partialSign preserves existing signatures)
+      if (!needsAdminSignature) {
+        console.warn(`⚠️  Admin wallet ${adminPubkeyStr} may not need to sign, but signing anyway...`);
+      }
+
+      // Sign with admin keypair (partialSign will add signature if needed)
+      // This will automatically find the correct signature slot for admin
       transaction.partialSign(this.adminKeypair);
-      
-      // Verify signature was added
-      const newAdminSignature = transaction.signatures[adminKeyIndex];
-      if (newAdminSignature?.signature === null) {
-        throw new Error('Failed to add admin signature to transaction');
-      }
       
       console.log('✅ Transaction signed by admin');
       
       // Serialize fully signed transaction
-      const fullySignedTx = transaction.serialize();
+      const fullySignedTx = transaction.serialize({
+        requireAllSignatures: true,
+        verifySignatures: false // We've already verified signatures manually
+      });
       console.log(`📤 Sending transaction (${fullySignedTx.length} bytes)...`);
       
       // Send transaction

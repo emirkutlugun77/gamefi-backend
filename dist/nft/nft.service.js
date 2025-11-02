@@ -14,9 +14,13 @@ const common_1 = require("@nestjs/common");
 const web3_js_1 = require("@solana/web3.js");
 const umi_bundle_defaults_1 = require("@metaplex-foundation/umi-bundle-defaults");
 const digital_asset_standard_api_1 = require("@metaplex-foundation/digital-asset-standard-api");
-const PROGRAM_ID = new web3_js_1.PublicKey('B6c38JtYJXDiaW2XNJWrueLUULAD4vsxChz1VJk1d9zX');
+const umi_1 = require("@metaplex-foundation/umi");
+const PROGRAM_ID = new web3_js_1.PublicKey('12LJUQx5mfVfqACGgEac65Xe6PMGnYm5rdaRRcU4HE7V');
 const TOKEN_METADATA_PROGRAM_ID = new web3_js_1.PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
-const TARGET_COLLECTION_MINT = 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN';
+const STAKING_PROGRAM_ID = new web3_js_1.PublicKey('8KzE3LCicxv13iJx2v2V4VQQNWt4QHuvfuH8jxYnkGQ1');
+const REWARD_TOKEN_MINT = new web3_js_1.PublicKey('GshYgeeG5xmeMJ4crtg1SHGafYXBpnCyPz9VNF8DXxSW');
+const TARGET_COLLECTION_NAME = 'VYBE_SUPERHEROES_w89yuli8p3l';
+const TARGET_COLLECTION_MINT = '2xXLJU6hbKwTjvqkDsfv8rwFqSB7hRSqzyAvXDmgJi1r';
 const MARKETPLACE_ACCOUNT_DISCRIMINATOR = [70, 222, 41, 62, 78, 3, 32, 174];
 const COLLECTION_ACCOUNT_DISCRIMINATOR = [243, 209, 195, 150, 192, 176, 151, 165];
 let NftService = class NftService {
@@ -28,7 +32,7 @@ let NftService = class NftService {
     userNFTsCache = new Map();
     CACHE_DURATION = 5 * 60 * 1000;
     METADATA_CACHE_DURATION = 30 * 60 * 1000;
-    USER_NFTS_CACHE_DURATION = 10 * 1000;
+    USER_NFTS_CACHE_DURATION = 2 * 60 * 1000;
     constructor() {
         this.connection = new web3_js_1.Connection('https://api.devnet.solana.com', 'confirmed');
         this.umi = (0, umi_bundle_defaults_1.createUmi)('https://api.devnet.solana.com').use((0, digital_asset_standard_api_1.dasApi)());
@@ -58,34 +62,6 @@ let NftService = class NftService {
             console.warn('Failed to fetch metadata JSON for URI:', uri, e.message);
         }
         return null;
-    }
-    extractImagesFromMetadata(metadata) {
-        if (!metadata)
-            return {};
-        const mainImage = metadata.image || metadata.main_image || metadata.mainImage;
-        const additionalImages = [];
-        if (metadata.additional_images) {
-            additionalImages.push(...metadata.additional_images);
-        }
-        if (metadata.additionalImages) {
-            additionalImages.push(...metadata.additionalImages);
-        }
-        if (metadata.gallery) {
-            additionalImages.push(...metadata.gallery);
-        }
-        if (metadata.images && Array.isArray(metadata.images)) {
-            additionalImages.push(...metadata.images);
-        }
-        const convertToHttpUrl = (url) => {
-            if (url && url.startsWith('ipfs://')) {
-                return url.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
-            }
-            return url;
-        };
-        return {
-            mainImage: mainImage ? convertToHttpUrl(mainImage) : undefined,
-            additionalImages: additionalImages.map(convertToHttpUrl).filter(Boolean)
-        };
     }
     getMarketplacePDA() {
         return web3_js_1.PublicKey.findProgramAddressSync([Buffer.from('marketplace')], PROGRAM_ID);
@@ -158,7 +134,7 @@ let NftService = class NftService {
                             offset += nameLen;
                             const uriLen = data.readUInt32LE(offset);
                             offset += 4;
-                            if (uriLen === 0 || uriLen > 500 || data.length < offset + uriLen + 8 + 8 + 8 + 8 + 1)
+                            if (uriLen === 0 || uriLen > 500 || data.length < offset + uriLen + 8 + 8 + 8 + 1)
                                 continue;
                             const uri = data.slice(offset, offset + uriLen).toString('utf8');
                             offset += uriLen;
@@ -168,13 +144,11 @@ let NftService = class NftService {
                             offset += 8;
                             const current_supply = Number(data.readBigUInt64LE(offset));
                             offset += 8;
-                            const staking_amount = Number(data.readBigUInt64LE(offset));
-                            offset += 8;
                             const bump = data.readUInt8(offset);
                             const key = collection.toString();
                             if (!itemTypesMap[key])
                                 itemTypesMap[key] = [];
-                            itemTypesMap[key].push({ collection, name, uri, price, max_supply, current_supply, staking_amount, bump });
+                            itemTypesMap[key].push({ collection, name, uri, price, max_supply, current_supply, bump });
                             continue;
                         }
                         catch (_) {
@@ -244,9 +218,18 @@ let NftService = class NftService {
                     continue;
                 }
             }
+            const targetCollections = collectionsData.filter(c => c.name === TARGET_COLLECTION_NAME);
+            const filteredItemTypesMap = {};
+            for (const collection of targetCollections) {
+                const collectionKey = collection.pda?.toString() || '';
+                if (itemTypesMap[collectionKey]) {
+                    filteredItemTypesMap[collectionKey] = itemTypesMap[collectionKey];
+                }
+            }
             console.log('Total collections found:', collectionsData.length);
-            console.log('Total item types:', Object.values(itemTypesMap).flat().length);
-            const result = { collections: collectionsData, itemTypesByCollection: itemTypesMap };
+            console.log('Target collections after filter:', targetCollections.length);
+            console.log('Total item types for target collection:', Object.values(filteredItemTypesMap).flat().length);
+            const result = { collections: targetCollections, itemTypesByCollection: filteredItemTypesMap };
             this.collectionsCache = result;
             this.collectionsCacheTime = Date.now();
             return result;
@@ -264,63 +247,48 @@ let NftService = class NftService {
             return cachedData.data;
         }
         try {
-            console.log('🚀 Fetching user NFTs from VYBE collections:', walletAddress);
+            console.log('🚀 Fetching user NFTs with searchAssets (owner + collection filter):', walletAddress);
             const startTime = Date.now();
-            const { collections } = await this.fetchCollections();
-            const collectionMints = collections.map(c => c.mint.toString());
-            console.log('📋 VYBE Collections:', collectionMints);
-            let allNFTs = [];
-            for (const collectionMint of collectionMints) {
-                try {
-                    console.log(`🔍 Searching in collection: ${collectionMint}`);
-                    const result = await this.umi.rpc.getAssetsByGroup({
-                        groupKey: 'collection',
-                        groupValue: collectionMint,
-                    });
-                    console.log(`  ✓ Found ${result.items.length} total NFTs in collection`);
-                    const userAssets = result.items.filter(asset => asset.ownership?.owner === walletAddress);
-                    console.log(`  ✓ User owns ${userAssets.length} NFTs in this collection`);
-                    if (userAssets.length > 0) {
-                        const transformed = userAssets.map(asset => this.transformDasAsset(asset));
-                        allNFTs = allNFTs.concat(transformed);
-                    }
+            const result = await this.umi.rpc.searchAssets({
+                owner: (0, umi_1.publicKey)(walletAddress),
+                grouping: ['collection', TARGET_COLLECTION_MINT],
+                options: {
+                    showCollectionMetadata: true,
+                    showInscription: true
                 }
-                catch (err) {
-                    console.warn(`  ⚠️ Error fetching from collection ${collectionMint}:`, err.message);
-                }
-            }
+            });
+            console.log(`📦 DAS searchAssets found ${result.items.length} NFTs from target collection`);
+            const transformedNFTs = result.items.map(asset => this.transformDasAsset(asset));
             const duration = Date.now() - startTime;
-            console.log(`✅ Fetched ${allNFTs.length} NFTs from ${collectionMints.length} collections in ${duration}ms`);
-            await this.loadMetadataFromUrisSync(allNFTs);
+            console.log(`✅ searchAssets completed in ${duration}ms, found ${transformedNFTs.length} NFTs`);
+            await this.loadMetadataFromUrisSync(transformedNFTs);
             this.userNFTsCache.set(cacheKey, {
-                data: allNFTs,
+                data: transformedNFTs,
                 timestamp: Date.now()
             });
             const totalDuration = Date.now() - startTime;
             console.log(`✅ Complete fetch with metadata completed in ${totalDuration}ms`);
-            return allNFTs;
+            return transformedNFTs;
         }
         catch (error) {
-            console.error('Error fetching user NFTs:', error);
+            console.error('Error fetching user NFTs with searchAssets:', error);
             throw error;
         }
     }
     transformDasAsset(asset) {
-        const collectionAddress = asset.grouping?.find(g => g.group_key === 'collection')?.group_value || '';
-        const collectionName = asset.content?.metadata?.collection?.name || asset.grouping?.find(g => g.group_key === 'collection')?.group_value || 'Unknown Collection';
         return {
             mint: asset.id,
             metadata: asset.content?.metadata || null,
             name: asset.content?.metadata?.name || 'Unknown NFT',
             image: asset.content?.files?.[0]?.uri || asset.content?.metadata?.image || '/placeholder.svg',
-            collectionName: collectionName,
+            collectionName: TARGET_COLLECTION_NAME,
             symbol: asset.content?.metadata?.symbol || '',
             description: asset.content?.metadata?.description || '',
             attributes: asset.content?.metadata?.attributes || [],
             uri: asset.content?.json_uri || '',
             collection: {
-                address: collectionAddress,
-                verified: asset.grouping?.find(g => g.group_key === 'collection')?.collection_verified || true,
+                address: asset.grouping?.find(g => g.group_key === 'collection')?.group_value || '',
+                verified: true,
             },
             creators: asset.creators?.map((creator) => ({
                 address: creator.address,
@@ -348,9 +316,6 @@ let NftService = class NftService {
                                 if (metadata.image && nft.image === '/placeholder.svg') {
                                     nft.image = metadata.image;
                                 }
-                                const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadata);
-                                nft.mainImage = mainImage;
-                                nft.additionalImages = additionalImages;
                                 if (metadata.description && !nft.description) {
                                     nft.description = metadata.description;
                                 }
@@ -391,9 +356,6 @@ let NftService = class NftService {
                                     if (metadata.image && nft.image === '/placeholder.svg') {
                                         nft.image = metadata.image;
                                     }
-                                    const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadata);
-                                    nft.mainImage = mainImage;
-                                    nft.additionalImages = additionalImages;
                                     if (metadata.description && !nft.description) {
                                         nft.description = metadata.description;
                                     }
@@ -433,9 +395,6 @@ let NftService = class NftService {
                             if (metadata) {
                                 nft.metadata = metadata;
                                 nft.image = metadata.image || '/placeholder.svg';
-                                const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadata);
-                                nft.mainImage = mainImage;
-                                nft.additionalImages = additionalImages;
                             }
                             delete nft.uri;
                         }
@@ -525,7 +484,7 @@ let NftService = class NftService {
                 const collectionMintBuf = d.slice(off, off + 32);
                 const collectionMint = new web3_js_1.PublicKey(collectionMintBuf);
                 for (const c of collections) {
-                    if (c.mint.equals(collectionMint)) {
+                    if (c.mint.equals(collectionMint) && c.name === TARGET_COLLECTION_NAME) {
                         belongsToOurCollection = true;
                         matchedCollectionName = c.name;
                         break;
@@ -604,7 +563,7 @@ let NftService = class NftService {
                 off += 32;
                 const collectionMint = new web3_js_1.PublicKey(collectionMintBuf);
                 for (const c of collections) {
-                    if (c.mint.equals(collectionMint)) {
+                    if (c.mint.equals(collectionMint) && c.name === TARGET_COLLECTION_NAME) {
                         belongsToOurCollection = true;
                         matchedCollectionName = c.name;
                         break;
@@ -614,13 +573,10 @@ let NftService = class NftService {
             if (!belongsToOurCollection)
                 return null;
             const metadataJson = await this.fetchMetadataWithCache(uri);
-            const { mainImage, additionalImages } = this.extractImagesFromMetadata(metadataJson);
             return {
                 mint: mint.toString(),
                 metadata: metadataJson,
                 name: name.replace(/\0+$/, ''),
-                mainImage,
-                additionalImages,
                 image: metadataJson?.image || '/placeholder.svg',
                 collectionName: matchedCollectionName,
             };
@@ -679,6 +635,127 @@ let NftService = class NftService {
             collections,
             itemTypesByCollection
         };
+    }
+    getStakePoolPDA() {
+        return web3_js_1.PublicKey.findProgramAddressSync([Buffer.from('stake_pool')], STAKING_PROGRAM_ID);
+    }
+    getStakeAccountPDA(staker, nftMint) {
+        return web3_js_1.PublicKey.findProgramAddressSync([Buffer.from('stake_account'), staker.toBuffer(), nftMint.toBuffer()], STAKING_PROGRAM_ID);
+    }
+    async fetchStakedNFTs(walletAddress) {
+        try {
+            console.log('🎯 Fetching staked NFTs for wallet:', walletAddress);
+            const startTime = Date.now();
+            const walletPubkey = new web3_js_1.PublicKey(walletAddress);
+            const accounts = await this.connection.getProgramAccounts(STAKING_PROGRAM_ID, {
+                filters: [
+                    {
+                        memcmp: {
+                            offset: 8,
+                            bytes: walletPubkey.toBase58(),
+                        },
+                    },
+                ],
+            });
+            console.log(`📦 Found ${accounts.length} stake accounts`);
+            const stakes = [];
+            for (const account of accounts) {
+                try {
+                    const data = account.account.data;
+                    let offset = 8;
+                    const owner = new web3_js_1.PublicKey(data.slice(offset, offset + 32));
+                    offset += 32;
+                    const nftMint = new web3_js_1.PublicKey(data.slice(offset, offset + 32));
+                    offset += 32;
+                    const nftType = new web3_js_1.PublicKey(data.slice(offset, offset + 32));
+                    offset += 32;
+                    const stakePool = new web3_js_1.PublicKey(data.slice(offset, offset + 32));
+                    offset += 32;
+                    const stakeTimestamp = Number(data.readBigInt64LE(offset));
+                    offset += 8;
+                    const lastClaimTimestamp = Number(data.readBigInt64LE(offset));
+                    offset += 8;
+                    const stakeMultiplier = Number(data.readBigUInt64LE(offset));
+                    offset += 8;
+                    const bump = data.readUInt8(offset);
+                    stakes.push({
+                        pda: account.pubkey.toString(),
+                        owner: owner.toString(),
+                        nftMint: nftMint.toString(),
+                        nftType: nftType.toString(),
+                        stakePool: stakePool.toString(),
+                        stakeTimestamp,
+                        lastClaimTimestamp,
+                        stakeMultiplier,
+                        multiplier: stakeMultiplier / 10000,
+                        bump,
+                    });
+                }
+                catch (parseError) {
+                    console.warn('Failed to parse stake account:', account.pubkey.toString(), parseError);
+                    continue;
+                }
+            }
+            const duration = Date.now() - startTime;
+            console.log(`✅ Fetched ${stakes.length} staked NFTs in ${duration}ms`);
+            return stakes;
+        }
+        catch (error) {
+            console.error('Error fetching staked NFTs:', error);
+            throw error;
+        }
+    }
+    async calculatePendingRewards(walletAddress, nftMint) {
+        try {
+            console.log('💰 Calculating pending rewards for NFT:', nftMint);
+            const walletPubkey = new web3_js_1.PublicKey(walletAddress);
+            const nftMintPubkey = new web3_js_1.PublicKey(nftMint);
+            const [stakeAccountPDA] = this.getStakeAccountPDA(walletPubkey, nftMintPubkey);
+            const stakeAccountInfo = await this.connection.getAccountInfo(stakeAccountPDA);
+            if (!stakeAccountInfo) {
+                throw new Error(`Stake account not found for NFT: ${nftMint}`);
+            }
+            const data = stakeAccountInfo.data;
+            let offset = 8;
+            offset += 32;
+            offset += 32;
+            offset += 32;
+            offset += 32;
+            const stakeTimestamp = Number(data.readBigInt64LE(offset));
+            offset += 8;
+            const lastClaimTimestamp = Number(data.readBigInt64LE(offset));
+            offset += 8;
+            const stakeMultiplier = Number(data.readBigUInt64LE(offset));
+            const [stakePoolPDA] = this.getStakePoolPDA();
+            const stakePoolInfo = await this.connection.getAccountInfo(stakePoolPDA);
+            if (!stakePoolInfo) {
+                throw new Error('Stake pool not found');
+            }
+            const poolData = stakePoolInfo.data;
+            let poolOffset = 8;
+            poolOffset += 32;
+            poolOffset += 32;
+            const rewardRatePerSecond = Number(poolData.readBigUInt64LE(poolOffset));
+            const currentTime = Math.floor(Date.now() / 1000);
+            const timeSinceLastClaim = currentTime - lastClaimTimestamp;
+            const baseRewards = timeSinceLastClaim * rewardRatePerSecond;
+            const pendingRewards = (baseRewards * stakeMultiplier) / 10000;
+            return {
+                nftMint,
+                stakeTimestamp,
+                lastClaimTimestamp,
+                stakeMultiplier,
+                multiplier: stakeMultiplier / 10000,
+                rewardRatePerSecond,
+                timeSinceLastClaim,
+                pendingRewards,
+                pendingRewardsFormatted: (pendingRewards / 1e9).toFixed(4),
+            };
+        }
+        catch (error) {
+            console.error('Error calculating pending rewards:', error);
+            throw error;
+        }
     }
 };
 exports.NftService = NftService;

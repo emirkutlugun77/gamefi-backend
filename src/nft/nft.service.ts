@@ -850,7 +850,20 @@ export class NftService {
 
       console.log(`📦 Found ${accounts.length} stake accounts`);
 
-      const stakes = [];
+      interface StakeAccountData {
+        pda: string;
+        owner: string;
+        nftMint: string;
+        nftType: string;
+        stakePool: string;
+        stakeTimestamp: number;
+        lastClaimTimestamp: number;
+        stakeMultiplier: number;
+        multiplier: number;
+        bump: number;
+      }
+
+      const stakes: StakeAccountData[] = [];
 
       for (const account of accounts) {
         try {
