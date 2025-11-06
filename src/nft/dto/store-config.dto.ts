@@ -1,11 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsBoolean, IsNumber, IsOptional, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsIn,
+} from 'class-validator';
 
 export class CreateStoreConfigDto {
   @ApiProperty({
     description: 'Tab name (building, troops, or others)',
     example: 'building',
-    enum: ['building', 'troops', 'others']
+    enum: ['building', 'troops', 'others'],
   })
   @IsString()
   @IsNotEmpty()
@@ -14,7 +21,7 @@ export class CreateStoreConfigDto {
 
   @ApiProperty({
     description: 'Collection name to fetch from',
-    example: 'VYBE_BUILDINGS_COLLECTION'
+    example: 'VYBE_BUILDINGS_COLLECTION',
   })
   @IsString()
   @IsNotEmpty()
@@ -22,7 +29,7 @@ export class CreateStoreConfigDto {
 
   @ApiProperty({
     description: 'Display name for the tab',
-    example: 'Buildings'
+    example: 'Buildings',
   })
   @IsString()
   @IsNotEmpty()
@@ -31,7 +38,7 @@ export class CreateStoreConfigDto {
   @ApiProperty({
     description: 'Collection mint address (optional)',
     example: 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN',
-    required: false
+    required: false,
   })
   @IsString()
   @IsOptional()
@@ -40,7 +47,7 @@ export class CreateStoreConfigDto {
   @ApiProperty({
     description: 'Sort order for tabs',
     example: 1,
-    required: false
+    required: false,
   })
   @IsNumber()
   @IsOptional()
@@ -51,7 +58,7 @@ export class UpdateStoreConfigDto {
   @ApiProperty({
     description: 'Collection name to fetch from',
     example: 'VYBE_BUILDINGS_COLLECTION',
-    required: false
+    required: false,
   })
   @IsString()
   @IsOptional()
@@ -60,7 +67,7 @@ export class UpdateStoreConfigDto {
   @ApiProperty({
     description: 'Display name for the tab',
     example: 'Buildings',
-    required: false
+    required: false,
   })
   @IsString()
   @IsOptional()
@@ -69,7 +76,7 @@ export class UpdateStoreConfigDto {
   @ApiProperty({
     description: 'Collection mint address',
     example: 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN',
-    required: false
+    required: false,
   })
   @IsString()
   @IsOptional()
@@ -78,7 +85,7 @@ export class UpdateStoreConfigDto {
   @ApiProperty({
     description: 'Whether the tab is active',
     example: true,
-    required: false
+    required: false,
   })
   @IsBoolean()
   @IsOptional()
@@ -87,7 +94,7 @@ export class UpdateStoreConfigDto {
   @ApiProperty({
     description: 'Sort order for tabs',
     example: 1,
-    required: false
+    required: false,
   })
   @IsNumber()
   @IsOptional()

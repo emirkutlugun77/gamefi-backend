@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 export enum TaskType {
   // Twitter/X Tasks
@@ -151,7 +157,11 @@ export class Task {
   @Column({ type: 'enum', enum: TaskPriority, default: TaskPriority.NORMAL })
   priority: TaskPriority;
 
-  @Column({ type: 'enum', enum: TaskCategory, default: TaskCategory.SOCIAL_MEDIA })
+  @Column({
+    type: 'enum',
+    enum: TaskCategory,
+    default: TaskCategory.SOCIAL_MEDIA,
+  })
   category: TaskCategory;
 
   // Tags for better organization and filtering (e.g., ["viral", "beginner-friendly", "high-reward"])

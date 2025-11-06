@@ -7,5 +7,3 @@ export class GetByPublicKeyDto {
   @IsNotEmpty()
   publicKey!: string;
 }
-
-

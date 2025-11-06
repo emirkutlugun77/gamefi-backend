@@ -23,7 +23,10 @@ __decorate([
     __metadata("design:type", String)
 ], MarketplaceDto.prototype, "admin", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Fee in basis points (e.g., 500 = 5%)', example: 500 }),
+    (0, swagger_1.ApiProperty)({
+        description: 'Fee in basis points (e.g., 500 = 5%)',
+        example: 500,
+    }),
     __metadata("design:type", Number)
 ], MarketplaceDto.prototype, "fee_bps", void 0);
 __decorate([
@@ -132,7 +135,11 @@ __decorate([
     __metadata("design:type", Array)
 ], NFTItemTypeDto.prototype, "additionalImages", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Staking reward amount per month', required: false, example: 100 }),
+    (0, swagger_1.ApiProperty)({
+        description: 'Staking reward amount per month',
+        required: false,
+        example: 100,
+    }),
     __metadata("design:type", Number)
 ], NFTItemTypeDto.prototype, "stakingAmount", void 0);
 class UserNFTDto {
@@ -183,7 +190,9 @@ __decorate([
     __metadata("design:type", Boolean)
 ], MarketplaceDataResponseDto.prototype, "success", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Marketplace data including collections and item types' }),
+    (0, swagger_1.ApiProperty)({
+        description: 'Marketplace data including collections and item types',
+    }),
     __metadata("design:type", Object)
 ], MarketplaceDataResponseDto.prototype, "data", void 0);
 class CollectionsResponseDto {

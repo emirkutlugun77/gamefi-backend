@@ -23,7 +23,9 @@ let UserService = class UserService {
         this.userRepository = userRepository;
     }
     async register(publicKey, telegramId) {
-        const existing = await this.userRepository.findOne({ where: { publicKey } });
+        const existing = await this.userRepository.findOne({
+            where: { publicKey },
+        });
         if (existing) {
             throw new common_1.BadRequestException('User already exists');
         }

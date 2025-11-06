@@ -31,7 +31,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         example: { tweetUrl: 'https://twitter.com/user/status/123456789' },
-        description: 'Proof/evidence for task completion'
+        description: 'Proof/evidence for task completion',
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsObject)(),

@@ -57,19 +57,20 @@ let NftAdminService = class NftAdminService {
             const FormData = require('form-data');
             const form = new FormData();
             form.append('Body', metadataBuffer, {
-                filename: fileName
+                filename: fileName,
             });
             form.append('Key', fileName);
             form.append('ContentType', 'application/json');
             const response = await axios_1.default.post('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', form, {
                 headers: {
                     'x-api-key': apiKey,
-                    ...form.getHeaders()
-                }
+                    ...form.getHeaders(),
+                },
             });
             const result = response.data;
             const cid = this.extractCIDFromResponse(result);
-            const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL || 'https://husband-toy-slight.quicknode-ipfs.com/ipfs';
+            const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL ||
+                'https://husband-toy-slight.quicknode-ipfs.com/ipfs';
             const gatewayUrl = `${gatewayBaseUrl}/${cid}`;
             console.log('✅ Uploaded metadata to IPFS');
             console.log('   CID:', cid);
@@ -82,7 +83,7 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to upload metadata to IPFS',
-                error: errorMessage
+                error: errorMessage,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -100,19 +101,20 @@ let NftAdminService = class NftAdminService {
             const form = new FormData();
             form.append('Body', fileBuffer, {
                 filename: filename,
-                contentType: contentType
+                contentType: contentType,
             });
             form.append('Key', fileKey);
             form.append('ContentType', contentType);
             const response = await axios_1.default.post('https://api.quicknode.com/ipfs/rest/v1/s3/put-object', form, {
                 headers: {
                     'x-api-key': apiKey,
-                    ...form.getHeaders()
-                }
+                    ...form.getHeaders(),
+                },
             });
             const result = response.data;
             const cid = this.extractCIDFromResponse(result);
-            const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL || 'https://husband-toy-slight.quicknode-ipfs.com/ipfs';
+            const gatewayBaseUrl = process.env.QUICKNODE_IPFS_GATEWAY_URL ||
+                'https://husband-toy-slight.quicknode-ipfs.com/ipfs';
             const gatewayUrl = `${gatewayBaseUrl}/${cid}`;
             console.log('✅ File uploaded to IPFS');
             console.log('   CID:', cid);
@@ -125,13 +127,17 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to upload file to IPFS',
-                error: errorMessage
+                error: errorMessage,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     extractCIDFromResponse(result) {
         console.log('QuickNode IPFS response (full):', JSON.stringify(result, null, 2));
-        let cid = result.pin?.cid || result.cid || result.ipfsHash || result.IpfsHash || result.hash;
+        let cid = result.pin?.cid ||
+            result.cid ||
+            result.ipfsHash ||
+            result.IpfsHash ||
+            result.hash;
         if (!cid && result.requestid) {
             const reqId = result.requestid;
             if (reqId.startsWith('Qm') || reqId.startsWith('b')) {
@@ -153,13 +159,13 @@ let NftAdminService = class NftAdminService {
     getMimeType(filename) {
         const ext = filename.split('.').pop()?.toLowerCase();
         const mimeTypes = {
-            'png': 'image/png',
-            'jpg': 'image/jpeg',
-            'jpeg': 'image/jpeg',
-            'gif': 'image/gif',
-            'webp': 'image/webp',
-            'svg': 'image/svg+xml',
-            'json': 'application/json',
+            png: 'image/png',
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            gif: 'image/gif',
+            webp: 'image/webp',
+            svg: 'image/svg+xml',
+            json: 'application/json',
         };
         return mimeTypes[ext || ''] || 'application/octet-stream';
     }
@@ -184,7 +190,7 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to upload image to IPFS',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -197,7 +203,7 @@ let NftAdminService = class NftAdminService {
                 catch (error) {
                     throw new common_1.HttpException({
                         success: false,
-                        message: 'Invalid admin public key'
+                        message: 'Invalid admin public key',
                     }, common_1.HttpStatus.BAD_REQUEST);
                 }
             }
@@ -214,10 +220,10 @@ let NftAdminService = class NftAdminService {
                     files: [
                         {
                             uri: imageUri,
-                            type: 'image/png'
-                        }
-                    ]
-                }
+                            type: 'image/png',
+                        },
+                    ],
+                },
             };
             const metadataUri = await this.uploadToIPFS(metadata);
             const collection = this.nftCollectionRepo.create({
@@ -229,7 +235,7 @@ let NftAdminService = class NftAdminService {
                 royalty: dto.royalty,
                 isActive: true,
                 createdAt: new Date(),
-                updatedAt: new Date()
+                updatedAt: new Date(),
             });
             await this.nftCollectionRepo.save(collection);
             console.log('✅ Collection created in database:', collection);
@@ -239,8 +245,8 @@ let NftAdminService = class NftAdminService {
                     collection,
                     metadata,
                     metadataUri,
-                    message: 'Collection created successfully. Please create the collection on-chain using the provided metadata URI.'
-                }
+                    message: 'Collection created successfully. Please create the collection on-chain using the provided metadata URI.',
+                },
             };
         }
         catch (error) {
@@ -251,26 +257,26 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to create collection',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     async createType(dto) {
         try {
             const collection = await this.nftCollectionRepo.findOne({
-                where: { name: dto.collectionName }
+                where: { name: dto.collectionName },
             });
             if (!collection) {
                 throw new common_1.HttpException({
                     success: false,
-                    message: `Collection not found: ${dto.collectionName}`
+                    message: `Collection not found: ${dto.collectionName}`,
                 }, common_1.HttpStatus.NOT_FOUND);
             }
             const mainImageUri = await this.uploadImageToIPFS(dto.image);
             let additionalImageUris = [];
             if (dto.additionalImages && dto.additionalImages.length > 0) {
                 console.log('Uploading additional images...');
-                additionalImageUris = await Promise.all(dto.additionalImages.map(img => this.uploadImageToIPFS(img)));
+                additionalImageUris = await Promise.all(dto.additionalImages.map((img) => this.uploadImageToIPFS(img)));
             }
             const metadata = {
                 name: dto.name,
@@ -284,19 +290,21 @@ let NftAdminService = class NftAdminService {
                     files: [
                         {
                             uri: mainImageUri,
-                            type: 'image/png'
+                            type: 'image/png',
                         },
-                        ...additionalImageUris.map(uri => ({
+                        ...additionalImageUris.map((uri) => ({
                             uri,
-                            type: 'image/png'
-                        }))
-                    ]
+                            type: 'image/png',
+                        })),
+                    ],
                 },
-                additionalImages: additionalImageUris
+                additionalImages: additionalImageUris,
             };
             const metadataUri = await this.uploadToIPFS(metadata);
             const priceLamports = Math.floor(dto.price * 1_000_000_000);
-            const stakingLamports = dto.stakingAmount ? Math.floor(dto.stakingAmount * 1_000_000_000) : 0;
+            const stakingLamports = dto.stakingAmount
+                ? Math.floor(dto.stakingAmount * 1_000_000_000)
+                : 0;
             const nftType = this.nftTypeRepo.create({
                 id: `${dto.collectionName}_${dto.name}_${Date.now()}`,
                 collectionId: collection.id,
@@ -309,7 +317,7 @@ let NftAdminService = class NftAdminService {
                 mainImage: mainImageUri,
                 additionalImages: JSON.stringify(additionalImageUris),
                 createdAt: new Date(),
-                updatedAt: new Date()
+                updatedAt: new Date(),
             });
             await this.nftTypeRepo.save(nftType);
             console.log('✅ NFT Type created in database:', nftType);
@@ -321,8 +329,8 @@ let NftAdminService = class NftAdminService {
                     metadataUri,
                     priceLamports,
                     stakingLamports,
-                    message: 'NFT Type created successfully. Please create the type on-chain using the provided metadata URI.'
-                }
+                    message: 'NFT Type created successfully. Please create the type on-chain using the provided metadata URI.',
+                },
             };
         }
         catch (error) {
@@ -333,29 +341,29 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to create NFT type',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     async getAllCollections() {
         return this.nftCollectionRepo.find({
             relations: ['nftTypes'],
-            order: { createdAt: 'DESC' }
+            order: { createdAt: 'DESC' },
         });
     }
     async getTypesByCollection(collectionName) {
         const collection = await this.nftCollectionRepo.findOne({
-            where: { name: collectionName }
+            where: { name: collectionName },
         });
         if (!collection) {
             throw new common_1.HttpException({
                 success: false,
-                message: `Collection not found: ${collectionName}`
+                message: `Collection not found: ${collectionName}`,
             }, common_1.HttpStatus.NOT_FOUND);
         }
         return this.nftTypeRepo.find({
             where: { collectionId: collection.id },
-            order: { createdAt: 'DESC' }
+            order: { createdAt: 'DESC' },
         });
     }
     async syncCollectionsFromBlockchain() {
@@ -367,7 +375,7 @@ let NftAdminService = class NftAdminService {
             const syncedCollections = [];
             for (const bcCollection of blockchainCollections) {
                 let dbCollection = await this.nftCollectionRepo.findOne({
-                    where: { name: bcCollection.name }
+                    where: { name: bcCollection.name },
                 });
                 if (dbCollection) {
                     dbCollection.symbol = bcCollection.symbol;
@@ -437,7 +445,7 @@ let NftAdminService = class NftAdminService {
                     console.log(`  Matching blockchain collection:`, matchingBcCollection ? matchingBcCollection.name : 'NOT FOUND');
                     if (matchingBcCollection) {
                         collection = await this.nftCollectionRepo.findOne({
-                            where: { name: matchingBcCollection.name }
+                            where: { name: matchingBcCollection.name },
                         });
                         console.log(`  DB collection found:`, collection ? collection.name : 'NOT FOUND');
                     }
@@ -453,8 +461,8 @@ let NftAdminService = class NftAdminService {
                 let dbType = await this.nftTypeRepo.findOne({
                     where: {
                         name: bcType.name,
-                        collectionId: collection.id
-                    }
+                        collectionId: collection.id,
+                    },
                 });
                 if (dbType) {
                     dbType.uri = bcType.uri;
@@ -519,27 +527,28 @@ let NftAdminService = class NftAdminService {
     }
     async getAllTypes() {
         return this.nftTypeRepo.find({
-            order: { createdAt: 'DESC' }
+            order: { createdAt: 'DESC' },
         });
     }
     async setStoreConfig(dto) {
         const collection = await this.nftCollectionRepo.findOne({
-            where: { name: dto.collectionName }
+            where: { name: dto.collectionName },
         });
         if (!collection) {
             throw new common_1.HttpException({
                 success: false,
-                message: `Collection not found: ${dto.collectionName}`
+                message: `Collection not found: ${dto.collectionName}`,
             }, common_1.HttpStatus.NOT_FOUND);
         }
         let config = await this.storeConfigRepo.findOne({
-            where: { tabName: dto.tabName }
+            where: { tabName: dto.tabName },
         });
         if (config) {
             config.collectionName = dto.collectionName;
             config.displayName = dto.displayName;
             config.collectionId = dto.collectionId || collection.id;
-            config.sortOrder = dto.sortOrder !== undefined ? dto.sortOrder : config.sortOrder;
+            config.sortOrder =
+                dto.sortOrder !== undefined ? dto.sortOrder : config.sortOrder;
             config.updatedAt = new Date();
         }
         else {
@@ -551,28 +560,28 @@ let NftAdminService = class NftAdminService {
                 isActive: true,
                 sortOrder: dto.sortOrder || 0,
                 createdAt: new Date(),
-                updatedAt: new Date()
+                updatedAt: new Date(),
             });
         }
         return this.storeConfigRepo.save(config);
     }
     async updateStoreConfig(tabName, dto) {
         const config = await this.storeConfigRepo.findOne({
-            where: { tabName }
+            where: { tabName },
         });
         if (!config) {
             throw new common_1.HttpException({
                 success: false,
-                message: `Store config not found for tab: ${tabName}`
+                message: `Store config not found for tab: ${tabName}`,
             }, common_1.HttpStatus.NOT_FOUND);
         }
         if (dto.collectionName) {
             const { collections } = await this.nftService.fetchCollections();
-            const collection = collections.find(c => c.name === dto.collectionName);
+            const collection = collections.find((c) => c.name === dto.collectionName);
             if (!collection) {
                 throw new common_1.HttpException({
                     success: false,
-                    message: `Collection not found on blockchain: ${dto.collectionName}`
+                    message: `Collection not found on blockchain: ${dto.collectionName}`,
                 }, common_1.HttpStatus.NOT_FOUND);
             }
             config.collectionName = dto.collectionName;
@@ -591,17 +600,17 @@ let NftAdminService = class NftAdminService {
     }
     async getAllStoreConfigs() {
         return this.storeConfigRepo.find({
-            order: { sortOrder: 'ASC' }
+            order: { sortOrder: 'ASC' },
         });
     }
     async getStoreConfig(tabName) {
         const config = await this.storeConfigRepo.findOne({
-            where: { tabName }
+            where: { tabName },
         });
         if (!config) {
             throw new common_1.HttpException({
                 success: false,
-                message: `Store config not found for tab: ${tabName}`
+                message: `Store config not found for tab: ${tabName}`,
             }, common_1.HttpStatus.NOT_FOUND);
         }
         return config;
@@ -611,7 +620,7 @@ let NftAdminService = class NftAdminService {
         if (result.affected === 0) {
             throw new common_1.HttpException({
                 success: false,
-                message: `Store config not found for tab: ${tabName}`
+                message: `Store config not found for tab: ${tabName}`,
             }, common_1.HttpStatus.NOT_FOUND);
         }
     }
@@ -624,14 +633,14 @@ let NftAdminService = class NftAdminService {
                 catch (error) {
                     throw new common_1.HttpException({
                         success: false,
-                        message: 'Invalid admin public key'
+                        message: 'Invalid admin public key',
                     }, common_1.HttpStatus.BAD_REQUEST);
                 }
             }
             if (!imageFile) {
                 throw new common_1.HttpException({
                     success: false,
-                    message: 'Image file is required'
+                    message: 'Image file is required',
                 }, common_1.HttpStatus.BAD_REQUEST);
             }
             const imageFilename = `${dto.name}_collection_image`;
@@ -648,10 +657,10 @@ let NftAdminService = class NftAdminService {
                     files: [
                         {
                             uri: imageUri,
-                            type: imageFile.mimetype
-                        }
-                    ]
-                }
+                            type: imageFile.mimetype,
+                        },
+                    ],
+                },
             };
             const metadataUri = await this.uploadToIPFS(metadata);
             console.log('✅ Metadata uploaded to IPFS:', metadataUri);
@@ -661,8 +670,8 @@ let NftAdminService = class NftAdminService {
                     metadata,
                     metadataUri,
                     imageUri,
-                    message: 'Metadata uploaded to IPFS successfully! Now create a new Keypair for collection mint and call /nft-admin/collection/create-transaction endpoint with the mint public key.'
-                }
+                    message: 'Metadata uploaded to IPFS successfully! Now create a new Keypair for collection mint and call /nft-admin/collection/create-transaction endpoint with the mint public key.',
+                },
             };
         }
         catch (error) {
@@ -673,25 +682,25 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to create collection metadata',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     async createTypeWithFiles(dto, files) {
         try {
             const collection = await this.nftCollectionRepo.findOne({
-                where: { name: dto.collectionName }
+                where: { name: dto.collectionName },
             });
             if (!collection) {
                 throw new common_1.HttpException({
                     success: false,
-                    message: `Collection not found: ${dto.collectionName}`
+                    message: `Collection not found: ${dto.collectionName}`,
                 }, common_1.HttpStatus.NOT_FOUND);
             }
             if (!files.mainImage || files.mainImage.length === 0) {
                 throw new common_1.HttpException({
                     success: false,
-                    message: 'Main image file is required'
+                    message: 'Main image file is required',
                 }, common_1.HttpStatus.BAD_REQUEST);
             }
             const mainImageFile = files.mainImage[0];
@@ -699,14 +708,15 @@ let NftAdminService = class NftAdminService {
             let additionalImageUris = [];
             if (files.additionalImages && files.additionalImages.length > 0) {
                 console.log('Uploading additional images...');
-                additionalImageUris = await Promise.all(files.additionalImages.map(file => this.uploadFileToIPFS(file.buffer, file.originalname)));
+                additionalImageUris = await Promise.all(files.additionalImages.map((file) => this.uploadFileToIPFS(file.buffer, file.originalname)));
             }
             let attributes = [];
             if (dto.attributes) {
                 try {
-                    attributes = typeof dto.attributes === 'string'
-                        ? JSON.parse(dto.attributes)
-                        : dto.attributes;
+                    attributes =
+                        typeof dto.attributes === 'string'
+                            ? JSON.parse(dto.attributes)
+                            : dto.attributes;
                 }
                 catch (e) {
                     console.warn('Failed to parse attributes:', e);
@@ -715,12 +725,14 @@ let NftAdminService = class NftAdminService {
             const allFiles = [
                 {
                     uri: mainImageUri,
-                    type: mainImageFile.mimetype
+                    type: mainImageFile.mimetype,
                 },
                 ...additionalImageUris.map((uri, idx) => ({
                     uri,
-                    type: files.additionalImages ? files.additionalImages[idx].mimetype : 'image/png'
-                }))
+                    type: files.additionalImages
+                        ? files.additionalImages[idx].mimetype
+                        : 'image/png',
+                })),
             ];
             const metadata = {
                 name: dto.name,
@@ -731,13 +743,15 @@ let NftAdminService = class NftAdminService {
                 attributes,
                 properties: {
                     category: 'image',
-                    files: allFiles
+                    files: allFiles,
                 },
-                additionalImages: additionalImageUris
+                additionalImages: additionalImageUris,
             };
             const metadataUri = await this.uploadToIPFS(metadata);
             const priceLamports = Math.floor(Number(dto.price) * 1_000_000_000);
-            const stakingLamports = dto.stakingAmount ? Math.floor(Number(dto.stakingAmount) * 1_000_000_000) : 0;
+            const stakingLamports = dto.stakingAmount
+                ? Math.floor(Number(dto.stakingAmount) * 1_000_000_000)
+                : 0;
             const nftType = this.nftTypeRepo.create({
                 id: `${dto.collectionName}_${dto.name}_${Date.now()}`,
                 collectionId: collection.id,
@@ -750,7 +764,7 @@ let NftAdminService = class NftAdminService {
                 mainImage: mainImageUri,
                 additionalImages: JSON.stringify(additionalImageUris),
                 createdAt: new Date(),
-                updatedAt: new Date()
+                updatedAt: new Date(),
             });
             await this.nftTypeRepo.save(nftType);
             console.log('✅ NFT Type created with file uploads:', nftType);
@@ -762,8 +776,8 @@ let NftAdminService = class NftAdminService {
                     metadataUri,
                     priceLamports,
                     stakingLamports,
-                    message: 'NFT Type created successfully. Please create the type on-chain using the provided metadata URI.'
-                }
+                    message: 'NFT Type created successfully. Please create the type on-chain using the provided metadata URI.',
+                },
             };
         }
         catch (error) {
@@ -774,7 +788,7 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to create NFT type',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -786,7 +800,7 @@ let NftAdminService = class NftAdminService {
                 throw new common_1.HttpException({
                     success: false,
                     message: 'Marketplace is not initialized. Please initialize the marketplace first using POST /nft-admin/initialize-marketplace endpoint.',
-                    error: 'MARKETPLACE_NOT_INITIALIZED'
+                    error: 'MARKETPLACE_NOT_INITIALIZED',
                 }, common_1.HttpStatus.PRECONDITION_FAILED);
             }
             const adminKeypair = this.authService.getKeypairFromToken(encryptedPrivateKey);
@@ -807,9 +821,9 @@ let NftAdminService = class NftAdminService {
                     files: [
                         {
                             uri: imageUri,
-                            type: this.getMimeType(imageFile.originalname)
-                        }
-                    ]
+                            type: this.getMimeType(imageFile.originalname),
+                        },
+                    ],
                 },
                 seller_fee_basis_points: dto.royalty * 100,
             };
@@ -828,8 +842,8 @@ let NftAdminService = class NftAdminService {
                     metadataUri,
                     imageUri,
                     explorerUrl,
-                    message: 'Collection created successfully on Solana!'
-                }
+                    message: 'Collection created successfully on Solana!',
+                },
             };
         }
         catch (error) {
@@ -840,7 +854,7 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to create collection',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -851,7 +865,7 @@ let NftAdminService = class NftAdminService {
             if (isInitialized) {
                 throw new common_1.HttpException({
                     success: false,
-                    message: 'Marketplace is already initialized'
+                    message: 'Marketplace is already initialized',
                 }, common_1.HttpStatus.CONFLICT);
             }
             const adminKeypair = this.authService.getKeypairFromToken(encryptedPrivateKey);
@@ -869,8 +883,8 @@ let NftAdminService = class NftAdminService {
                     marketplacePda: result.marketplacePda,
                     feeBps,
                     explorerUrl,
-                    message: 'Marketplace initialized successfully! You can now create collections.'
-                }
+                    message: 'Marketplace initialized successfully! You can now create collections.',
+                },
             };
         }
         catch (error) {
@@ -881,7 +895,7 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to initialize marketplace',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -896,8 +910,8 @@ let NftAdminService = class NftAdminService {
                     marketplacePda: marketplacePda.toString(),
                     message: isInitialized
                         ? 'Marketplace is initialized and ready!'
-                        : 'Marketplace is not initialized. Please initialize it first.'
-                }
+                        : 'Marketplace is not initialized. Please initialize it first.',
+                },
             };
         }
         catch (error) {
@@ -905,7 +919,7 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to check marketplace status',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -917,18 +931,18 @@ let NftAdminService = class NftAdminService {
             console.log('Collection:', dto.collectionName);
             console.log('Type:', dto.name);
             const collection = await this.nftCollectionRepo.findOne({
-                where: { name: dto.collectionName }
+                where: { name: dto.collectionName },
             });
             if (!collection) {
                 throw new common_1.HttpException({
                     success: false,
-                    message: `Collection not found: ${dto.collectionName}`
+                    message: `Collection not found: ${dto.collectionName}`,
                 }, common_1.HttpStatus.NOT_FOUND);
             }
             if (!files.mainImage || files.mainImage.length === 0) {
                 throw new common_1.HttpException({
                     success: false,
-                    message: 'Main image file is required'
+                    message: 'Main image file is required',
                 }, common_1.HttpStatus.BAD_REQUEST);
             }
             const mainImageFile = files.mainImage[0];
@@ -945,9 +959,10 @@ let NftAdminService = class NftAdminService {
             let attributes = [];
             if (dto.attributes) {
                 try {
-                    attributes = typeof dto.attributes === 'string'
-                        ? JSON.parse(dto.attributes)
-                        : dto.attributes;
+                    attributes =
+                        typeof dto.attributes === 'string'
+                            ? JSON.parse(dto.attributes)
+                            : dto.attributes;
                 }
                 catch (e) {
                     console.warn('Failed to parse attributes:', e);
@@ -956,12 +971,14 @@ let NftAdminService = class NftAdminService {
             const allFiles = [
                 {
                     uri: mainImageUri,
-                    type: mainImageFile.mimetype
+                    type: mainImageFile.mimetype,
                 },
                 ...additionalImageUris.map((uri, idx) => ({
                     uri,
-                    type: files.additionalImages ? files.additionalImages[idx].mimetype : 'image/png'
-                }))
+                    type: files.additionalImages
+                        ? files.additionalImages[idx].mimetype
+                        : 'image/png',
+                })),
             ];
             const metadata = {
                 name: dto.name,
@@ -972,20 +989,22 @@ let NftAdminService = class NftAdminService {
                 attributes,
                 properties: {
                     category: 'image',
-                    files: allFiles
+                    files: allFiles,
                 },
-                additionalImages: additionalImageUris
+                additionalImages: additionalImageUris,
             };
             const metadataUri = await this.uploadToIPFS(metadata);
             const priceLamports = Math.floor(Number(dto.price) * 1_000_000_000);
-            const stakingLamports = dto.stakingAmount ? Math.floor(Number(dto.stakingAmount) * 1_000_000_000) : 0;
+            const stakingLamports = dto.stakingAmount
+                ? Math.floor(Number(dto.stakingAmount) * 1_000_000_000)
+                : 0;
             console.log('Creating NFT type on-chain:', {
                 collection: dto.collectionName,
                 type: dto.name,
                 uri: metadataUri,
                 price: priceLamports,
                 maxSupply: dto.maxSupply,
-                stakingAmount: stakingLamports
+                stakingAmount: stakingLamports,
             });
             const result = await this.solanaContractService.createAndSubmitNftType(adminKeypair, dto.collectionName, dto.name, metadataUri, priceLamports, Number(dto.maxSupply), stakingLamports);
             const nftType = this.nftTypeRepo.create({
@@ -1000,7 +1019,7 @@ let NftAdminService = class NftAdminService {
                 mainImage: mainImageUri,
                 additionalImages: JSON.stringify(additionalImageUris),
                 createdAt: new Date(),
-                updatedAt: new Date()
+                updatedAt: new Date(),
             });
             await this.nftTypeRepo.save(nftType);
             const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
@@ -1020,8 +1039,8 @@ let NftAdminService = class NftAdminService {
                     priceLamports,
                     stakingLamports,
                     explorerUrl,
-                    message: 'NFT type created successfully on Solana!'
-                }
+                    message: 'NFT type created successfully on Solana!',
+                },
             };
         }
         catch (error) {
@@ -1032,13 +1051,17 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to create NFT type',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     async mintNftWithAuth(encryptedPrivateKey, collectionName, typeName, collectionMintAddress, buyerPublicKey) {
         try {
-            console.log('Minting NFT with auth:', { collectionName, typeName, buyerPublicKey });
+            console.log('Minting NFT with auth:', {
+                collectionName,
+                typeName,
+                buyerPublicKey,
+            });
             const adminKeypair = this.authService.getKeypairFromToken(encryptedPrivateKey);
             console.log('Admin:', adminKeypair.publicKey.toString());
             console.log('Buyer:', buyerPublicKey);
@@ -1049,14 +1072,14 @@ let NftAdminService = class NftAdminService {
             catch (error) {
                 throw new common_1.HttpException({
                     success: false,
-                    message: 'Invalid buyer public key'
+                    message: 'Invalid buyer public key',
                 }, common_1.HttpStatus.BAD_REQUEST);
             }
             if (adminKeypair.publicKey.toString() !== buyerPublicKey) {
                 throw new common_1.HttpException({
                     success: false,
                     message: 'Minting requires buyer signature. For now, buyer must be the same as admin. Use the admin wallet as buyer.',
-                    error: 'BUYER_SIGNATURE_REQUIRED'
+                    error: 'BUYER_SIGNATURE_REQUIRED',
                 }, common_1.HttpStatus.BAD_REQUEST);
             }
             const result = await this.solanaContractService.mintNftFromCollection(adminKeypair, adminKeypair, collectionName, typeName, collectionMintAddress);
@@ -1072,8 +1095,8 @@ let NftAdminService = class NftAdminService {
                     nftMint: result.nftMint,
                     buyerTokenAccount: result.buyerTokenAccount,
                     explorerUrl,
-                    message: 'NFT minted successfully on Solana!'
-                }
+                    message: 'NFT minted successfully on Solana!',
+                },
             };
         }
         catch (error) {
@@ -1084,7 +1107,7 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to mint NFT',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -1092,12 +1115,12 @@ let NftAdminService = class NftAdminService {
         try {
             console.log(`🗑️ Deleting collection from database: ${collectionName}`);
             const collection = await this.nftCollectionRepo.findOne({
-                where: { name: collectionName }
+                where: { name: collectionName },
             });
             if (!collection) {
                 throw new common_1.HttpException({
                     success: false,
-                    message: `Collection '${collectionName}' not found in database`
+                    message: `Collection '${collectionName}' not found in database`,
                 }, common_1.HttpStatus.NOT_FOUND);
             }
             await this.nftTypeRepo.delete({ collectionId: collection.id });
@@ -1114,7 +1137,7 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to delete collection from database',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -1122,12 +1145,12 @@ let NftAdminService = class NftAdminService {
         try {
             console.log(`🗑️ Deleting NFT type from database: ${typeId}`);
             const type = await this.nftTypeRepo.findOne({
-                where: { id: typeId }
+                where: { id: typeId },
             });
             if (!type) {
                 throw new common_1.HttpException({
                     success: false,
-                    message: `NFT type with ID '${typeId}' not found in database`
+                    message: `NFT type with ID '${typeId}' not found in database`,
                 }, common_1.HttpStatus.NOT_FOUND);
             }
             await this.nftTypeRepo.delete({ id: typeId });
@@ -1142,7 +1165,7 @@ let NftAdminService = class NftAdminService {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to delete NFT type from database',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

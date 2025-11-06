@@ -31,8 +31,12 @@ let AchievementsService = class AchievementsService {
     async createTask(createTaskDto) {
         const task = this.taskRepository.create({
             ...createTaskDto,
-            start_date: createTaskDto.start_date ? new Date(createTaskDto.start_date) : undefined,
-            end_date: createTaskDto.end_date ? new Date(createTaskDto.end_date) : undefined,
+            start_date: createTaskDto.start_date
+                ? new Date(createTaskDto.start_date)
+                : undefined,
+            end_date: createTaskDto.end_date
+                ? new Date(createTaskDto.end_date)
+                : undefined,
         });
         return this.taskRepository.save(task);
     }
@@ -63,8 +67,12 @@ let AchievementsService = class AchievementsService {
         const task = await this.getTaskById(id);
         Object.assign(task, {
             ...updateTaskDto,
-            start_date: updateTaskDto.start_date ? new Date(updateTaskDto.start_date) : task.start_date,
-            end_date: updateTaskDto.end_date ? new Date(updateTaskDto.end_date) : task.end_date,
+            start_date: updateTaskDto.start_date
+                ? new Date(updateTaskDto.start_date)
+                : task.start_date,
+            end_date: updateTaskDto.end_date
+                ? new Date(updateTaskDto.end_date)
+                : task.end_date,
         });
         return this.taskRepository.save(task);
     }
@@ -89,8 +97,8 @@ let AchievementsService = class AchievementsService {
         }
         const activeTasks = await this.getActiveTasks();
         const userTasks = await this.getUserTasks(publicKey);
-        return activeTasks.map(task => {
-            const userTask = userTasks.find(ut => ut.task_id === task.id);
+        return activeTasks.map((task) => {
+            const userTask = userTasks.find((ut) => ut.task_id === task.id);
             return {
                 task,
                 userProgress: userTask || null,
@@ -122,7 +130,8 @@ let AchievementsService = class AchievementsService {
             if (!task.is_repeatable && userTask.status === user_task_entity_1.UserTaskStatus.COMPLETED) {
                 throw new common_1.BadRequestException('Task already completed and is not repeatable');
             }
-            if (task.max_completions && userTask.completion_count >= task.max_completions) {
+            if (task.max_completions &&
+                userTask.completion_count >= task.max_completions) {
                 throw new common_1.BadRequestException('Maximum completions reached for this task');
             }
             userTask.status = user_task_entity_1.UserTaskStatus.SUBMITTED;
@@ -166,7 +175,9 @@ let AchievementsService = class AchievementsService {
             userTask.completed_at = now;
             userTask.completion_count += 1;
             userTask.points_earned += userTask.task.reward_points;
-            const user = await this.userRepository.findOne({ where: { id: userTask.user_id } });
+            const user = await this.userRepository.findOne({
+                where: { id: userTask.user_id },
+            });
             if (user) {
                 user.airdrop_point += userTask.task.reward_points;
                 await this.userRepository.save(user);
@@ -174,7 +185,8 @@ let AchievementsService = class AchievementsService {
         }
         else {
             userTask.status = user_task_entity_1.UserTaskStatus.REJECTED;
-            userTask.rejection_reason = rejection_reason || 'Task verification failed';
+            userTask.rejection_reason =
+                rejection_reason || 'Task verification failed';
         }
         return this.userTaskRepository.save(userTask);
     }
@@ -192,8 +204,8 @@ let AchievementsService = class AchievementsService {
         const userTasks = await this.userTaskRepository.find({
             where: { user_id: user.id },
         });
-        const completedTasks = userTasks.filter(ut => ut.status === user_task_entity_1.UserTaskStatus.COMPLETED);
-        const pendingTasks = userTasks.filter(ut => ut.status === user_task_entity_1.UserTaskStatus.SUBMITTED);
+        const completedTasks = userTasks.filter((ut) => ut.status === user_task_entity_1.UserTaskStatus.COMPLETED);
+        const pendingTasks = userTasks.filter((ut) => ut.status === user_task_entity_1.UserTaskStatus.SUBMITTED);
         const totalPointsEarned = userTasks.reduce((sum, ut) => sum + ut.points_earned, 0);
         return {
             user: {
@@ -205,7 +217,7 @@ let AchievementsService = class AchievementsService {
             stats: {
                 tasksCompleted: completedTasks.length,
                 tasksPending: pendingTasks.length,
-                tasksRejected: userTasks.filter(ut => ut.status === user_task_entity_1.UserTaskStatus.REJECTED).length,
+                tasksRejected: userTasks.filter((ut) => ut.status === user_task_entity_1.UserTaskStatus.REJECTED).length,
                 pointsFromTasks: totalPointsEarned,
             },
         };
@@ -222,7 +234,8 @@ let AchievementsService = class AchievementsService {
             return true;
         if (!task.is_repeatable && userTask.status === user_task_entity_1.UserTaskStatus.COMPLETED)
             return false;
-        if (task.max_completions && userTask.completion_count >= task.max_completions)
+        if (task.max_completions &&
+            userTask.completion_count >= task.max_completions)
             return false;
         return true;
     }

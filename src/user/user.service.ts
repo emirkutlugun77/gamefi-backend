@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
@@ -10,9 +14,10 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-
-  async register(publicKey: string,telegramId?: string): Promise<User> {
-    const existing = await this.userRepository.findOne({ where: { publicKey } });
+  async register(publicKey: string, telegramId?: string): Promise<User> {
+    const existing = await this.userRepository.findOne({
+      where: { publicKey },
+    });
     if (existing) {
       throw new BadRequestException('User already exists');
     }
@@ -66,5 +71,3 @@ export class UserService {
     return user;
   }
 }
-
-

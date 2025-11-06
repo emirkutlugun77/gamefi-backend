@@ -43,7 +43,9 @@ __decorate([
     __metadata("design:type", String)
 ], CreateTaskDto.prototype, "title", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 'Tweet with #VYBE and #Solana hashtags to earn points' }),
+    (0, swagger_1.ApiProperty)({
+        example: 'Tweet with #VYBE and #Solana hashtags to earn points',
+    }),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateTaskDto.prototype, "description", void 0);
@@ -53,7 +55,10 @@ __decorate([
     __metadata("design:type", String)
 ], CreateTaskDto.prototype, "type", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 50, description: 'Points awarded for completing this task' }),
+    (0, swagger_1.ApiProperty)({
+        example: 50,
+        description: 'Points awarded for completing this task',
+    }),
     (0, class_validator_1.IsInt)(),
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
@@ -61,7 +66,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         example: { hashtags: ['#VYBE', '#Solana'], minLength: 50 },
-        description: 'Dynamic configuration based on task type'
+        description: 'Dynamic configuration based on task type',
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsObject)(),
@@ -70,7 +75,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         example: { requireManualApproval: false, autoVerify: true },
-        description: 'Verification settings'
+        description: 'Verification settings',
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsObject)(),
@@ -126,7 +131,10 @@ __decorate([
     __metadata("design:type", String)
 ], CreateTaskDto.prototype, "priority", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ enum: task_entity_1.TaskCategory, example: task_entity_1.TaskCategory.SOCIAL_MEDIA }),
+    (0, swagger_1.ApiPropertyOptional)({
+        enum: task_entity_1.TaskCategory,
+        example: task_entity_1.TaskCategory.SOCIAL_MEDIA,
+    }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(task_entity_1.TaskCategory),
     __metadata("design:type", String)
@@ -134,7 +142,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         example: ['viral', 'beginner-friendly', 'high-reward'],
-        description: 'Tags for organization and filtering'
+        description: 'Tags for organization and filtering',
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
@@ -144,7 +152,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         example: 'https://cdn.vybe.com/icons/twitter.png',
-        description: 'Icon/image URL for the task'
+        description: 'Icon/image URL for the task',
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
@@ -153,7 +161,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         example: 0,
-        description: 'Required level to access this task'
+        description: 'Required level to access this task',
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsInt)(),
@@ -163,7 +171,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         example: [1, 2],
-        description: 'Task IDs that must be completed first'
+        description: 'Task IDs that must be completed first',
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
@@ -173,7 +181,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         example: 1.5,
-        description: 'Bonus multiplier for rewards (e.g., 1.5 = 50% bonus)'
+        description: 'Bonus multiplier for rewards (e.g., 1.5 = 50% bonus)',
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
@@ -183,7 +191,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         example: 10,
-        description: 'Estimated time to complete in minutes'
+        description: 'Estimated time to complete in minutes',
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsInt)(),

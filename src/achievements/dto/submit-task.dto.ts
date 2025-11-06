@@ -12,7 +12,7 @@ export class SubmitTaskDto {
 
   @ApiPropertyOptional({
     example: { tweetUrl: 'https://twitter.com/user/status/123456789' },
-    description: 'Proof/evidence for task completion'
+    description: 'Proof/evidence for task completion',
   })
   @IsOptional()
   @IsObject()

@@ -1,11 +1,21 @@
-import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiProperty } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiProperty,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { IsString, IsNotEmpty } from 'class-validator';
 
 class CheckPasswordDto {
-  
   @IsString()
   @IsNotEmpty()
   password: string;
@@ -19,7 +29,8 @@ export class AuthController {
   @Post('login')
   @ApiOperation({
     summary: 'Login with Solana private key',
-    description: 'Provide your base58-encoded Solana private key to receive a JWT token. The private key is encrypted and stored in the token for secure transaction signing.',
+    description:
+      'Provide your base58-encoded Solana private key to receive a JWT token. The private key is encrypted and stored in the token for secure transaction signing.',
   })
   @ApiResponse({
     status: 200,
@@ -57,7 +68,7 @@ export class AuthController {
           success: false,
           message: error.message || 'Login failed',
         },
-        HttpStatus.UNAUTHORIZED
+        HttpStatus.UNAUTHORIZED,
       );
     }
   }
@@ -65,7 +76,8 @@ export class AuthController {
   @Post('check-password')
   @ApiOperation({
     summary: 'Check access password for protected pages',
-    description: 'Validates password for accessing Admin, Presale, and Airdrop pages. ',
+    description:
+      'Validates password for accessing Admin, Presale, and Airdrop pages. ',
   })
   @ApiResponse({
     status: 200,

@@ -12,5 +12,3 @@ export class ChooseSideDto {
   @IsNotEmpty()
   side!: string;
 }
-
-

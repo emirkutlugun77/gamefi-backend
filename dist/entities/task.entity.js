@@ -179,7 +179,11 @@ __decorate([
     __metadata("design:type", String)
 ], Task.prototype, "priority", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'enum', enum: TaskCategory, default: TaskCategory.SOCIAL_MEDIA }),
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: TaskCategory,
+        default: TaskCategory.SOCIAL_MEDIA,
+    }),
     __metadata("design:type", String)
 ], Task.prototype, "category", void 0);
 __decorate([

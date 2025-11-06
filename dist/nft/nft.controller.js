@@ -38,7 +38,7 @@ let NftController = class NftController {
             const data = await this.nftService.getMarketplaceData();
             return {
                 success: true,
-                data
+                data,
             };
         }
         catch (error) {
@@ -46,7 +46,7 @@ let NftController = class NftController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to fetch marketplace data',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -57,8 +57,8 @@ let NftController = class NftController {
                 success: true,
                 data: {
                     collections,
-                    itemTypesByCollection
-                }
+                    itemTypesByCollection,
+                },
             };
         }
         catch (error) {
@@ -66,7 +66,7 @@ let NftController = class NftController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to fetch collections',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -74,7 +74,7 @@ let NftController = class NftController {
         if (!walletAddress) {
             throw new common_1.HttpException({
                 success: false,
-                message: 'Wallet address is required'
+                message: 'Wallet address is required',
             }, common_1.HttpStatus.BAD_REQUEST);
         }
         try {
@@ -83,8 +83,8 @@ let NftController = class NftController {
                 success: true,
                 data: {
                     nfts,
-                    count: nfts.length
-                }
+                    count: nfts.length,
+                },
             };
         }
         catch (error) {
@@ -92,7 +92,7 @@ let NftController = class NftController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to fetch user NFTs',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -104,8 +104,8 @@ let NftController = class NftController {
                 data: {
                     nfts,
                     count: nfts.length,
-                    collection: collectionAddress || 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN'
-                }
+                    collection: collectionAddress || 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN',
+                },
             };
         }
         catch (error) {
@@ -113,7 +113,7 @@ let NftController = class NftController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to fetch collection NFTs',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -122,7 +122,7 @@ let NftController = class NftController {
             const marketplace = await this.nftService.fetchMarketplace();
             return {
                 success: true,
-                data: marketplace
+                data: marketplace,
             };
         }
         catch (error) {
@@ -130,7 +130,7 @@ let NftController = class NftController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to fetch marketplace info',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -138,7 +138,7 @@ let NftController = class NftController {
         if (!walletAddress) {
             throw new common_1.HttpException({
                 success: false,
-                message: 'Wallet address is required'
+                message: 'Wallet address is required',
             }, common_1.HttpStatus.BAD_REQUEST);
         }
         try {
@@ -147,8 +147,8 @@ let NftController = class NftController {
                 success: true,
                 data: {
                     stakes,
-                    count: stakes.length
-                }
+                    count: stakes.length,
+                },
             };
         }
         catch (error) {
@@ -156,7 +156,7 @@ let NftController = class NftController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to fetch staked NFTs',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -164,14 +164,14 @@ let NftController = class NftController {
         if (!walletAddress || !nftMint) {
             throw new common_1.HttpException({
                 success: false,
-                message: 'Wallet address and NFT mint are required'
+                message: 'Wallet address and NFT mint are required',
             }, common_1.HttpStatus.BAD_REQUEST);
         }
         try {
             const rewards = await this.nftService.calculatePendingRewards(walletAddress, nftMint);
             return {
                 success: true,
-                data: rewards
+                data: rewards,
             };
         }
         catch (error) {
@@ -180,23 +180,23 @@ let NftController = class NftController {
                 throw new common_1.HttpException({
                     success: false,
                     message: 'Stake account not found',
-                    error: error.message
+                    error: error.message,
                 }, common_1.HttpStatus.NOT_FOUND);
             }
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to calculate pending rewards',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     async mintNft(body) {
         try {
-            const { transaction: txBytes, nftMint, blockhash: clientBlockhash } = body;
+            const { transaction: txBytes, nftMint, blockhash: clientBlockhash, } = body;
             if (!txBytes || !Array.isArray(txBytes)) {
                 throw new common_1.HttpException({
                     success: false,
-                    message: 'Invalid transaction data'
+                    message: 'Invalid transaction data',
                 }, common_1.HttpStatus.BAD_REQUEST);
             }
             console.log(`📝 Received transaction for NFT mint: ${nftMint}`);
@@ -206,7 +206,8 @@ let NftController = class NftController {
             console.log('🔄 Checking blockhash validity...');
             const { blockhash: latestBlockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('confirmed');
             let blockhashToUse = clientBlockhash || latestBlockhash;
-            if (!transaction.recentBlockhash || transaction.recentBlockhash.toString() !== latestBlockhash) {
+            if (!transaction.recentBlockhash ||
+                transaction.recentBlockhash.toString() !== latestBlockhash) {
                 blockhashToUse = latestBlockhash;
                 console.log('🔄 Blockhash expired, using fresh blockhash');
             }
@@ -249,7 +250,7 @@ let NftController = class NftController {
             console.log('✅ Transaction signed by admin');
             const fullySignedTx = transaction.serialize({
                 requireAllSignatures: true,
-                verifySignatures: false
+                verifySignatures: false,
             });
             console.log(`📤 Sending transaction (${fullySignedTx.length} bytes)...`);
             const signature = await this.connection.sendRawTransaction(fullySignedTx, {
@@ -266,7 +267,7 @@ let NftController = class NftController {
             return {
                 success: true,
                 signature,
-                message: 'NFT minted successfully'
+                message: 'NFT minted successfully',
             };
         }
         catch (error) {
@@ -274,12 +275,12 @@ let NftController = class NftController {
             console.error('Error details:', {
                 message: error.message,
                 stack: error.stack,
-                name: error.name
+                name: error.name,
             });
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to mint NFT',
-                error: error.message || 'Unknown error'
+                error: error.message || 'Unknown error',
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -289,12 +290,12 @@ __decorate([
     (0, common_1.Get)('marketplace'),
     (0, swagger_1.ApiOperation)({
         summary: 'Get complete marketplace data',
-        description: 'Marketplace bilgileri, tüm koleksiyonlar ve item tiplerini blockchain\'den çeker'
+        description: "Marketplace bilgileri, tüm koleksiyonlar ve item tiplerini blockchain'den çeker",
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'Marketplace data successfully retrieved',
-        type: marketplace_response_dto_1.MarketplaceDataResponseDto
+        type: marketplace_response_dto_1.MarketplaceDataResponseDto,
     }),
     (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
     __metadata("design:type", Function),
@@ -305,12 +306,12 @@ __decorate([
     (0, common_1.Get)('collections'),
     (0, swagger_1.ApiOperation)({
         summary: 'Get collections and item types',
-        description: 'Sadece koleksiyonlar ve item tiplerini blockchain\'den çeker'
+        description: "Sadece koleksiyonlar ve item tiplerini blockchain'den çeker",
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'Collections successfully retrieved',
-        type: marketplace_response_dto_1.CollectionsResponseDto
+        type: marketplace_response_dto_1.CollectionsResponseDto,
     }),
     (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
     __metadata("design:type", Function),
@@ -321,18 +322,18 @@ __decorate([
     (0, common_1.Get)('user-nfts'),
     (0, swagger_1.ApiOperation)({
         summary: 'Get user NFTs',
-        description: 'Belirtilen wallet adresine ait NFT\'leri blockchain\'den çeker'
+        description: "Belirtilen wallet adresine ait NFT'leri blockchain'den çeker",
     }),
     (0, swagger_1.ApiQuery)({
         name: 'wallet',
         description: 'Solana wallet public key',
         example: '7ia7xqc8mLiPbPEfDKWo8xF2UZ8NkEJz7d7pd489rHFe',
-        required: true
+        required: true,
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'User NFTs successfully retrieved',
-        type: marketplace_response_dto_1.UserNFTsResponseDto
+        type: marketplace_response_dto_1.UserNFTsResponseDto,
     }),
     (0, swagger_1.ApiResponse)({ status: 400, description: 'Wallet address is required' }),
     (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
@@ -345,18 +346,18 @@ __decorate([
     (0, common_1.Get)('collection-nfts'),
     (0, swagger_1.ApiOperation)({
         summary: 'Get all NFTs in target collection',
-        description: 'DAS API ile target collection\'daki tüm NFT\'leri çeker (VYBE_SUPERHEROES)'
+        description: "DAS API ile target collection'daki tüm NFT'leri çeker (VYBE_SUPERHEROES)",
     }),
     (0, swagger_1.ApiQuery)({
         name: 'collection',
         description: 'Collection mint address (optional, defaults to VYBE_SUPERHEROES)',
         example: 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN',
-        required: false
+        required: false,
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'Collection NFTs successfully retrieved',
-        type: marketplace_response_dto_1.UserNFTsResponseDto
+        type: marketplace_response_dto_1.UserNFTsResponseDto,
     }),
     (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
     __param(0, (0, common_1.Query)('collection')),
@@ -368,12 +369,12 @@ __decorate([
     (0, common_1.Get)('marketplace-info'),
     (0, swagger_1.ApiOperation)({
         summary: 'Get marketplace info',
-        description: 'Sadece marketplace temel bilgilerini blockchain\'den çeker'
+        description: "Sadece marketplace temel bilgilerini blockchain'den çeker",
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'Marketplace info successfully retrieved',
-        type: marketplace_response_dto_1.MarketplaceInfoResponseDto
+        type: marketplace_response_dto_1.MarketplaceInfoResponseDto,
     }),
     (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
     __metadata("design:type", Function),
@@ -384,11 +385,11 @@ __decorate([
     (0, common_1.Get)('staked/:walletAddress'),
     (0, swagger_1.ApiOperation)({
         summary: 'Get staked NFTs for a wallet',
-        description: 'Belirtilen wallet adresine ait stake edilmiş NFT\'leri blockchain\'den çeker'
+        description: "Belirtilen wallet adresine ait stake edilmiş NFT'leri blockchain'den çeker",
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
-        description: 'Staked NFTs successfully retrieved'
+        description: 'Staked NFTs successfully retrieved',
     }),
     (0, swagger_1.ApiResponse)({ status: 400, description: 'Wallet address is required' }),
     (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
@@ -401,13 +402,16 @@ __decorate([
     (0, common_1.Get)('rewards/:walletAddress/:nftMint'),
     (0, swagger_1.ApiOperation)({
         summary: 'Get pending rewards for a staked NFT',
-        description: 'Belirtilen NFT için bekleyen ödülleri hesaplar'
+        description: 'Belirtilen NFT için bekleyen ödülleri hesaplar',
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
-        description: 'Rewards successfully calculated'
+        description: 'Rewards successfully calculated',
     }),
-    (0, swagger_1.ApiResponse)({ status: 400, description: 'Wallet address and NFT mint are required' }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'Wallet address and NFT mint are required',
+    }),
     (0, swagger_1.ApiResponse)({ status: 404, description: 'Stake account not found' }),
     (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
     __param(0, (0, common_1.Param)('walletAddress')),
@@ -420,7 +424,7 @@ __decorate([
     (0, common_1.Post)('admin/mint-nft'),
     (0, swagger_1.ApiOperation)({
         summary: 'Sign and send NFT mint transaction',
-        description: 'Admin wallet ile transaction\'ı imzalayıp gönderir'
+        description: "Admin wallet ile transaction'ı imzalayıp gönderir",
     }),
     (0, swagger_1.ApiBody)({
         schema: {
@@ -429,19 +433,19 @@ __decorate([
                 transaction: {
                     type: 'array',
                     items: { type: 'number' },
-                    description: 'Serialized transaction bytes'
+                    description: 'Serialized transaction bytes',
                 },
                 nftMint: {
                     type: 'string',
-                    description: 'NFT mint public key'
+                    description: 'NFT mint public key',
                 },
                 blockhash: {
                     type: 'string',
-                    description: 'Transaction blockhash (optional, will be refreshed if expired)'
-                }
+                    description: 'Transaction blockhash (optional, will be refreshed if expired)',
+                },
             },
-            required: ['transaction', 'nftMint']
-        }
+            required: ['transaction', 'nftMint'],
+        },
     }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Transaction sent successfully' }),
     (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid request' }),

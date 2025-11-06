@@ -5,14 +5,14 @@ export class CreateCollectionDto {
   @ApiProperty({
     description: 'Admin public key',
     example: 'Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M',
-    required: false
+    required: false,
   })
   @IsString()
   adminPublicKey?: string;
 
   @ApiProperty({
     description: 'Collection name',
-    example: 'VYBE_BUILDINGS_COLLECTION'
+    example: 'VYBE_BUILDINGS_COLLECTION',
   })
   @IsString()
   @IsNotEmpty()
@@ -20,7 +20,7 @@ export class CreateCollectionDto {
 
   @ApiProperty({
     description: 'Collection symbol',
-    example: 'VYBEB'
+    example: 'VYBEB',
   })
   @IsString()
   @IsNotEmpty()
@@ -28,7 +28,7 @@ export class CreateCollectionDto {
 
   @ApiProperty({
     description: 'Royalty percentage (0-100)',
-    example: 5
+    example: 5,
   })
   @IsNumber()
   @Min(0)
@@ -37,7 +37,7 @@ export class CreateCollectionDto {
 
   @ApiProperty({
     description: 'Collection description for metadata',
-    example: 'Buildings collection for VYBE game'
+    example: 'Buildings collection for VYBE game',
   })
   @IsString()
   @IsNotEmpty()
@@ -45,7 +45,7 @@ export class CreateCollectionDto {
 
   @ApiProperty({
     description: 'Collection image URL or base64 data',
-    example: 'https://example.com/collection.png'
+    example: 'https://example.com/collection.png',
   })
   @IsString()
   @IsNotEmpty()

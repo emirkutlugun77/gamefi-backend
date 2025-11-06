@@ -25,7 +25,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Admin public key',
         example: 'Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M',
-        required: false
+        required: false,
     }),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
@@ -33,7 +33,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Collection name',
-        example: 'VYBE_BUILDINGS_COLLECTION'
+        example: 'VYBE_BUILDINGS_COLLECTION',
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -42,7 +42,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Collection symbol',
-        example: 'VYBEB'
+        example: 'VYBEB',
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -51,7 +51,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Royalty percentage (0-100)',
-        example: 5
+        example: 5,
     }),
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.Min)(0),
@@ -61,7 +61,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Collection description for metadata',
-        example: 'Buildings collection for VYBE game'
+        example: 'Buildings collection for VYBE game',
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -70,7 +70,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Collection image URL or base64 data',
-        example: 'https://example.com/collection.png'
+        example: 'https://example.com/collection.png',
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),

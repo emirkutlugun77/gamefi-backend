@@ -64,7 +64,7 @@ npm run test:debug -- --runInBand <test-file-name> # Debug specific test
 ### Blockchain Integration
 
 **Program IDs:**
-- Marketplace Program: `8KzE3LCicxv13iJx2v2V4VQQNWt4QHuvfuH8jxYnkGQ1`
+- Marketplace Program: `ptcbSp1UEqYLmod2jgFxGPZnFMqBECcrRyU1fTmnJ5b`
 - Token Metadata Program: `metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s`
 - Target Collection Mint: `DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN`
 

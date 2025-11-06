@@ -4,7 +4,10 @@ export class MarketplaceDto {
   @ApiProperty({ description: 'Marketplace admin public key' })
   admin: string;
 
-  @ApiProperty({ description: 'Fee in basis points (e.g., 500 = 5%)', example: 500 })
+  @ApiProperty({
+    description: 'Fee in basis points (e.g., 500 = 5%)',
+    example: 500,
+  })
   fee_bps: number;
 
   @ApiProperty({ description: 'Total number of collections', example: 3 })
@@ -71,7 +74,11 @@ export class NFTItemTypeDto {
   @ApiProperty({ description: 'Additional images array', required: false })
   additionalImages?: string[];
 
-  @ApiProperty({ description: 'Staking reward amount per month', required: false, example: 100 })
+  @ApiProperty({
+    description: 'Staking reward amount per month',
+    required: false,
+    example: 100,
+  })
   stakingAmount?: number;
 }
 
@@ -102,7 +109,9 @@ export class MarketplaceDataResponseDto {
   @ApiProperty({ example: true })
   success: boolean;
 
-  @ApiProperty({ description: 'Marketplace data including collections and item types' })
+  @ApiProperty({
+    description: 'Marketplace data including collections and item types',
+  })
   data: {
     marketplace: MarketplaceDto | null;
     collections: NFTCollectionDto[];

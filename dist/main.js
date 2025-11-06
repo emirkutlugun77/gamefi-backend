@@ -9,14 +9,19 @@ async function bootstrap() {
         origin: '*',
         credentials: false,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+        allowedHeaders: [
+            'Content-Type',
+            'Authorization',
+            'X-Requested-With',
+            'Accept',
+        ],
         exposedHeaders: ['Authorization'],
         preflightContinue: false,
         optionsSuccessStatus: 204,
     });
     const config = new swagger_1.DocumentBuilder()
         .setTitle('NFT Marketplace API')
-        .setDescription('Solana NFT Marketplace Backend API - Blockchain\'den doğrudan NFT verilerini çeker')
+        .setDescription("Solana NFT Marketplace Backend API - Blockchain'den doğrudan NFT verilerini çeker")
         .setVersion('1.0')
         .addTag('auth', 'Authentication operations')
         .addTag('nft', 'NFT marketplace operations')
@@ -32,9 +37,10 @@ async function bootstrap() {
         .build();
     const document = swagger_1.SwaggerModule.createDocument(app, config);
     swagger_1.SwaggerModule.setup('api', app, document);
-    await app.listen(process.env.PORT ?? 3001);
-    console.log(`🚀 Server running on http://localhost:${process.env.PORT ?? 3001}`);
-    console.log(`📚 Swagger docs available at http://localhost:${process.env.PORT ?? 3001}/api`);
+    const port = process.env.PORT ?? 3002;
+    await app.listen(port);
+    console.log(`🚀 Server running on http://localhost:${port}`);
+    console.log(`📚 Swagger docs available at http://localhost:${port}/api`);
 }
 bootstrap();
 //# sourceMappingURL=main.js.map

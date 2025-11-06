@@ -202,7 +202,12 @@ __decorate([
 __decorate([
     (0, common_1.Get)('tasks'),
     (0, swagger_1.ApiOperation)({ summary: 'Get all tasks' }),
-    (0, swagger_1.ApiQuery)({ name: 'active', required: false, type: Boolean, description: 'Filter only active tasks' }),
+    (0, swagger_1.ApiQuery)({
+        name: 'active',
+        required: false,
+        type: Boolean,
+        description: 'Filter only active tasks',
+    }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Tasks retrieved successfully' }),
     __param(0, (0, common_1.Query)('active')),
     __metadata("design:type", Function),
@@ -246,8 +251,15 @@ __decorate([
 __decorate([
     (0, common_1.Get)('user-tasks'),
     (0, swagger_1.ApiOperation)({ summary: 'Get user tasks with progress' }),
-    (0, swagger_1.ApiQuery)({ name: 'publicKey', required: true, description: 'User public key' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'User tasks retrieved successfully' }),
+    (0, swagger_1.ApiQuery)({
+        name: 'publicKey',
+        required: true,
+        description: 'User public key',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'User tasks retrieved successfully',
+    }),
     (0, swagger_1.ApiResponse)({ status: 404, description: 'User not found' }),
     __param(0, (0, common_1.Query)('publicKey')),
     __metadata("design:type", Function),
@@ -279,7 +291,10 @@ __decorate([
 __decorate([
     (0, common_1.Get)('pending-verifications'),
     (0, swagger_1.ApiOperation)({ summary: 'Get pending task verifications (Admin)' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Pending verifications retrieved successfully' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Pending verifications retrieved successfully',
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
@@ -287,8 +302,15 @@ __decorate([
 __decorate([
     (0, common_1.Get)('stats'),
     (0, swagger_1.ApiOperation)({ summary: 'Get user achievement statistics' }),
-    (0, swagger_1.ApiQuery)({ name: 'publicKey', required: true, description: 'User public key' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'User stats retrieved successfully' }),
+    (0, swagger_1.ApiQuery)({
+        name: 'publicKey',
+        required: true,
+        description: 'User public key',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'User stats retrieved successfully',
+    }),
     (0, swagger_1.ApiResponse)({ status: 404, description: 'User not found' }),
     __param(0, (0, common_1.Query)('publicKey')),
     __metadata("design:type", Function),

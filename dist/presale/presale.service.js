@@ -12,7 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PresaleService = void 0;
 const common_1 = require("@nestjs/common");
 const web3_js_1 = require("@solana/web3.js");
-const PROGRAM_ID = new web3_js_1.PublicKey('8KzE3LCicxv13iJx2v2V4VQQNWt4QHuvfuH8jxYnkGQ1');
+const PROGRAM_ID = new web3_js_1.PublicKey('ptcbSp1UEqYLmod2jgFxGPZnFMqBECcrRyU1fTmnJ5b');
 let PresaleService = class PresaleService {
     connection;
     program;
@@ -54,7 +54,7 @@ let PresaleService = class PresaleService {
                 totalRaised,
                 targetLamports,
                 isActive,
-                bump
+                bump,
             };
         }
         catch (error) {

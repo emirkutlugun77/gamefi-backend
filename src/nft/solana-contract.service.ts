@@ -9,12 +9,7 @@ import {
   sendAndConfirmTransaction,
   ComputeBudgetProgram,
 } from '@solana/web3.js';
-import {
-  Program,
-  AnchorProvider,
-  Wallet,
-  BN,
-} from '@coral-xyz/anchor';
+import { Program, AnchorProvider, Wallet, BN } from '@coral-xyz/anchor';
 import {
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -25,8 +20,12 @@ import {
 const IDL = require('./nft_marketplace.json');
 
 // Metaplex Token Metadata Program ID
-const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
-const PROGRAM_ID = new PublicKey('B6c38JtYJXDiaW2XNJWrueLUULAD4vsxChz1VJk1d9zX');
+const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
+  'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
+);
+const PROGRAM_ID = new PublicKey(
+  'B6c38JtYJXDiaW2XNJWrueLUULAD4vsxChz1VJk1d9zX',
+);
 
 @Injectable()
 export class SolanaContractService {
@@ -34,21 +33,24 @@ export class SolanaContractService {
   private program: Program;
 
   constructor() {
-    const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+    const rpcUrl =
+      process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
     this.connection = new Connection(rpcUrl, 'confirmed');
 
     // Create a dummy wallet for readonly provider
     const dummyWallet = {
       publicKey: PublicKey.default,
-      signTransaction: async () => { throw new Error('Not implemented'); },
-      signAllTransactions: async () => { throw new Error('Not implemented'); },
+      signTransaction: async () => {
+        throw new Error('Not implemented');
+      },
+      signAllTransactions: async () => {
+        throw new Error('Not implemented');
+      },
     };
 
-    const provider = new AnchorProvider(
-      this.connection,
-      dummyWallet as any,
-      { commitment: 'confirmed' }
-    );
+    const provider = new AnchorProvider(this.connection, dummyWallet as any, {
+      commitment: 'confirmed',
+    });
 
     // Initialize Program with the IDL - address is in the IDL itself
     // @ts-ignore
@@ -61,7 +63,7 @@ export class SolanaContractService {
   getMarketplacePda(): PublicKey {
     const [marketplacePda] = PublicKey.findProgramAddressSync(
       [Buffer.from('marketplace')],
-      PROGRAM_ID
+      PROGRAM_ID,
     );
     return marketplacePda;
   }
@@ -85,7 +87,7 @@ export class SolanaContractService {
    */
   async initializeMarketplace(
     adminKeypair: Keypair,
-    feeBps: number = 500 // Default 5% fee (500 basis points)
+    feeBps: number = 500, // Default 5% fee (500 basis points)
   ): Promise<{
     signature: string;
     marketplacePda: string;
@@ -117,11 +119,11 @@ export class SolanaContractService {
 
       // Add compute budget instructions
       const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
-        units: 300000
+        units: 300000,
       });
 
       const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: 1
+        microLamports: 1,
       });
 
       transaction.add(modifyComputeUnits);
@@ -144,7 +146,7 @@ export class SolanaContractService {
         [adminKeypair],
         {
           commitment: 'confirmed',
-        }
+        },
       );
 
       console.log('✅ Marketplace initialized successfully!');
@@ -163,7 +165,7 @@ export class SolanaContractService {
           message: 'Failed to initialize marketplace',
           error: error.message,
         },
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -177,7 +179,7 @@ export class SolanaContractService {
     collectionName: string,
     symbol: string,
     uri: string,
-    royalty: number
+    royalty: number,
   ): Promise<{
     signature: string;
     collectionPda: string;
@@ -192,12 +194,12 @@ export class SolanaContractService {
       // Derive PDAs
       const [marketplacePda] = PublicKey.findProgramAddressSync(
         [Buffer.from('marketplace')],
-        PROGRAM_ID
+        PROGRAM_ID,
       );
 
       const [collectionPda] = PublicKey.findProgramAddressSync(
         [Buffer.from('collection'), Buffer.from(collectionName)],
-        PROGRAM_ID
+        PROGRAM_ID,
       );
 
       const [collectionMetadataPda] = PublicKey.findProgramAddressSync(
@@ -206,7 +208,7 @@ export class SolanaContractService {
           TOKEN_METADATA_PROGRAM_ID.toBuffer(),
           collectionMint.toBuffer(),
         ],
-        TOKEN_METADATA_PROGRAM_ID
+        TOKEN_METADATA_PROGRAM_ID,
       );
 
       const [collectionMasterEditionPda] = PublicKey.findProgramAddressSync(
@@ -216,12 +218,12 @@ export class SolanaContractService {
           collectionMint.toBuffer(),
           Buffer.from('edition'),
         ],
-        TOKEN_METADATA_PROGRAM_ID
+        TOKEN_METADATA_PROGRAM_ID,
       );
 
       const adminTokenAccount = await getAssociatedTokenAddress(
         collectionMint,
-        admin
+        admin,
       );
 
       console.log('PDAs derived:', {
@@ -260,12 +262,12 @@ export class SolanaContractService {
       // Add compute budget instructions to increase limit
       // Set compute unit limit to 400,000 (2x default)
       const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
-        units: 400000
+        units: 400000,
       });
 
       // Set compute unit price (priority fee) - 1 micro lamport per compute unit
       const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: 1
+        microLamports: 1,
       });
 
       transaction.add(modifyComputeUnits);
@@ -289,7 +291,7 @@ export class SolanaContractService {
         [adminKeypair, collectionMintKeypair],
         {
           commitment: 'confirmed',
-        }
+        },
       );
 
       console.log('✅ Collection created successfully!');
@@ -310,7 +312,7 @@ export class SolanaContractService {
           message: 'Failed to create collection transaction',
           error: error.message,
         },
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -325,25 +327,28 @@ export class SolanaContractService {
     uri: string,
     price: number, // in lamports
     maxSupply: number,
-    stakingAmount: number // in lamports
+    stakingAmount: number, // in lamports
   ): Promise<{
     signature: string;
     nftTypePda: string;
   }> {
     try {
-      console.log('Creating and submitting NFT type:', { collectionName, typeName });
+      console.log('Creating and submitting NFT type:', {
+        collectionName,
+        typeName,
+      });
 
       const admin = adminKeypair.publicKey;
 
       // Derive PDAs
       const [collectionPda] = PublicKey.findProgramAddressSync(
         [Buffer.from('collection'), Buffer.from(collectionName)],
-        PROGRAM_ID
+        PROGRAM_ID,
       );
 
       const [nftTypePda] = PublicKey.findProgramAddressSync(
         [Buffer.from('type'), collectionPda.toBuffer(), Buffer.from(typeName)],
-        PROGRAM_ID
+        PROGRAM_ID,
       );
 
       console.log('PDAs derived:', {
@@ -372,11 +377,11 @@ export class SolanaContractService {
 
       // Add compute budget instructions
       const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
-        units: 300000
+        units: 300000,
       });
 
       const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: 1
+        microLamports: 1,
       });
 
       transaction.add(modifyComputeUnits);
@@ -399,7 +404,7 @@ export class SolanaContractService {
         [adminKeypair],
         {
           commitment: 'confirmed',
-        }
+        },
       );
 
       console.log('✅ NFT type created successfully!');
@@ -418,7 +423,7 @@ export class SolanaContractService {
           message: 'Failed to create NFT type transaction',
           error: error.message,
         },
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -432,7 +437,7 @@ export class SolanaContractService {
     buyerKeypair: Keypair,
     collectionName: string,
     typeName: string,
-    collectionMintAddress: string
+    collectionMintAddress: string,
   ): Promise<{
     signature: string;
     nftMint: string;
@@ -451,19 +456,16 @@ export class SolanaContractService {
       // Derive PDAs
       const [collectionPda] = PublicKey.findProgramAddressSync(
         [Buffer.from('collection'), Buffer.from(collectionName)],
-        PROGRAM_ID
+        PROGRAM_ID,
       );
 
       const [nftTypePda] = PublicKey.findProgramAddressSync(
         [Buffer.from('type'), collectionPda.toBuffer(), Buffer.from(typeName)],
-        PROGRAM_ID
+        PROGRAM_ID,
       );
 
       // Get buyer's token account
-      const buyerTokenAccount = await getAssociatedTokenAddress(
-        nftMint,
-        buyer
-      );
+      const buyerTokenAccount = await getAssociatedTokenAddress(nftMint, buyer);
 
       // Use provided collection mint
       const collectionMintAccount = new PublicKey(collectionMintAddress);
@@ -475,7 +477,7 @@ export class SolanaContractService {
           TOKEN_METADATA_PROGRAM_ID.toBuffer(),
           collectionMintAccount.toBuffer(),
         ],
-        TOKEN_METADATA_PROGRAM_ID
+        TOKEN_METADATA_PROGRAM_ID,
       );
 
       const [collectionMasterEditionPda] = PublicKey.findProgramAddressSync(
@@ -485,7 +487,7 @@ export class SolanaContractService {
           collectionMintAccount.toBuffer(),
           Buffer.from('edition'),
         ],
-        TOKEN_METADATA_PROGRAM_ID
+        TOKEN_METADATA_PROGRAM_ID,
       );
 
       // Get NFT metadata PDA
@@ -495,7 +497,7 @@ export class SolanaContractService {
           TOKEN_METADATA_PROGRAM_ID.toBuffer(),
           nftMint.toBuffer(),
         ],
-        TOKEN_METADATA_PROGRAM_ID
+        TOKEN_METADATA_PROGRAM_ID,
       );
 
       console.log('PDAs derived:', {
@@ -533,11 +535,11 @@ export class SolanaContractService {
 
       // Add compute budget instructions
       const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
-        units: 500000 // Increased for NFT minting with metadata
+        units: 500000, // Increased for NFT minting with metadata
       });
 
       const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: 1
+        microLamports: 1,
       });
 
       transaction.add(modifyComputeUnits);
@@ -560,14 +562,17 @@ export class SolanaContractService {
         [collectionAdminKeypair, buyerKeypair, nftMintKeypair],
         {
           commitment: 'confirmed',
-        }
+        },
       );
 
       console.log('✅ NFT minted successfully!');
       console.log('   Signature:', signature);
       console.log('   NFT Mint:', nftMint.toString());
       console.log('   Buyer Token Account:', buyerTokenAccount.toString());
-      console.log('   Explorer:', `https://explorer.solana.com/tx/${signature}?cluster=devnet`);
+      console.log(
+        '   Explorer:',
+        `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
+      );
 
       return {
         signature,
@@ -582,7 +587,7 @@ export class SolanaContractService {
           message: 'Failed to mint NFT',
           error: error.message,
         },
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -604,10 +609,10 @@ export class SolanaContractService {
             // First 8 bytes are the discriminator
             memcmp: {
               offset: 0,
-              bytes: 'base58' // We'll need to get the actual discriminator from IDL
-            }
-          }
-        ]
+              bytes: 'base58', // We'll need to get the actual discriminator from IDL
+            },
+          },
+        ],
       });
 
       console.log(`Found ${accounts.length} program accounts`);
@@ -621,8 +626,10 @@ export class SolanaContractService {
       for (const account of allAccounts) {
         try {
           // Try to decode as NFTCollection
-          const collectionData: any = await (this.program.account as any).nftCollection.fetch(account.pubkey);
-          
+          const collectionData: any = await (
+            this.program.account as any
+          ).nftCollection.fetch(account.pubkey);
+
           console.log('✅ Found collection:', {
             pubkey: account.pubkey.toString(),
             name: collectionData.name,
@@ -650,7 +657,9 @@ export class SolanaContractService {
         }
       }
 
-      console.log(`✅ Synced ${collections.length} collections from blockchain`);
+      console.log(
+        `✅ Synced ${collections.length} collections from blockchain`,
+      );
       return collections;
     } catch (error) {
       console.error('Error syncing collections from blockchain:', error);
@@ -660,7 +669,7 @@ export class SolanaContractService {
           message: 'Failed to sync collections from blockchain',
           error: error.message,
         },
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -679,8 +688,10 @@ export class SolanaContractService {
       for (const account of allAccounts) {
         try {
           // Try to decode as NFTType
-          const typeData: any = await (this.program.account as any).nftType.fetch(account.pubkey);
-          
+          const typeData: any = await (
+            this.program.account as any
+          ).nftType.fetch(account.pubkey);
+
           console.log('✅ Found NFT type:', {
             pubkey: account.pubkey.toString(),
             name: typeData.name,
@@ -717,7 +728,7 @@ export class SolanaContractService {
           message: 'Failed to sync NFT types from blockchain',
           error: error.message,
         },
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }

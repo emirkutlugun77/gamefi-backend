@@ -1,13 +1,31 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import { Connection, PublicKey, Keypair, Transaction, SystemProgram, sendAndConfirmTransaction, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
+import {
+  Connection,
+  PublicKey,
+  Keypair,
+  Transaction,
+  SystemProgram,
+  sendAndConfirmTransaction,
+  SYSVAR_RENT_PUBKEY,
+} from '@solana/web3.js';
 import { Program, AnchorProvider, Wallet, BN } from '@coral-xyz/anchor';
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import {
+  getAssociatedTokenAddress,
+  TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+} from '@solana/spl-token';
 import { SolanaContractService } from '../nft/solana-contract.service';
 import * as IDL from '../nft/nft_marketplace_idl.json';
-import bs58 from 'bs58';
+import * as bs58Module from 'bs58';
+const bs58 = (bs58Module as any).default || bs58Module;
 
-const PROGRAM_ID = new PublicKey('B6c38JtYJXDiaW2XNJWrueLUULAD4vsxChz1VJk1d9zX');
-const VYBE_TOKEN_MINT = new PublicKey('GshYgeeG5xmeMJ4crtg1SHGafYXBpnCyPz9VNF8DXxSW');
+const PROGRAM_ID = new PublicKey(
+  'B6c38JtYJXDiaW2XNJWrueLUULAD4vsxChz1VJk1d9zX',
+);
+const VYBE_TOKEN_MINT = new PublicKey(
+  'GshYgeeG5xmeMJ4crtg1SHGafYXBpnCyPz9VNF8DXxSW',
+);
 const TOKEN_PROGRAM = TOKEN_2022_PROGRAM_ID; // VYBE uses Token-2022!
 
 @Injectable()
@@ -16,7 +34,8 @@ export class StakingService {
   private program: Program;
 
   constructor(private readonly solanaContractService: SolanaContractService) {
-    const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+    const rpcUrl =
+      process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
     this.connection = new Connection(rpcUrl, 'confirmed');
 
     // Create a dummy wallet for read-only operations
@@ -35,7 +54,7 @@ export class StakingService {
   async getStakedNFTs(ownerPubkey: string): Promise<any[]> {
     try {
       const owner = new PublicKey(ownerPubkey);
-      
+
       // Fetch all StakedNFT accounts
       const stakedNFTs = await (this.program.account as any).stakedNft.all([
         {
@@ -78,7 +97,9 @@ export class StakingService {
         PROGRAM_ID,
       );
 
-      const stakingPool = (await (this.program.account as any).stakingPool.fetch(stakingPoolPda)) as any;
+      const stakingPool = await (this.program.account as any).stakingPool.fetch(
+        stakingPoolPda,
+      );
 
       return {
         publicKey: stakingPoolPda.toString(),
@@ -112,9 +133,13 @@ export class StakingService {
 
       // Get all StakedNFT accounts that are placed (is_placed = true)
       const allStakedNFTs = await (this.program.account as any).stakedNft.all();
-      const placedNFTs = allStakedNFTs.filter((nft: any) => nft.account.isPlaced === true);
+      const placedNFTs = allStakedNFTs.filter(
+        (nft: any) => nft.account.isPlaced === true,
+      );
 
-      console.log(`Found ${placedNFTs.length} placed NFTs out of ${allStakedNFTs.length} total staked NFTs`);
+      console.log(
+        `Found ${placedNFTs.length} placed NFTs out of ${allStakedNFTs.length} total staked NFTs`,
+      );
 
       if (placedNFTs.length === 0) {
         return {
@@ -135,8 +160,12 @@ export class StakingService {
       const eligibleForRewards = placedNFTs.map((nft: any) => ({
         owner: nft.account.owner.toString(),
         nftMint: nft.account.nftMint.toString(),
-        stakedAt: new Date(nft.account.stakedAt.toNumber() * 1000).toISOString(),
-        lastClaimed: new Date(nft.account.lastClaimed.toNumber() * 1000).toISOString(),
+        stakedAt: new Date(
+          nft.account.stakedAt.toNumber() * 1000,
+        ).toISOString(),
+        lastClaimed: new Date(
+          nft.account.lastClaimed.toNumber() * 1000,
+        ).toISOString(),
       }));
 
       return {
@@ -161,7 +190,10 @@ export class StakingService {
   /**
    * Prepare stake NFT transaction (returns serialized transaction for frontend to sign)
    */
-  async prepareStakeNFT(userWallet: string, nftMintAddress: string): Promise<any> {
+  async prepareStakeNFT(
+    userWallet: string,
+    nftMintAddress: string,
+  ): Promise<any> {
     try {
       console.log('📦 Preparing stake transaction for NFT:', nftMintAddress);
 
@@ -199,7 +231,8 @@ export class StakingService {
       transaction.add(instruction);
 
       // Get recent blockhash
-      const { blockhash } = await this.connection.getLatestBlockhash('confirmed');
+      const { blockhash } =
+        await this.connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = owner;
 
@@ -233,7 +266,12 @@ export class StakingService {
   /**
    * Prepare place NFT transaction
    */
-  async preparePlaceNFT(userWallet: string, nftMintAddress: string, typeName: string, nftTypePda: string): Promise<any> {
+  async preparePlaceNFT(
+    userWallet: string,
+    nftMintAddress: string,
+    typeName: string,
+    nftTypePda: string,
+  ): Promise<any> {
     try {
       console.log('🏘️ Preparing place NFT transaction:', nftMintAddress);
 
@@ -285,7 +323,8 @@ export class StakingService {
       transaction.add(instruction);
 
       // Get recent blockhash
-      const { blockhash } = await this.connection.getLatestBlockhash('confirmed');
+      const { blockhash } =
+        await this.connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = owner;
 
@@ -318,7 +357,10 @@ export class StakingService {
   /**
    * Prepare unplace NFT transaction
    */
-  async prepareUnplaceNFT(userWallet: string, nftMintAddress: string): Promise<any> {
+  async prepareUnplaceNFT(
+    userWallet: string,
+    nftMintAddress: string,
+  ): Promise<any> {
     try {
       console.log('🚪 Preparing unplace NFT transaction:', nftMintAddress);
 
@@ -346,7 +388,8 @@ export class StakingService {
       transaction.add(instruction);
 
       // Get recent blockhash
-      const { blockhash } = await this.connection.getLatestBlockhash('confirmed');
+      const { blockhash } =
+        await this.connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = owner;
 
@@ -379,7 +422,10 @@ export class StakingService {
   /**
    * Prepare unstake NFT transaction
    */
-  async prepareUnstakeNFT(userWallet: string, nftMintAddress: string): Promise<any> {
+  async prepareUnstakeNFT(
+    userWallet: string,
+    nftMintAddress: string,
+  ): Promise<any> {
     try {
       console.log('📤 Preparing unstake NFT transaction:', nftMintAddress);
 
@@ -413,7 +459,8 @@ export class StakingService {
       transaction.add(instruction);
 
       // Get recent blockhash
-      const { blockhash } = await this.connection.getLatestBlockhash('confirmed');
+      const { blockhash } =
+        await this.connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = owner;
 
@@ -446,7 +493,10 @@ export class StakingService {
   /**
    * Admin: Initialize staking pool
    */
-  async initializeStakingPool(adminPrivateKey: string, rewardRate: number): Promise<any> {
+  async initializeStakingPool(
+    adminPrivateKey: string,
+    rewardRate: number,
+  ): Promise<any> {
     try {
       console.log('🎯 Initializing staking pool with reward rate:', rewardRate);
 
@@ -457,7 +507,9 @@ export class StakingService {
 
       // Create provider with admin wallet
       const wallet = new Wallet(adminKeypair);
-      const provider = new AnchorProvider(this.connection, wallet, { commitment: 'confirmed' });
+      const provider = new AnchorProvider(this.connection, wallet, {
+        commitment: 'confirmed',
+      });
       const program = new Program(IDL as any, provider);
 
       // Derive PDAs
@@ -526,7 +578,10 @@ export class StakingService {
   /**
    * Admin: Fund pool with SOL
    */
-  async fundPoolSOL(adminPrivateKey: string, amountLamports: number): Promise<any> {
+  async fundPoolSOL(
+    adminPrivateKey: string,
+    amountLamports: number,
+  ): Promise<any> {
     try {
       console.log('💰 Funding pool with SOL:', amountLamports, 'lamports');
 
@@ -537,7 +592,9 @@ export class StakingService {
 
       // Create provider with admin wallet
       const wallet = new Wallet(adminKeypair);
-      const provider = new AnchorProvider(this.connection, wallet, { commitment: 'confirmed' });
+      const provider = new AnchorProvider(this.connection, wallet, {
+        commitment: 'confirmed',
+      });
       const program = new Program(IDL as any, provider);
 
       // Derive PDAs
@@ -584,7 +641,10 @@ export class StakingService {
   /**
    * Admin: Fund pool with VYBE tokens
    */
-  async fundPoolTokens(adminPrivateKey: string, amountTokens: number): Promise<any> {
+  async fundPoolTokens(
+    adminPrivateKey: string,
+    amountTokens: number,
+  ): Promise<any> {
     try {
       console.log('💎 Funding pool with VYBE tokens:', amountTokens);
 
@@ -595,7 +655,9 @@ export class StakingService {
 
       // Create provider with admin wallet
       const wallet = new Wallet(adminKeypair);
-      const provider = new AnchorProvider(this.connection, wallet, { commitment: 'confirmed' });
+      const provider = new AnchorProvider(this.connection, wallet, {
+        commitment: 'confirmed',
+      });
       const program = new Program(IDL as any, provider);
 
       // Derive PDAs
@@ -651,4 +713,3 @@ export class StakingService {
     }
   }
 }
-

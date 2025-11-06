@@ -1,13 +1,32 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEnum, IsInt, IsBoolean, IsOptional, IsObject, IsDateString, Min, IsArray, IsNumber } from 'class-validator';
-import { TaskType, TaskStatus, TaskDifficulty, TaskPriority, TaskCategory } from '../../entities/task.entity';
+import {
+  IsString,
+  IsEnum,
+  IsInt,
+  IsBoolean,
+  IsOptional,
+  IsObject,
+  IsDateString,
+  Min,
+  IsArray,
+  IsNumber,
+} from 'class-validator';
+import {
+  TaskType,
+  TaskStatus,
+  TaskDifficulty,
+  TaskPriority,
+  TaskCategory,
+} from '../../entities/task.entity';
 
 export class CreateTaskDto {
   @ApiProperty({ example: 'Tweet about VYBE' })
   @IsString()
   title!: string;
 
-  @ApiProperty({ example: 'Tweet with #VYBE and #Solana hashtags to earn points' })
+  @ApiProperty({
+    example: 'Tweet with #VYBE and #Solana hashtags to earn points',
+  })
   @IsString()
   description!: string;
 
@@ -15,14 +34,17 @@ export class CreateTaskDto {
   @IsEnum(TaskType)
   type!: TaskType;
 
-  @ApiProperty({ example: 50, description: 'Points awarded for completing this task' })
+  @ApiProperty({
+    example: 50,
+    description: 'Points awarded for completing this task',
+  })
   @IsInt()
   @Min(0)
   reward_points!: number;
 
   @ApiPropertyOptional({
     example: { hashtags: ['#VYBE', '#Solana'], minLength: 50 },
-    description: 'Dynamic configuration based on task type'
+    description: 'Dynamic configuration based on task type',
   })
   @IsOptional()
   @IsObject()
@@ -30,7 +52,7 @@ export class CreateTaskDto {
 
   @ApiPropertyOptional({
     example: { requireManualApproval: false, autoVerify: true },
-    description: 'Verification settings'
+    description: 'Verification settings',
   })
   @IsOptional()
   @IsObject()
@@ -77,14 +99,17 @@ export class CreateTaskDto {
   @IsEnum(TaskPriority)
   priority?: TaskPriority;
 
-  @ApiPropertyOptional({ enum: TaskCategory, example: TaskCategory.SOCIAL_MEDIA })
+  @ApiPropertyOptional({
+    enum: TaskCategory,
+    example: TaskCategory.SOCIAL_MEDIA,
+  })
   @IsOptional()
   @IsEnum(TaskCategory)
   category?: TaskCategory;
 
   @ApiPropertyOptional({
     example: ['viral', 'beginner-friendly', 'high-reward'],
-    description: 'Tags for organization and filtering'
+    description: 'Tags for organization and filtering',
   })
   @IsOptional()
   @IsArray()
@@ -93,7 +118,7 @@ export class CreateTaskDto {
 
   @ApiPropertyOptional({
     example: 'https://cdn.vybe.com/icons/twitter.png',
-    description: 'Icon/image URL for the task'
+    description: 'Icon/image URL for the task',
   })
   @IsOptional()
   @IsString()
@@ -101,7 +126,7 @@ export class CreateTaskDto {
 
   @ApiPropertyOptional({
     example: 0,
-    description: 'Required level to access this task'
+    description: 'Required level to access this task',
   })
   @IsOptional()
   @IsInt()
@@ -110,7 +135,7 @@ export class CreateTaskDto {
 
   @ApiPropertyOptional({
     example: [1, 2],
-    description: 'Task IDs that must be completed first'
+    description: 'Task IDs that must be completed first',
   })
   @IsOptional()
   @IsArray()
@@ -119,7 +144,7 @@ export class CreateTaskDto {
 
   @ApiPropertyOptional({
     example: 1.5,
-    description: 'Bonus multiplier for rewards (e.g., 1.5 = 50% bonus)'
+    description: 'Bonus multiplier for rewards (e.g., 1.5 = 50% bonus)',
   })
   @IsOptional()
   @IsNumber()
@@ -128,7 +153,7 @@ export class CreateTaskDto {
 
   @ApiPropertyOptional({
     example: 10,
-    description: 'Estimated time to complete in minutes'
+    description: 'Estimated time to complete in minutes',
   })
   @IsOptional()
   @IsInt()

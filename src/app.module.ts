@@ -19,10 +19,20 @@ import { StoreConfig } from './entities/store-config.entity';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL || 'postgresql://postgres:ZinjEqdWdceEXeFYFsFUeMgtSfyrSKZA@hopper.proxy.rlwy.net:31815/railway',
+      url:
+        process.env.DATABASE_URL ||
+        'postgresql://postgres:ZinjEqdWdceEXeFYFsFUeMgtSfyrSKZA@hopper.proxy.rlwy.net:31815/railway',
       autoLoadEntities: true,
       synchronize: true,
-      entities: [NftCollection, NftType, UserNft, User, Task, UserTask, StoreConfig],
+      entities: [
+        NftCollection,
+        NftType,
+        UserNft,
+        User,
+        Task,
+        UserTask,
+        StoreConfig,
+      ],
     }),
     AuthModule,
     NftModule,

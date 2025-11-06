@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+} from 'typeorm';
 import { User } from './user.entity';
 import { Task } from './task.entity';
 
@@ -30,7 +39,11 @@ export class UserTask {
   @JoinColumn({ name: 'task_id' })
   task: Task;
 
-  @Column({ type: 'enum', enum: UserTaskStatus, default: UserTaskStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: UserTaskStatus,
+    default: UserTaskStatus.PENDING,
+  })
   status: UserTaskStatus;
 
   // Proof/evidence submitted by user (e.g., tweet URL, screenshot URL, etc.)

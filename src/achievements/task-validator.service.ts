@@ -28,7 +28,10 @@ export class TaskValidatorService {
   /**
    * Validates task configuration based on task type
    */
-  validateTaskConfig(type: TaskType, config: any): { valid: boolean; errors: string[] } {
+  validateTaskConfig(
+    type: TaskType,
+    config: any,
+  ): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     switch (type) {
@@ -55,10 +58,16 @@ export class TaskValidatorService {
 
       case TaskType.TWITTER_TWEET:
       case TaskType.TWITTER_QUOTE:
-        if (config?.required_hashtags && !Array.isArray(config.required_hashtags)) {
+        if (
+          config?.required_hashtags &&
+          !Array.isArray(config.required_hashtags)
+        ) {
           errors.push('Required hashtags must be an array');
         }
-        if (config?.required_mentions && !Array.isArray(config.required_mentions)) {
+        if (
+          config?.required_mentions &&
+          !Array.isArray(config.required_mentions)
+        ) {
           errors.push('Required mentions must be an array');
         }
         break;
@@ -122,7 +131,10 @@ export class TaskValidatorService {
         if (!config?.video_url && !config?.video_id) {
           errors.push('YouTube video URL or ID is required');
         }
-        if (config?.min_watch_time_seconds && config.min_watch_time_seconds < 1) {
+        if (
+          config?.min_watch_time_seconds &&
+          config.min_watch_time_seconds < 1
+        ) {
           errors.push('Minimum watch time must be at least 1 second');
         }
         break;
@@ -175,12 +187,18 @@ export class TaskValidatorService {
           errors.push('Quiz must have at least one question');
         } else {
           config.questions.forEach((q: any, index: number) => {
-            if (!q.question) errors.push(`Question ${index + 1} is missing question text`);
+            if (!q.question)
+              errors.push(`Question ${index + 1} is missing question text`);
             if (!Array.isArray(q.answers) || q.answers.length < 2) {
               errors.push(`Question ${index + 1} must have at least 2 answers`);
             }
-            if (q.correct_answer_index === undefined || q.correct_answer_index < 0) {
-              errors.push(`Question ${index + 1} must have a valid correct answer index`);
+            if (
+              q.correct_answer_index === undefined ||
+              q.correct_answer_index < 0
+            ) {
+              errors.push(
+                `Question ${index + 1} must have a valid correct answer index`,
+              );
             }
           });
         }
@@ -237,7 +255,8 @@ export class TaskValidatorService {
       return { valid: false, errors };
     }
 
-    const verificationConfig = config?.verification_config as VerificationConfig;
+    const verificationConfig =
+      config?.verification_config as VerificationConfig;
 
     // Check if proof is required
     if (verificationConfig?.proof_required) {
@@ -426,7 +445,8 @@ export class TaskValidatorService {
     try {
       const urlObj = new URL(url);
       return (
-        urlObj.hostname === 'instagram.com' || urlObj.hostname === 'www.instagram.com'
+        urlObj.hostname === 'instagram.com' ||
+        urlObj.hostname === 'www.instagram.com'
       );
     } catch {
       return false;
@@ -443,7 +463,10 @@ export class TaskValidatorService {
   /**
    * Validates hashtags in text content
    */
-  validateHashtags(text: string, requiredHashtags: string[]): { valid: boolean; missing: string[] } {
+  validateHashtags(
+    text: string,
+    requiredHashtags: string[],
+  ): { valid: boolean; missing: string[] } {
     const textLower = text.toLowerCase();
     const missing = requiredHashtags.filter(
       (hashtag) => !textLower.includes(hashtag.toLowerCase()),
@@ -458,7 +481,10 @@ export class TaskValidatorService {
   /**
    * Validates mentions in text content
    */
-  validateMentions(text: string, requiredMentions: string[]): { valid: boolean; missing: string[] } {
+  validateMentions(
+    text: string,
+    requiredMentions: string[],
+  ): { valid: boolean; missing: string[] } {
     const textLower = text.toLowerCase();
     const missing = requiredMentions.filter(
       (mention) => !textLower.includes(mention.toLowerCase()),
@@ -473,7 +499,10 @@ export class TaskValidatorService {
   /**
    * Validates keywords in text content
    */
-  validateKeywords(text: string, requiredKeywords: string[]): { valid: boolean; missing: string[] } {
+  validateKeywords(
+    text: string,
+    requiredKeywords: string[],
+  ): { valid: boolean; missing: string[] } {
     const textLower = text.toLowerCase();
     const missing = requiredKeywords.filter(
       (keyword) => !textLower.includes(keyword.toLowerCase()),

@@ -15,14 +15,16 @@ const web3_js_1 = require("@solana/web3.js");
 const umi_bundle_defaults_1 = require("@metaplex-foundation/umi-bundle-defaults");
 const digital_asset_standard_api_1 = require("@metaplex-foundation/digital-asset-standard-api");
 const umi_1 = require("@metaplex-foundation/umi");
-const PROGRAM_ID = new web3_js_1.PublicKey('12LJUQx5mfVfqACGgEac65Xe6PMGnYm5rdaRRcU4HE7V');
+const PROGRAM_ID = new web3_js_1.PublicKey('ptcbSp1UEqYLmod2jgFxGPZnFMqBECcrRyU1fTmnJ5b');
 const TOKEN_METADATA_PROGRAM_ID = new web3_js_1.PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
-const STAKING_PROGRAM_ID = new web3_js_1.PublicKey('8KzE3LCicxv13iJx2v2V4VQQNWt4QHuvfuH8jxYnkGQ1');
+const STAKING_PROGRAM_ID = new web3_js_1.PublicKey('ptcbSp1UEqYLmod2jgFxGPZnFMqBECcrRyU1fTmnJ5b');
 const REWARD_TOKEN_MINT = new web3_js_1.PublicKey('GshYgeeG5xmeMJ4crtg1SHGafYXBpnCyPz9VNF8DXxSW');
 const TARGET_COLLECTION_NAME = 'VYBE_SUPERHEROES_w89yuli8p3l';
 const TARGET_COLLECTION_MINT = '2xXLJU6hbKwTjvqkDsfv8rwFqSB7hRSqzyAvXDmgJi1r';
 const MARKETPLACE_ACCOUNT_DISCRIMINATOR = [70, 222, 41, 62, 78, 3, 32, 174];
-const COLLECTION_ACCOUNT_DISCRIMINATOR = [243, 209, 195, 150, 192, 176, 151, 165];
+const COLLECTION_ACCOUNT_DISCRIMINATOR = [
+    243, 209, 195, 150, 192, 176, 151, 165,
+];
 let NftService = class NftService {
     connection;
     umi;
@@ -40,7 +42,8 @@ let NftService = class NftService {
     async fetchMetadataWithCache(uri) {
         const cacheKey = uri;
         const cachedData = this.metadataCache.get(cacheKey);
-        if (cachedData && (Date.now() - cachedData.timestamp) < this.METADATA_CACHE_DURATION) {
+        if (cachedData &&
+            Date.now() - cachedData.timestamp < this.METADATA_CACHE_DURATION) {
             return cachedData.data;
         }
         try {
@@ -53,7 +56,7 @@ let NftService = class NftService {
                 const metadata = await res.json();
                 this.metadataCache.set(cacheKey, {
                     data: metadata,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
                 });
                 return metadata;
             }
@@ -101,7 +104,8 @@ let NftService = class NftService {
     }
     async fetchCollections() {
         const now = Date.now();
-        if (this.collectionsCache && (now - this.collectionsCacheTime) < this.CACHE_DURATION) {
+        if (this.collectionsCache &&
+            now - this.collectionsCacheTime < this.CACHE_DURATION) {
             console.log('✅ Returning cached collections data');
             return this.collectionsCache;
         }
@@ -116,7 +120,8 @@ let NftService = class NftService {
                     if (data.length < 100)
                         continue;
                     const accountDiscriminator = Array.from(data.slice(0, 8));
-                    const isCollection = JSON.stringify(accountDiscriminator) === JSON.stringify(COLLECTION_ACCOUNT_DISCRIMINATOR);
+                    const isCollection = JSON.stringify(accountDiscriminator) ===
+                        JSON.stringify(COLLECTION_ACCOUNT_DISCRIMINATOR);
                     if (!isCollection) {
                         try {
                             let offset = 8;
@@ -128,13 +133,19 @@ let NftService = class NftService {
                                 continue;
                             const nameLen = data.readUInt32LE(offset);
                             offset += 4;
-                            if (nameLen === 0 || nameLen > 100 || data.length < offset + nameLen + 4)
+                            if (nameLen === 0 ||
+                                nameLen > 100 ||
+                                data.length < offset + nameLen + 4)
                                 continue;
-                            const name = data.slice(offset, offset + nameLen).toString('utf8');
+                            const name = data
+                                .slice(offset, offset + nameLen)
+                                .toString('utf8');
                             offset += nameLen;
                             const uriLen = data.readUInt32LE(offset);
                             offset += 4;
-                            if (uriLen === 0 || uriLen > 500 || data.length < offset + uriLen + 8 + 8 + 8 + 1)
+                            if (uriLen === 0 ||
+                                uriLen > 500 ||
+                                data.length < offset + uriLen + 8 + 8 + 8 + 1)
                                 continue;
                             const uri = data.slice(offset, offset + uriLen).toString('utf8');
                             offset += uriLen;
@@ -148,7 +159,15 @@ let NftService = class NftService {
                             const key = collection.toString();
                             if (!itemTypesMap[key])
                                 itemTypesMap[key] = [];
-                            itemTypesMap[key].push({ collection, name, uri, price, max_supply, current_supply, bump });
+                            itemTypesMap[key].push({
+                                collection,
+                                name,
+                                uri,
+                                price,
+                                max_supply,
+                                current_supply,
+                                bump,
+                            });
                             continue;
                         }
                         catch (_) {
@@ -172,7 +191,9 @@ let NftService = class NftService {
                     offset += 4;
                     if (data.length < offset + symbolLength || symbolLength > 20)
                         continue;
-                    const symbol = data.slice(offset, offset + symbolLength).toString('utf8');
+                    const symbol = data
+                        .slice(offset, offset + symbolLength)
+                        .toString('utf8');
                     offset += symbolLength;
                     if (data.length <= offset + 4)
                         continue;
@@ -191,8 +212,12 @@ let NftService = class NftService {
                     const is_active = data.readUInt8(offset) === 1;
                     offset += 1;
                     const bump = data.readUInt8(offset);
-                    if (name && name.length > 0 && symbol && symbol.length > 0 &&
-                        /^[\x20-\x7E]*$/.test(name) && /^[\x20-\x7E]*$/.test(symbol)) {
+                    if (name &&
+                        name.length > 0 &&
+                        symbol &&
+                        symbol.length > 0 &&
+                        /^[\x20-\x7E]*$/.test(name) &&
+                        /^[\x20-\x7E]*$/.test(symbol)) {
                         const collectionObj = {
                             admin,
                             name,
@@ -202,14 +227,14 @@ let NftService = class NftService {
                             mint,
                             is_active,
                             bump,
-                            pda: account.pubkey
+                            pda: account.pubkey,
                         };
                         collectionsData.push(collectionObj);
                         console.log('✅ Found collection:', {
                             name,
                             symbol,
                             royalty: royalty / 100 + '%',
-                            active: is_active
+                            active: is_active,
                         });
                     }
                 }
@@ -218,7 +243,7 @@ let NftService = class NftService {
                     continue;
                 }
             }
-            const targetCollections = collectionsData.filter(c => c.name === TARGET_COLLECTION_NAME);
+            const targetCollections = collectionsData.filter((c) => c.name === TARGET_COLLECTION_NAME);
             const filteredItemTypesMap = {};
             for (const collection of targetCollections) {
                 const collectionKey = collection.pda?.toString() || '';
@@ -229,7 +254,10 @@ let NftService = class NftService {
             console.log('Total collections found:', collectionsData.length);
             console.log('Target collections after filter:', targetCollections.length);
             console.log('Total item types for target collection:', Object.values(filteredItemTypesMap).flat().length);
-            const result = { collections: targetCollections, itemTypesByCollection: filteredItemTypesMap };
+            const result = {
+                collections: targetCollections,
+                itemTypesByCollection: filteredItemTypesMap,
+            };
             this.collectionsCache = result;
             this.collectionsCacheTime = Date.now();
             return result;
@@ -242,7 +270,8 @@ let NftService = class NftService {
     async fetchUserNFTs(walletAddress) {
         const cacheKey = walletAddress;
         const cachedData = this.userNFTsCache.get(cacheKey);
-        if (cachedData && (Date.now() - cachedData.timestamp) < this.USER_NFTS_CACHE_DURATION) {
+        if (cachedData &&
+            Date.now() - cachedData.timestamp < this.USER_NFTS_CACHE_DURATION) {
             console.log('✅ Returning cached user NFTs for:', walletAddress);
             return cachedData.data;
         }
@@ -254,17 +283,17 @@ let NftService = class NftService {
                 grouping: ['collection', TARGET_COLLECTION_MINT],
                 options: {
                     showCollectionMetadata: true,
-                    showInscription: true
-                }
+                    showInscription: true,
+                },
             });
             console.log(`📦 DAS searchAssets found ${result.items.length} NFTs from target collection`);
-            const transformedNFTs = result.items.map(asset => this.transformDasAsset(asset));
+            const transformedNFTs = result.items.map((asset) => this.transformDasAsset(asset));
             const duration = Date.now() - startTime;
             console.log(`✅ searchAssets completed in ${duration}ms, found ${transformedNFTs.length} NFTs`);
             await this.loadMetadataFromUrisSync(transformedNFTs);
             this.userNFTsCache.set(cacheKey, {
                 data: transformedNFTs,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             });
             const totalDuration = Date.now() - startTime;
             console.log(`✅ Complete fetch with metadata completed in ${totalDuration}ms`);
@@ -280,14 +309,17 @@ let NftService = class NftService {
             mint: asset.id,
             metadata: asset.content?.metadata || null,
             name: asset.content?.metadata?.name || 'Unknown NFT',
-            image: asset.content?.files?.[0]?.uri || asset.content?.metadata?.image || '/placeholder.svg',
+            image: asset.content?.files?.[0]?.uri ||
+                asset.content?.metadata?.image ||
+                '/placeholder.svg',
             collectionName: TARGET_COLLECTION_NAME,
             symbol: asset.content?.metadata?.symbol || '',
             description: asset.content?.metadata?.description || '',
             attributes: asset.content?.metadata?.attributes || [],
             uri: asset.content?.json_uri || '',
             collection: {
-                address: asset.grouping?.find(g => g.group_key === 'collection')?.group_value || '',
+                address: asset.grouping?.find((g) => g.group_key === 'collection')
+                    ?.group_value || '',
                 verified: true,
             },
             creators: asset.creators?.map((creator) => ({
@@ -319,7 +351,8 @@ let NftService = class NftService {
                                 if (metadata.description && !nft.description) {
                                     nft.description = metadata.description;
                                 }
-                                if (metadata.attributes && (!nft.attributes || nft.attributes.length === 0)) {
+                                if (metadata.attributes &&
+                                    (!nft.attributes || nft.attributes.length === 0)) {
                                     nft.attributes = metadata.attributes;
                                 }
                                 nft.metadata = metadata;
@@ -332,7 +365,7 @@ let NftService = class NftService {
                 });
                 await Promise.all(metadataPromises);
                 if (i + BATCH_SIZE < nfts.length) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await new Promise((resolve) => setTimeout(resolve, 100));
                 }
             }
             console.log('✅ Sync metadata loading from URIs completed');
@@ -359,7 +392,8 @@ let NftService = class NftService {
                                     if (metadata.description && !nft.description) {
                                         nft.description = metadata.description;
                                     }
-                                    if (metadata.attributes && (!nft.attributes || nft.attributes.length === 0)) {
+                                    if (metadata.attributes &&
+                                        (!nft.attributes || nft.attributes.length === 0)) {
                                         nft.attributes = metadata.attributes;
                                     }
                                     nft.metadata = metadata;
@@ -372,7 +406,7 @@ let NftService = class NftService {
                     });
                     await Promise.all(metadataPromises);
                     if (i + BATCH_SIZE < nfts.length) {
-                        await new Promise(resolve => setTimeout(resolve, 200));
+                        await new Promise((resolve) => setTimeout(resolve, 200));
                     }
                 }
                 console.log('✅ Background metadata loading from URIs completed');
@@ -415,7 +449,7 @@ let NftService = class NftService {
         setTimeout(async () => {
             try {
                 const metadataPromises = nfts
-                    .filter(nft => nft._metadataPromise)
+                    .filter((nft) => nft._metadataPromise)
                     .map(async (nft) => {
                     try {
                         const metadata = await nft._metadataPromise;
@@ -484,7 +518,8 @@ let NftService = class NftService {
                 const collectionMintBuf = d.slice(off, off + 32);
                 const collectionMint = new web3_js_1.PublicKey(collectionMintBuf);
                 for (const c of collections) {
-                    if (c.mint.equals(collectionMint) && c.name === TARGET_COLLECTION_NAME) {
+                    if (c.mint.equals(collectionMint) &&
+                        c.name === TARGET_COLLECTION_NAME) {
                         belongsToOurCollection = true;
                         matchedCollectionName = c.name;
                         break;
@@ -500,7 +535,7 @@ let NftService = class NftService {
                 name: name.replace(/\0+$/, ''),
                 image: '/placeholder.svg',
                 collectionName: matchedCollectionName,
-                _metadataPromise: metadataPromise
+                _metadataPromise: metadataPromise,
             };
         }
         catch (e) {
@@ -563,7 +598,8 @@ let NftService = class NftService {
                 off += 32;
                 const collectionMint = new web3_js_1.PublicKey(collectionMintBuf);
                 for (const c of collections) {
-                    if (c.mint.equals(collectionMint) && c.name === TARGET_COLLECTION_NAME) {
+                    if (c.mint.equals(collectionMint) &&
+                        c.name === TARGET_COLLECTION_NAME) {
                         belongsToOurCollection = true;
                         matchedCollectionName = c.name;
                         break;
@@ -590,7 +626,8 @@ let NftService = class NftService {
         const targetCollection = collectionAddress || TARGET_COLLECTION_MINT;
         const cacheKey = `collection-nfts-${targetCollection}`;
         const cachedData = this.userNFTsCache.get(cacheKey);
-        if (cachedData && (Date.now() - cachedData.timestamp) < this.USER_NFTS_CACHE_DURATION) {
+        if (cachedData &&
+            Date.now() - cachedData.timestamp < this.USER_NFTS_CACHE_DURATION) {
             console.log('✅ Returning cached collection NFTs for:', targetCollection);
             return cachedData.data;
         }
@@ -604,14 +641,14 @@ let NftService = class NftService {
                 limit: 1000,
                 displayOptions: {
                     showCollectionMetadata: true,
-                    showInscription: true
-                }
+                    showInscription: true,
+                },
             });
             console.log(`📦 DAS API found ${result.items.length} NFTs in collection`);
-            const transformedNFTs = result.items.map(asset => this.transformDasAsset(asset));
+            const transformedNFTs = result.items.map((asset) => this.transformDasAsset(asset));
             this.userNFTsCache.set(cacheKey, {
                 data: transformedNFTs,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             });
             const duration = Date.now() - startTime;
             console.log(`✅ Collection NFTs fetch completed in ${duration}ms, found ${transformedNFTs.length} NFTs`);
@@ -626,14 +663,11 @@ let NftService = class NftService {
         }
     }
     async getMarketplaceData() {
-        const [marketplace, { collections, itemTypesByCollection }] = await Promise.all([
-            this.fetchMarketplace(),
-            this.fetchCollections()
-        ]);
+        const [marketplace, { collections, itemTypesByCollection }] = await Promise.all([this.fetchMarketplace(), this.fetchCollections()]);
         return {
             marketplace,
             collections,
-            itemTypesByCollection
+            itemTypesByCollection,
         };
     }
     getStakePoolPDA() {

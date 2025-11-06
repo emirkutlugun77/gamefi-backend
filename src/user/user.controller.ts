@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { User } from '../entities/user.entity';
@@ -23,7 +31,9 @@ export class UserController {
   @ApiQuery({ name: 'publicKey', required: true })
   @ApiQuery({ name: 'telegramId', required: false })
   @ApiResponse({ status: 200, description: 'User found' })
-  async getByPublicKey(@Query('publicKey') publicKey: GetByPublicKeyDto['publicKey']): Promise<{ success: boolean; data: User | null }> {
+  async getByPublicKey(
+    @Query('publicKey') publicKey: GetByPublicKeyDto['publicKey'],
+  ): Promise<{ success: boolean; data: User | null }> {
     if (!publicKey) {
       return { success: false, data: null } as any;
     }
@@ -36,7 +46,9 @@ export class UserController {
   @ApiQuery({ name: 'telegramId', required: true })
   @ApiResponse({ status: 200, description: 'User found' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getByTelegramId(@Query('telegramId') telegramId: GetByTelegramIdDto['telegramId']): Promise<{ success: boolean; data: User | null }> {
+  async getByTelegramId(
+    @Query('telegramId') telegramId: GetByTelegramIdDto['telegramId'],
+  ): Promise<{ success: boolean; data: User | null }> {
     if (!telegramId) {
       return { success: false, data: null } as any;
     }
@@ -51,17 +63,22 @@ export class UserController {
 
   @Post('register')
   @ApiOperation({ summary: 'Register user by public key' })
-  async register(@Body() body: RegisterDto): Promise<{ success: boolean; data: User }> {
-    const user = await this.userService.register(body.publicKey, body.telegramId);
+  async register(
+    @Body() body: RegisterDto,
+  ): Promise<{ success: boolean; data: User }> {
+    const user = await this.userService.register(
+      body.publicKey,
+      body.telegramId,
+    );
     return { success: true, data: user };
   }
 
   @Post('choose-side')
   @ApiOperation({ summary: 'Choose side for user' })
-  async chooseSide(@Body() body: ChooseSideDto): Promise<{ success: boolean; data: User }> {
+  async chooseSide(
+    @Body() body: ChooseSideDto,
+  ): Promise<{ success: boolean; data: User }> {
     const user = await this.userService.chooseSide(body.publicKey, body.side);
     return { success: true, data: user };
   }
 }
-
-

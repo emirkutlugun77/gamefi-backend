@@ -1,5 +1,23 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe, HttpException, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiParam,
+} from '@nestjs/swagger';
 import { AchievementsService } from './achievements.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -38,13 +56,19 @@ export class AchievementsController {
 
   @Get('tasks')
   @ApiOperation({ summary: 'Get all tasks' })
-  @ApiQuery({ name: 'active', required: false, type: Boolean, description: 'Filter only active tasks' })
+  @ApiQuery({
+    name: 'active',
+    required: false,
+    type: Boolean,
+    description: 'Filter only active tasks',
+  })
   @ApiResponse({ status: 200, description: 'Tasks retrieved successfully' })
   async getTasks(@Query('active') active?: string) {
     try {
-      const tasks = active === 'true'
-        ? await this.achievementsService.getActiveTasks()
-        : await this.achievementsService.getAllTasks();
+      const tasks =
+        active === 'true'
+          ? await this.achievementsService.getActiveTasks()
+          : await this.achievementsService.getAllTasks();
 
       return {
         success: true,
@@ -139,12 +163,20 @@ export class AchievementsController {
 
   @Get('user-tasks')
   @ApiOperation({ summary: 'Get user tasks with progress' })
-  @ApiQuery({ name: 'publicKey', required: true, description: 'User public key' })
-  @ApiResponse({ status: 200, description: 'User tasks retrieved successfully' })
+  @ApiQuery({
+    name: 'publicKey',
+    required: true,
+    description: 'User public key',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User tasks retrieved successfully',
+  })
   @ApiResponse({ status: 404, description: 'User not found' })
   async getUserTasks(@Query('publicKey') publicKey: string) {
     try {
-      const tasks = await this.achievementsService.getUserTasksWithDetails(publicKey);
+      const tasks =
+        await this.achievementsService.getUserTasksWithDetails(publicKey);
       return {
         success: true,
         data: tasks,
@@ -171,9 +203,10 @@ export class AchievementsController {
       return {
         success: true,
         data: userTask,
-        message: userTask.status === 'COMPLETED'
-          ? 'Task completed and points awarded!'
-          : 'Task submitted for verification',
+        message:
+          userTask.status === 'COMPLETED'
+            ? 'Task completed and points awarded!'
+            : 'Task submitted for verification',
       };
     } catch (error) {
       throw new HttpException(
@@ -197,9 +230,10 @@ export class AchievementsController {
       return {
         success: true,
         data: userTask,
-        message: userTask.status === 'COMPLETED'
-          ? 'Task approved and points awarded'
-          : 'Task rejected',
+        message:
+          userTask.status === 'COMPLETED'
+            ? 'Task approved and points awarded'
+            : 'Task rejected',
       };
     } catch (error) {
       throw new HttpException(
@@ -214,10 +248,14 @@ export class AchievementsController {
 
   @Get('pending-verifications')
   @ApiOperation({ summary: 'Get pending task verifications (Admin)' })
-  @ApiResponse({ status: 200, description: 'Pending verifications retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Pending verifications retrieved successfully',
+  })
   async getPendingVerifications() {
     try {
-      const userTasks = await this.achievementsService.getPendingVerifications();
+      const userTasks =
+        await this.achievementsService.getPendingVerifications();
       return {
         success: true,
         data: userTasks,
@@ -236,8 +274,15 @@ export class AchievementsController {
 
   @Get('stats')
   @ApiOperation({ summary: 'Get user achievement statistics' })
-  @ApiQuery({ name: 'publicKey', required: true, description: 'User public key' })
-  @ApiResponse({ status: 200, description: 'User stats retrieved successfully' })
+  @ApiQuery({
+    name: 'publicKey',
+    required: true,
+    description: 'User public key',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User stats retrieved successfully',
+  })
   @ApiResponse({ status: 404, description: 'User not found' })
   async getUserStats(@Query('publicKey') publicKey: string) {
     try {

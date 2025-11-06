@@ -32,14 +32,14 @@ let AppService = class AppService {
             const presaleInfo = await this.presaleService.getPresaleInfo();
             return {
                 success: true,
-                data: presaleInfo
+                data: presaleInfo,
             };
         }
         catch (error) {
             return {
                 success: false,
                 message: 'Failed to fetch presale info',
-                error: error.message
+                error: error.message,
             };
         }
     }
@@ -48,14 +48,14 @@ let AppService = class AppService {
             const result = await this.presaleService.contributePresale(wallet, amount);
             return {
                 success: true,
-                data: result
+                data: result,
             };
         }
         catch (error) {
             return {
                 success: false,
                 message: 'Failed to contribute to presale',
-                error: error.message
+                error: error.message,
             };
         }
     }
@@ -64,14 +64,14 @@ let AppService = class AppService {
             const result = await this.presaleService.endPresale(adminWallet);
             return {
                 success: true,
-                data: result
+                data: result,
             };
         }
         catch (error) {
             return {
                 success: false,
                 message: 'Failed to end presale',
-                error: error.message
+                error: error.message,
             };
         }
     }
@@ -80,14 +80,14 @@ let AppService = class AppService {
             const result = await this.presaleService.restartPresale(adminWallet);
             return {
                 success: true,
-                data: result
+                data: result,
             };
         }
         catch (error) {
             return {
                 success: false,
                 message: 'Failed to restart presale',
-                error: error.message
+                error: error.message,
             };
         }
     }
@@ -96,14 +96,14 @@ let AppService = class AppService {
             const result = await this.userService.chooseSide(publicKey, side);
             return {
                 success: true,
-                data: result
+                data: result,
             };
         }
         catch (error) {
             return {
                 success: false,
                 message: 'Failed to choose side',
-                error: error.message
+                error: error.message,
             };
         }
     }

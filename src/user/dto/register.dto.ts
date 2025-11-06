@@ -11,5 +11,3 @@ export class RegisterDto {
   @IsNotEmpty()
   telegramId!: string;
 }
-
-

@@ -1,10 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsNumber, Min, IsOptional, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  Min,
+  IsOptional,
+  IsArray,
+} from 'class-validator';
 
 export class CreateTypeDto {
   @ApiProperty({
     description: 'Collection name to add this type to',
-    example: 'VYBE_BUILDINGS_COLLECTION'
+    example: 'VYBE_BUILDINGS_COLLECTION',
   })
   @IsString()
   @IsNotEmpty()
@@ -12,7 +19,7 @@ export class CreateTypeDto {
 
   @ApiProperty({
     description: 'NFT type name',
-    example: 'Wooden House'
+    example: 'Wooden House',
   })
   @IsString()
   @IsNotEmpty()
@@ -20,7 +27,7 @@ export class CreateTypeDto {
 
   @ApiProperty({
     description: 'Price in SOL',
-    example: 0.5
+    example: 0.5,
   })
   @IsNumber()
   @Min(0)
@@ -28,7 +35,7 @@ export class CreateTypeDto {
 
   @ApiProperty({
     description: 'Maximum supply',
-    example: 1000
+    example: 1000,
   })
   @IsNumber()
   @Min(1)
@@ -37,7 +44,7 @@ export class CreateTypeDto {
   @ApiProperty({
     description: 'Staking reward in SOL per month (optional)',
     example: 0.01,
-    required: false
+    required: false,
   })
   @IsNumber()
   @IsOptional()
@@ -46,7 +53,7 @@ export class CreateTypeDto {
 
   @ApiProperty({
     description: 'NFT description for metadata',
-    example: 'A basic wooden house for your village'
+    example: 'A basic wooden house for your village',
   })
   @IsString()
   @IsNotEmpty()
@@ -54,7 +61,7 @@ export class CreateTypeDto {
 
   @ApiProperty({
     description: 'Main image URL or base64 data',
-    example: 'https://example.com/house.png'
+    example: 'https://example.com/house.png',
   })
   @IsString()
   @IsNotEmpty()
@@ -62,9 +69,12 @@ export class CreateTypeDto {
 
   @ApiProperty({
     description: 'Additional images (optional)',
-    example: ['https://example.com/house2.png', 'https://example.com/house3.png'],
+    example: [
+      'https://example.com/house2.png',
+      'https://example.com/house3.png',
+    ],
     required: false,
-    type: [String]
+    type: [String],
   })
   @IsArray()
   @IsOptional()
@@ -75,7 +85,7 @@ export class CreateTypeDto {
     description: 'NFT attributes (optional)',
     example: [
       { trait_type: 'Rarity', value: 'Common' },
-      { trait_type: 'Type', value: 'Building' }
+      { trait_type: 'Type', value: 'Building' },
     ],
     required: false,
     type: 'array',
@@ -83,9 +93,9 @@ export class CreateTypeDto {
       type: 'object',
       properties: {
         trait_type: { type: 'string' },
-        value: { type: 'string' }
-      }
-    }
+        value: { type: 'string' },
+      },
+    },
   })
   @IsOptional()
   attributes?: Array<{ trait_type: string; value: string }>;

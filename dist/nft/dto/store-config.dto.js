@@ -24,7 +24,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Tab name (building, troops, or others)',
         example: 'building',
-        enum: ['building', 'troops', 'others']
+        enum: ['building', 'troops', 'others'],
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -34,7 +34,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Collection name to fetch from',
-        example: 'VYBE_BUILDINGS_COLLECTION'
+        example: 'VYBE_BUILDINGS_COLLECTION',
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -43,7 +43,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Display name for the tab',
-        example: 'Buildings'
+        example: 'Buildings',
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -53,7 +53,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Collection mint address (optional)',
         example: 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN',
-        required: false
+        required: false,
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
@@ -63,7 +63,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Sort order for tabs',
         example: 1,
-        required: false
+        required: false,
     }),
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
@@ -81,7 +81,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Collection name to fetch from',
         example: 'VYBE_BUILDINGS_COLLECTION',
-        required: false
+        required: false,
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
@@ -91,7 +91,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Display name for the tab',
         example: 'Buildings',
-        required: false
+        required: false,
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
@@ -101,7 +101,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Collection mint address',
         example: 'DoJfRjtn4SXnAafzvSUGEjaokSLBLnzmNWzzRzayF4cN',
-        required: false
+        required: false,
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
@@ -111,7 +111,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Whether the tab is active',
         example: true,
-        required: false
+        required: false,
     }),
     (0, class_validator_1.IsBoolean)(),
     (0, class_validator_1.IsOptional)(),
@@ -121,7 +121,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Sort order for tabs',
         example: 1,
-        required: false
+        required: false,
     }),
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),

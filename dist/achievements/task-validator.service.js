@@ -33,10 +33,12 @@ let TaskValidatorService = class TaskValidatorService {
                 break;
             case task_entity_1.TaskType.TWITTER_TWEET:
             case task_entity_1.TaskType.TWITTER_QUOTE:
-                if (config?.required_hashtags && !Array.isArray(config.required_hashtags)) {
+                if (config?.required_hashtags &&
+                    !Array.isArray(config.required_hashtags)) {
                     errors.push('Required hashtags must be an array');
                 }
-                if (config?.required_mentions && !Array.isArray(config.required_mentions)) {
+                if (config?.required_mentions &&
+                    !Array.isArray(config.required_mentions)) {
                     errors.push('Required mentions must be an array');
                 }
                 break;
@@ -88,7 +90,8 @@ let TaskValidatorService = class TaskValidatorService {
                 if (!config?.video_url && !config?.video_id) {
                     errors.push('YouTube video URL or ID is required');
                 }
-                if (config?.min_watch_time_seconds && config.min_watch_time_seconds < 1) {
+                if (config?.min_watch_time_seconds &&
+                    config.min_watch_time_seconds < 1) {
                     errors.push('Minimum watch time must be at least 1 second');
                 }
                 break;
@@ -139,7 +142,8 @@ let TaskValidatorService = class TaskValidatorService {
                         if (!Array.isArray(q.answers) || q.answers.length < 2) {
                             errors.push(`Question ${index + 1} must have at least 2 answers`);
                         }
-                        if (q.correct_answer_index === undefined || q.correct_answer_index < 0) {
+                        if (q.correct_answer_index === undefined ||
+                            q.correct_answer_index < 0) {
                             errors.push(`Question ${index + 1} must have a valid correct answer index`);
                         }
                     });
@@ -308,7 +312,8 @@ let TaskValidatorService = class TaskValidatorService {
     isInstagramUrl(url) {
         try {
             const urlObj = new URL(url);
-            return (urlObj.hostname === 'instagram.com' || urlObj.hostname === 'www.instagram.com');
+            return (urlObj.hostname === 'instagram.com' ||
+                urlObj.hostname === 'www.instagram.com');
         }
         catch {
             return false;

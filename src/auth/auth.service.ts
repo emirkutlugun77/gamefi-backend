@@ -2,7 +2,10 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Keypair } from '@solana/web3.js';
 import * as crypto from 'crypto';
-import bs58 from 'bs58';
+import * as bs58Module from 'bs58';
+
+// Get the actual bs58 functions from the module
+const bs58 = (bs58Module as any).default || bs58Module;
 
 @Injectable()
 export class AuthService {
@@ -43,15 +46,18 @@ export class AuthService {
   /**
    * Validate base58 private key and return public key
    */
-  validatePrivateKey(privateKeyBase58: string): { publicKey: string; isValid: boolean } {
+  validatePrivateKey(privateKeyBase58: string): {
+    publicKey: string;
+    isValid: boolean;
+  } {
     try {
       console.log('Validating private key...');
       console.log('Key length:', privateKeyBase58?.length);
       console.log('Key:', privateKeyBase58);
-      
+
       const privateKeyBytes = bs58.decode(privateKeyBase58);
       console.log('Decoded bytes length:', privateKeyBytes.length);
-      
+
       const keypair = Keypair.fromSecretKey(privateKeyBytes);
       console.log('✅ Private key validated successfully');
       console.log('Public key:', keypair.publicKey.toString());
@@ -72,7 +78,9 @@ export class AuthService {
   /**
    * Login with private key and return JWT token
    */
-  async login(privateKeyBase58: string): Promise<{ accessToken: string; publicKey: string }> {
+  async login(
+    privateKeyBase58: string,
+  ): Promise<{ accessToken: string; publicKey: string }> {
     const validation = this.validatePrivateKey(privateKeyBase58);
 
     if (!validation.isValid) {

@@ -10,5 +10,3 @@ import { NftModule } from '../nft/nft.module';
   exports: [StakingService],
 })
 export class StakingModule {}
-
-

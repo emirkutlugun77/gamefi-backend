@@ -27,7 +27,7 @@ exports.CreateTypeDto = CreateTypeDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Collection name to add this type to',
-        example: 'VYBE_BUILDINGS_COLLECTION'
+        example: 'VYBE_BUILDINGS_COLLECTION',
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -36,7 +36,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'NFT type name',
-        example: 'Wooden House'
+        example: 'Wooden House',
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -45,7 +45,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Price in SOL',
-        example: 0.5
+        example: 0.5,
     }),
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.Min)(0),
@@ -54,7 +54,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Maximum supply',
-        example: 1000
+        example: 1000,
     }),
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.Min)(1),
@@ -64,7 +64,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Staking reward in SOL per month (optional)',
         example: 0.01,
-        required: false
+        required: false,
     }),
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
@@ -74,7 +74,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'NFT description for metadata',
-        example: 'A basic wooden house for your village'
+        example: 'A basic wooden house for your village',
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -83,7 +83,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Main image URL or base64 data',
-        example: 'https://example.com/house.png'
+        example: 'https://example.com/house.png',
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -92,9 +92,12 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Additional images (optional)',
-        example: ['https://example.com/house2.png', 'https://example.com/house3.png'],
+        example: [
+            'https://example.com/house2.png',
+            'https://example.com/house3.png',
+        ],
         required: false,
-        type: [String]
+        type: [String],
     }),
     (0, class_validator_1.IsArray)(),
     (0, class_validator_1.IsOptional)(),
@@ -106,7 +109,7 @@ __decorate([
         description: 'NFT attributes (optional)',
         example: [
             { trait_type: 'Rarity', value: 'Common' },
-            { trait_type: 'Type', value: 'Building' }
+            { trait_type: 'Type', value: 'Building' },
         ],
         required: false,
         type: 'array',
@@ -114,9 +117,9 @@ __decorate([
             type: 'object',
             properties: {
                 trait_type: { type: 'string' },
-                value: { type: 'string' }
-            }
-        }
+                value: { type: 'string' },
+            },
+        },
     }),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Array)

@@ -6,7 +6,6 @@ export enum PlayerSide {
   NOT_CHOSEN = 'NOT_CHOSEN',
 }
 
-
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
@@ -26,7 +25,3 @@ export class User {
   @Column({ type: 'int', default: 0 })
   airdrop_point: number;
 }
-
-
-
-

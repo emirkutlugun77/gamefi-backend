@@ -35,7 +35,9 @@ __decorate([
     __metadata("design:type", String)
 ], UpdateTaskDto.prototype, "title", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ example: 'Tweet with #VYBE and #Solana hashtags to earn points' }),
+    (0, swagger_1.ApiPropertyOptional)({
+        example: 'Tweet with #VYBE and #Solana hashtags to earn points',
+    }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
@@ -47,7 +49,10 @@ __decorate([
     __metadata("design:type", String)
 ], UpdateTaskDto.prototype, "type", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ example: 50, description: 'Points awarded for completing this task' }),
+    (0, swagger_1.ApiPropertyOptional)({
+        example: 50,
+        description: 'Points awarded for completing this task',
+    }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsInt)(),
     (0, class_validator_1.Min)(0),
@@ -56,7 +61,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         example: { hashtags: ['#VYBE', '#Solana'], minLength: 50 },
-        description: 'Dynamic configuration based on task type'
+        description: 'Dynamic configuration based on task type',
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsObject)(),
@@ -65,7 +70,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         example: { requireManualApproval: false, autoVerify: true },
-        description: 'Verification settings'
+        description: 'Verification settings',
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsObject)(),

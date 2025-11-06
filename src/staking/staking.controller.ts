@@ -1,5 +1,11 @@
 import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { StakingService } from './staking.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -22,9 +28,10 @@ export class StakingController {
   }
 
   @Post('prepare-stake')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Prepare stake NFT transaction',
-    description: 'Returns a serialized transaction for the user to sign with their wallet'
+    description:
+      'Returns a serialized transaction for the user to sign with their wallet',
   })
   @ApiBody({
     schema: {
@@ -50,9 +57,10 @@ export class StakingController {
   }
 
   @Post('prepare-place')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Prepare place NFT transaction',
-    description: 'Returns a serialized transaction for the user to sign with their wallet. Places NFT in village to receive instant VYBE reward.'
+    description:
+      'Returns a serialized transaction for the user to sign with their wallet. Places NFT in village to receive instant VYBE reward.',
   })
   @ApiBody({
     schema: {
@@ -84,13 +92,19 @@ export class StakingController {
     @Body('typeName') typeName: string,
     @Body('nftTypePda') nftTypePda: string,
   ) {
-    return this.stakingService.preparePlaceNFT(userWallet, nftMintAddress, typeName, nftTypePda);
+    return this.stakingService.preparePlaceNFT(
+      userWallet,
+      nftMintAddress,
+      typeName,
+      nftTypePda,
+    );
   }
 
   @Post('prepare-unplace')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Prepare unplace NFT transaction',
-    description: 'Returns a serialized transaction for the user to sign with their wallet'
+    description:
+      'Returns a serialized transaction for the user to sign with their wallet',
   })
   @ApiBody({
     schema: {
@@ -116,9 +130,10 @@ export class StakingController {
   }
 
   @Post('prepare-unstake')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Prepare unstake NFT transaction',
-    description: 'Returns a serialized transaction for the user to sign with their wallet'
+    description:
+      'Returns a serialized transaction for the user to sign with their wallet',
   })
   @ApiBody({
     schema: {
@@ -146,9 +161,10 @@ export class StakingController {
   @Post('initialize-pool')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Admin: Initialize staking pool',
-    description: 'One-time initialization of the staking pool. Creates the pool PDA, derives token vault ATA, and sets reward rate.'
+    description:
+      'One-time initialization of the staking pool. Creates the pool PDA, derives token vault ATA, and sets reward rate.',
   })
   @ApiBody({
     schema: {
@@ -160,7 +176,8 @@ export class StakingController {
         },
         rewardRate: {
           type: 'number',
-          description: 'Reward rate in tokens per month (in smallest unit). Example: 1000000000 for 1 VYBE/month',
+          description:
+            'Reward rate in tokens per month (in smallest unit). Example: 1000000000 for 1 VYBE/month',
         },
       },
       required: ['adminPrivateKey', 'rewardRate'],
@@ -170,7 +187,10 @@ export class StakingController {
     @Body('adminPrivateKey') adminPrivateKey: string,
     @Body('rewardRate') rewardRate: number,
   ) {
-    return this.stakingService.initializeStakingPool(adminPrivateKey, rewardRate);
+    return this.stakingService.initializeStakingPool(
+      adminPrivateKey,
+      rewardRate,
+    );
   }
 
   @Post('fund-pool-sol')
@@ -251,4 +271,3 @@ export class StakingController {
     return this.stakingService.distributeStakingRewards(adminPrivateKey);
   }
 }
-

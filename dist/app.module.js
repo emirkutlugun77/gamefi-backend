@@ -31,10 +31,19 @@ exports.AppModule = AppModule = __decorate([
         imports: [
             typeorm_1.TypeOrmModule.forRoot({
                 type: 'postgres',
-                url: process.env.DATABASE_URL || 'postgresql://postgres:ZinjEqdWdceEXeFYFsFUeMgtSfyrSKZA@hopper.proxy.rlwy.net:31815/railway',
+                url: process.env.DATABASE_URL ||
+                    'postgresql://postgres:ZinjEqdWdceEXeFYFsFUeMgtSfyrSKZA@hopper.proxy.rlwy.net:31815/railway',
                 autoLoadEntities: true,
                 synchronize: true,
-                entities: [nft_collection_entity_1.NftCollection, nft_type_entity_1.NftType, user_nft_entity_1.UserNft, user_entity_1.User, task_entity_1.Task, user_task_entity_1.UserTask, store_config_entity_1.StoreConfig],
+                entities: [
+                    nft_collection_entity_1.NftCollection,
+                    nft_type_entity_1.NftType,
+                    user_nft_entity_1.UserNft,
+                    user_entity_1.User,
+                    task_entity_1.Task,
+                    user_task_entity_1.UserTask,
+                    store_config_entity_1.StoreConfig,
+                ],
             }),
             auth_module_1.AuthModule,
             nft_module_1.NftModule,

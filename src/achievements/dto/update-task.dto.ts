@@ -1,5 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEnum, IsInt, IsBoolean, IsOptional, IsObject, IsDateString, Min } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsInt,
+  IsBoolean,
+  IsOptional,
+  IsObject,
+  IsDateString,
+  Min,
+} from 'class-validator';
 import { TaskType, TaskStatus } from '../../entities/task.entity';
 
 export class UpdateTaskDto {
@@ -8,7 +17,9 @@ export class UpdateTaskDto {
   @IsString()
   title?: string;
 
-  @ApiPropertyOptional({ example: 'Tweet with #VYBE and #Solana hashtags to earn points' })
+  @ApiPropertyOptional({
+    example: 'Tweet with #VYBE and #Solana hashtags to earn points',
+  })
   @IsOptional()
   @IsString()
   description?: string;
@@ -18,7 +29,10 @@ export class UpdateTaskDto {
   @IsEnum(TaskType)
   type?: TaskType;
 
-  @ApiPropertyOptional({ example: 50, description: 'Points awarded for completing this task' })
+  @ApiPropertyOptional({
+    example: 50,
+    description: 'Points awarded for completing this task',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
@@ -26,7 +40,7 @@ export class UpdateTaskDto {
 
   @ApiPropertyOptional({
     example: { hashtags: ['#VYBE', '#Solana'], minLength: 50 },
-    description: 'Dynamic configuration based on task type'
+    description: 'Dynamic configuration based on task type',
   })
   @IsOptional()
   @IsObject()
@@ -34,7 +48,7 @@ export class UpdateTaskDto {
 
   @ApiPropertyOptional({
     example: { requireManualApproval: false, autoVerify: true },
-    description: 'Verification settings'
+    description: 'Verification settings',
   })
   @IsOptional()
   @IsObject()

@@ -42,7 +42,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to initialize marketplace',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -58,7 +58,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to get marketplace status',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -74,7 +74,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to create collection',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -90,7 +90,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to create NFT type',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -99,7 +99,7 @@ let NftAdminController = class NftAdminController {
             const { collections } = await this.nftService.fetchCollections();
             return {
                 success: true,
-                data: collections
+                data: collections,
             };
         }
         catch (error) {
@@ -107,7 +107,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to fetch collections from blockchain',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -116,7 +116,7 @@ let NftAdminController = class NftAdminController {
             await this.nftAdminService.deleteCollectionFromDatabase(name);
             return {
                 success: true,
-                message: 'Collection removed from database (still exists on blockchain)'
+                message: 'Collection removed from database (still exists on blockchain)',
             };
         }
         catch (error) {
@@ -127,7 +127,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to delete collection',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -142,7 +142,7 @@ let NftAdminController = class NftAdminController {
             }
             return {
                 success: true,
-                data: types
+                data: types,
             };
         }
         catch (error) {
@@ -153,7 +153,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to fetch NFT types',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -162,7 +162,7 @@ let NftAdminController = class NftAdminController {
             await this.nftAdminService.deleteTypeFromDatabase(id);
             return {
                 success: true,
-                message: 'NFT type removed from database (still exists on blockchain)'
+                message: 'NFT type removed from database (still exists on blockchain)',
             };
         }
         catch (error) {
@@ -173,7 +173,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to delete NFT type',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -183,7 +183,7 @@ let NftAdminController = class NftAdminController {
             return {
                 success: true,
                 data: config,
-                message: 'Store configuration set successfully'
+                message: 'Store configuration set successfully',
             };
         }
         catch (error) {
@@ -194,7 +194,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to set store configuration',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -204,7 +204,7 @@ let NftAdminController = class NftAdminController {
             return {
                 success: true,
                 data: config,
-                message: 'Store configuration updated successfully'
+                message: 'Store configuration updated successfully',
             };
         }
         catch (error) {
@@ -215,7 +215,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to update store configuration',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -224,7 +224,7 @@ let NftAdminController = class NftAdminController {
             const configs = await this.nftAdminService.getAllStoreConfigs();
             return {
                 success: true,
-                data: configs
+                data: configs,
             };
         }
         catch (error) {
@@ -232,7 +232,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to fetch store configurations',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -241,7 +241,7 @@ let NftAdminController = class NftAdminController {
             const config = await this.nftAdminService.getStoreConfig(tabName);
             return {
                 success: true,
-                data: config
+                data: config,
             };
         }
         catch (error) {
@@ -252,7 +252,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to fetch store configuration',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -261,7 +261,7 @@ let NftAdminController = class NftAdminController {
             await this.nftAdminService.deleteStoreConfig(tabName);
             return {
                 success: true,
-                message: 'Store configuration deleted successfully'
+                message: 'Store configuration deleted successfully',
             };
         }
         catch (error) {
@@ -272,7 +272,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to delete store configuration',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -282,7 +282,7 @@ let NftAdminController = class NftAdminController {
             return {
                 success: true,
                 data: result,
-                message: `Synced ${result.synced} collections (${result.created} created, ${result.updated} updated)`
+                message: `Synced ${result.synced} collections (${result.created} created, ${result.updated} updated)`,
             };
         }
         catch (error) {
@@ -293,7 +293,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to sync collections',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -303,7 +303,7 @@ let NftAdminController = class NftAdminController {
             return {
                 success: true,
                 data: result,
-                message: `Synced ${result.synced} types (${result.created} created, ${result.updated} updated, ${result.skipped} skipped)`
+                message: `Synced ${result.synced} types (${result.created} created, ${result.updated} updated, ${result.skipped} skipped)`,
             };
         }
         catch (error) {
@@ -314,7 +314,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to sync NFT types',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -329,9 +329,9 @@ let NftAdminController = class NftAdminController {
                 success: true,
                 data: {
                     collections: collectionsResult,
-                    types: typesResult
+                    types: typesResult,
                 },
-                message: `Full sync complete: ${collectionsResult.synced} collections, ${typesResult.synced} types`
+                message: `Full sync complete: ${collectionsResult.synced} collections, ${typesResult.synced} types`,
             };
         }
         catch (error) {
@@ -342,7 +342,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to sync all data',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -358,7 +358,7 @@ let NftAdminController = class NftAdminController {
             throw new common_1.HttpException({
                 success: false,
                 message: 'Failed to mint NFT',
-                error: error.message
+                error: error.message,
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -370,16 +370,20 @@ __decorate([
     (0, swagger_1.ApiBearerAuth)('JWT-auth'),
     (0, swagger_1.ApiOperation)({
         summary: 'Initialize marketplace on Solana',
-        description: 'Initializes the NFT marketplace smart contract. This must be done once before creating any collections. Requires JWT authentication.'
+        description: 'Initializes the NFT marketplace smart contract. This must be done once before creating any collections. Requires JWT authentication.',
     }),
     (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
             properties: {
-                feeBps: { type: 'number', example: 500, description: 'Marketplace fee in basis points (500 = 5%)' }
-            }
+                feeBps: {
+                    type: 'number',
+                    example: 500,
+                    description: 'Marketplace fee in basis points (500 = 5%)',
+                },
+            },
         },
-        required: false
+        required: false,
     }),
     (0, swagger_1.ApiResponse)({
         status: 201,
@@ -394,23 +398,26 @@ __decorate([
                         signature: { type: 'string', example: '5Kq...' },
                         marketplacePda: { type: 'string', example: '9Aqrcm...' },
                         feeBps: { type: 'number', example: 500 },
-                        explorerUrl: { type: 'string', example: 'https://explorer.solana.com/tx/...?cluster=devnet' }
-                    }
-                }
-            }
-        }
+                        explorerUrl: {
+                            type: 'string',
+                            example: 'https://explorer.solana.com/tx/...?cluster=devnet',
+                        },
+                    },
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 401,
-        description: 'Unauthorized - Invalid or missing JWT token'
+        description: 'Unauthorized - Invalid or missing JWT token',
     }),
     (0, swagger_1.ApiResponse)({
         status: 409,
-        description: 'Marketplace already initialized'
+        description: 'Marketplace already initialized',
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Body)()),
@@ -422,7 +429,7 @@ __decorate([
     (0, common_1.Get)('marketplace-status'),
     (0, swagger_1.ApiOperation)({
         summary: 'Check marketplace initialization status',
-        description: 'Check if the marketplace has been initialized on Solana'
+        description: 'Check if the marketplace has been initialized on Solana',
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
@@ -436,15 +443,18 @@ __decorate([
                     properties: {
                         isInitialized: { type: 'boolean', example: true },
                         marketplacePda: { type: 'string', example: '9Aqrcm...' },
-                        message: { type: 'string', example: 'Marketplace is initialized and ready!' }
-                    }
-                }
-            }
-        }
+                        message: {
+                            type: 'string',
+                            example: 'Marketplace is initialized and ready!',
+                        },
+                    },
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -458,7 +468,7 @@ __decorate([
     (0, swagger_1.ApiConsumes)('multipart/form-data'),
     (0, swagger_1.ApiOperation)({
         summary: 'Create NFT collection on Solana',
-        description: 'Uploads image + metadata to IPFS, creates collection on-chain and returns transaction signature. Requires JWT authentication. Note: Marketplace must be initialized first.'
+        description: 'Uploads image + metadata to IPFS, creates collection on-chain and returns transaction signature. Requires JWT authentication. Note: Marketplace must be initialized first.',
     }),
     (0, swagger_1.ApiBody)({
         schema: {
@@ -468,10 +478,17 @@ __decorate([
                 name: { type: 'string', example: 'VYBE_BUILDINGS_COLLECTION' },
                 symbol: { type: 'string', example: 'VYBEB' },
                 royalty: { type: 'number', example: 5 },
-                description: { type: 'string', example: 'Buildings collection for VYBE game' },
-                image: { type: 'string', format: 'binary', description: 'Collection image file' }
-            }
-        }
+                description: {
+                    type: 'string',
+                    example: 'Buildings collection for VYBE game',
+                },
+                image: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Collection image file',
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 201,
@@ -487,19 +504,22 @@ __decorate([
                         collectionPda: { type: 'string', example: '9Aqrcm...' },
                         collectionMint: { type: 'string', example: 'Cv7jep...' },
                         metadataUri: { type: 'string', example: 'ipfs://QmX...' },
-                        explorerUrl: { type: 'string', example: 'https://explorer.solana.com/tx/...?cluster=devnet' }
-                    }
-                }
-            }
-        }
+                        explorerUrl: {
+                            type: 'string',
+                            example: 'https://explorer.solana.com/tx/...?cluster=devnet',
+                        },
+                    },
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 401,
-        description: 'Unauthorized - Invalid or missing JWT token'
+        description: 'Unauthorized - Invalid or missing JWT token',
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Body)()),
@@ -514,29 +534,51 @@ __decorate([
     (0, swagger_1.ApiBearerAuth)('JWT-auth'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileFieldsInterceptor)([
         { name: 'mainImage', maxCount: 1 },
-        { name: 'additionalImages', maxCount: 10 }
+        { name: 'additionalImages', maxCount: 10 },
     ])),
     (0, swagger_1.ApiConsumes)('multipart/form-data'),
     (0, swagger_1.ApiOperation)({
         summary: 'Create NFT type on Solana',
-        description: 'Uploads images + metadata to IPFS, creates NFT type on-chain and returns transaction signature. Requires JWT authentication.'
+        description: 'Uploads images + metadata to IPFS, creates NFT type on-chain and returns transaction signature. Requires JWT authentication.',
     }),
     (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
             required: ['collectionName', 'name', 'price', 'maxSupply', 'description'],
             properties: {
-                collectionName: { type: 'string', example: 'VYBE_BUILDINGS_COLLECTION' },
+                collectionName: {
+                    type: 'string',
+                    example: 'VYBE_BUILDINGS_COLLECTION',
+                },
                 name: { type: 'string', example: 'Wooden House' },
                 price: { type: 'number', example: 0.01, description: 'Price in SOL' },
                 maxSupply: { type: 'number', example: 1000 },
-                stakingAmount: { type: 'number', example: 0.001, description: 'Staking amount in SOL (optional)' },
-                description: { type: 'string', example: 'A basic wooden house for your village' },
-                attributes: { type: 'string', example: '[{"trait_type":"Rarity","value":"Common"}]', description: 'JSON string of attributes (optional)' },
-                mainImage: { type: 'string', format: 'binary', description: 'Main NFT image file' },
-                additionalImages: { type: 'array', items: { type: 'string', format: 'binary' }, description: 'Additional image files (optional)' }
-            }
-        }
+                stakingAmount: {
+                    type: 'number',
+                    example: 0.001,
+                    description: 'Staking amount in SOL (optional)',
+                },
+                description: {
+                    type: 'string',
+                    example: 'A basic wooden house for your village',
+                },
+                attributes: {
+                    type: 'string',
+                    example: '[{"trait_type":"Rarity","value":"Common"}]',
+                    description: 'JSON string of attributes (optional)',
+                },
+                mainImage: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Main NFT image file',
+                },
+                additionalImages: {
+                    type: 'array',
+                    items: { type: 'string', format: 'binary' },
+                    description: 'Additional image files (optional)',
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 201,
@@ -557,27 +599,30 @@ __decorate([
                         additionalImageUris: { type: 'array', items: { type: 'string' } },
                         priceLamports: { type: 'number' },
                         stakingLamports: { type: 'number' },
-                        explorerUrl: { type: 'string', example: 'https://explorer.solana.com/tx/...?cluster=devnet' }
-                    }
-                }
-            }
-        }
+                        explorerUrl: {
+                            type: 'string',
+                            example: 'https://explorer.solana.com/tx/...?cluster=devnet',
+                        },
+                    },
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 401,
-        description: 'Unauthorized - Invalid or missing JWT token'
+        description: 'Unauthorized - Invalid or missing JWT token',
     }),
     (0, swagger_1.ApiResponse)({
         status: 400,
-        description: 'Bad request - Invalid input data'
+        description: 'Bad request - Invalid input data',
     }),
     (0, swagger_1.ApiResponse)({
         status: 404,
-        description: 'Collection not found'
+        description: 'Collection not found',
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Body)()),
@@ -590,7 +635,7 @@ __decorate([
     (0, common_1.Get)('collections'),
     (0, swagger_1.ApiOperation)({
         summary: 'Get all collections from blockchain',
-        description: 'Retrieves all NFT collections directly from the Solana blockchain (blockchain is source of truth)'
+        description: 'Retrieves all NFT collections directly from the Solana blockchain (blockchain is source of truth)',
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
@@ -601,14 +646,14 @@ __decorate([
                 success: { type: 'boolean', example: true },
                 data: {
                     type: 'array',
-                    items: { type: 'object' }
-                }
-            }
-        }
+                    items: { type: 'object' },
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -618,12 +663,12 @@ __decorate([
     (0, common_1.Delete)('collections/:name'),
     (0, swagger_1.ApiOperation)({
         summary: 'Delete collection from database sync',
-        description: 'Removes collection from database sync. NOTE: This does NOT delete from blockchain (blockchain is immutable). Only removes from local database.'
+        description: 'Removes collection from database sync. NOTE: This does NOT delete from blockchain (blockchain is immutable). Only removes from local database.',
     }),
     (0, swagger_1.ApiParam)({
         name: 'name',
         description: 'Collection name',
-        example: 'VYBE_BUILDINGS_COLLECTION'
+        example: 'VYBE_BUILDINGS_COLLECTION',
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
@@ -632,17 +677,20 @@ __decorate([
             type: 'object',
             properties: {
                 success: { type: 'boolean', example: true },
-                message: { type: 'string', example: 'Collection removed from database (still exists on blockchain)' }
-            }
-        }
+                message: {
+                    type: 'string',
+                    example: 'Collection removed from database (still exists on blockchain)',
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 404,
-        description: 'Collection not found in database'
+        description: 'Collection not found in database',
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __param(0, (0, common_1.Param)('name')),
     __metadata("design:type", Function),
@@ -653,13 +701,13 @@ __decorate([
     (0, common_1.Get)('types'),
     (0, swagger_1.ApiOperation)({
         summary: 'Get NFT types by collection',
-        description: 'Retrieves all NFT types for a specific collection, or all types if no collection specified'
+        description: 'Retrieves all NFT types for a specific collection, or all types if no collection specified',
     }),
     (0, swagger_1.ApiQuery)({
         name: 'collection',
         description: 'Collection name (optional - if not provided, returns all types)',
         example: 'VYBE_BUILDINGS_COLLECTION',
-        required: false
+        required: false,
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
@@ -670,18 +718,18 @@ __decorate([
                 success: { type: 'boolean', example: true },
                 data: {
                     type: 'array',
-                    items: { type: 'object' }
-                }
-            }
-        }
+                    items: { type: 'object' },
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 404,
-        description: 'Collection not found'
+        description: 'Collection not found',
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __param(0, (0, common_1.Query)('collection')),
     __metadata("design:type", Function),
@@ -692,12 +740,12 @@ __decorate([
     (0, common_1.Delete)('types/:id'),
     (0, swagger_1.ApiOperation)({
         summary: 'Delete NFT type from database sync',
-        description: 'Removes NFT type from database sync. NOTE: This does NOT delete from blockchain (blockchain is immutable). Only removes from local database.'
+        description: 'Removes NFT type from database sync. NOTE: This does NOT delete from blockchain (blockchain is immutable). Only removes from local database.',
     }),
     (0, swagger_1.ApiParam)({
         name: 'id',
         description: 'NFT type ID (PDA address)',
-        example: 'DiY16YeswLB1sJceP2HwsWJG5z7LiuDi5Sjcp94HGofV'
+        example: 'DiY16YeswLB1sJceP2HwsWJG5z7LiuDi5Sjcp94HGofV',
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
@@ -706,17 +754,20 @@ __decorate([
             type: 'object',
             properties: {
                 success: { type: 'boolean', example: true },
-                message: { type: 'string', example: 'NFT type removed from database (still exists on blockchain)' }
-            }
-        }
+                message: {
+                    type: 'string',
+                    example: 'NFT type removed from database (still exists on blockchain)',
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 404,
-        description: 'NFT type not found in database'
+        description: 'NFT type not found in database',
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -727,20 +778,20 @@ __decorate([
     (0, common_1.Post)('store-config'),
     (0, swagger_1.ApiOperation)({
         summary: 'Set store configuration',
-        description: 'Create or update store tab configuration (building, troops, others)'
+        description: 'Create or update store tab configuration (building, troops, others)',
     }),
     (0, swagger_1.ApiBody)({ type: store_config_dto_1.CreateStoreConfigDto }),
     (0, swagger_1.ApiResponse)({
         status: 201,
-        description: 'Store configuration set successfully'
+        description: 'Store configuration set successfully',
     }),
     (0, swagger_1.ApiResponse)({
         status: 404,
-        description: 'Collection not found'
+        description: 'Collection not found',
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -751,25 +802,25 @@ __decorate([
     (0, common_1.Put)('store-config/:tabName'),
     (0, swagger_1.ApiOperation)({
         summary: 'Update store configuration',
-        description: 'Update an existing store tab configuration'
+        description: 'Update an existing store tab configuration',
     }),
     (0, swagger_1.ApiParam)({
         name: 'tabName',
         description: 'Tab name (building, troops, or others)',
-        example: 'building'
+        example: 'building',
     }),
     (0, swagger_1.ApiBody)({ type: store_config_dto_1.UpdateStoreConfigDto }),
     (0, swagger_1.ApiResponse)({
         status: 200,
-        description: 'Store configuration updated successfully'
+        description: 'Store configuration updated successfully',
     }),
     (0, swagger_1.ApiResponse)({
         status: 404,
-        description: 'Store configuration not found'
+        description: 'Store configuration not found',
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __param(0, (0, common_1.Param)('tabName')),
     __param(1, (0, common_1.Body)()),
@@ -781,15 +832,15 @@ __decorate([
     (0, common_1.Get)('store-configs'),
     (0, swagger_1.ApiOperation)({
         summary: 'Get all store configurations',
-        description: 'Retrieves all store tab configurations'
+        description: 'Retrieves all store tab configurations',
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
-        description: 'Store configurations retrieved successfully'
+        description: 'Store configurations retrieved successfully',
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -799,24 +850,24 @@ __decorate([
     (0, common_1.Get)('store-config/:tabName'),
     (0, swagger_1.ApiOperation)({
         summary: 'Get store configuration by tab name',
-        description: 'Retrieves store configuration for a specific tab'
+        description: 'Retrieves store configuration for a specific tab',
     }),
     (0, swagger_1.ApiParam)({
         name: 'tabName',
         description: 'Tab name (building, troops, or others)',
-        example: 'building'
+        example: 'building',
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
-        description: 'Store configuration retrieved successfully'
+        description: 'Store configuration retrieved successfully',
     }),
     (0, swagger_1.ApiResponse)({
         status: 404,
-        description: 'Store configuration not found'
+        description: 'Store configuration not found',
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __param(0, (0, common_1.Param)('tabName')),
     __metadata("design:type", Function),
@@ -827,24 +878,24 @@ __decorate([
     (0, common_1.Delete)('store-config/:tabName'),
     (0, swagger_1.ApiOperation)({
         summary: 'Delete store configuration',
-        description: 'Deletes store configuration for a specific tab'
+        description: 'Deletes store configuration for a specific tab',
     }),
     (0, swagger_1.ApiParam)({
         name: 'tabName',
         description: 'Tab name (building, troops, or others)',
-        example: 'building'
+        example: 'building',
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
-        description: 'Store configuration deleted successfully'
+        description: 'Store configuration deleted successfully',
     }),
     (0, swagger_1.ApiResponse)({
         status: 404,
-        description: 'Store configuration not found'
+        description: 'Store configuration not found',
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __param(0, (0, common_1.Param)('tabName')),
     __metadata("design:type", Function),
@@ -855,7 +906,7 @@ __decorate([
     (0, common_1.Post)('sync/collections'),
     (0, swagger_1.ApiOperation)({
         summary: 'Sync collections from Solana blockchain',
-        description: 'Fetches all collections from the Solana program and syncs them to the database'
+        description: 'Fetches all collections from the Solana program and syncs them to the database',
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
@@ -870,15 +921,15 @@ __decorate([
                         synced: { type: 'number', example: 3 },
                         created: { type: 'number', example: 1 },
                         updated: { type: 'number', example: 2 },
-                        collections: { type: 'array', items: { type: 'object' } }
-                    }
-                }
-            }
-        }
+                        collections: { type: 'array', items: { type: 'object' } },
+                    },
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -888,7 +939,7 @@ __decorate([
     (0, common_1.Post)('sync/types'),
     (0, swagger_1.ApiOperation)({
         summary: 'Sync NFT types from Solana blockchain',
-        description: 'Fetches all NFT types from the Solana program and syncs them to the database'
+        description: 'Fetches all NFT types from the Solana program and syncs them to the database',
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
@@ -904,15 +955,15 @@ __decorate([
                         created: { type: 'number', example: 2 },
                         updated: { type: 'number', example: 3 },
                         skipped: { type: 'number', example: 0 },
-                        types: { type: 'array', items: { type: 'object' } }
-                    }
-                }
-            }
-        }
+                        types: { type: 'array', items: { type: 'object' } },
+                    },
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -922,15 +973,15 @@ __decorate([
     (0, common_1.Post)('sync/all'),
     (0, swagger_1.ApiOperation)({
         summary: 'Sync all data from Solana blockchain',
-        description: 'Syncs both collections and NFT types from the Solana program to the database'
+        description: 'Syncs both collections and NFT types from the Solana program to the database',
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
-        description: 'All data synced successfully'
+        description: 'All data synced successfully',
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -942,19 +993,27 @@ __decorate([
     (0, swagger_1.ApiBearerAuth)('JWT-auth'),
     (0, swagger_1.ApiOperation)({
         summary: 'Mint NFT from collection',
-        description: 'Mints an NFT from a specific collection type. Requires both collection admin and buyer to sign the transaction. Requires JWT authentication.'
+        description: 'Mints an NFT from a specific collection type. Requires both collection admin and buyer to sign the transaction. Requires JWT authentication.',
     }),
     (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
-            required: ['collectionName', 'typeName', 'collectionMintAddress', 'buyerPublicKey'],
+            required: [
+                'collectionName',
+                'typeName',
+                'collectionMintAddress',
+                'buyerPublicKey',
+            ],
             properties: {
                 collectionName: { type: 'string', example: 'VYBE_HEROES_COLLECTION' },
                 typeName: { type: 'string', example: 'Duma_Bright' },
                 collectionMintAddress: { type: 'string', example: 'Cv7jep...' },
-                buyerPublicKey: { type: 'string', example: '7ia7xqc8mLiPbPEfDKWo8xF2UZ8NkEJz7d7pd489rHFe' }
-            }
-        }
+                buyerPublicKey: {
+                    type: 'string',
+                    example: '7ia7xqc8mLiPbPEfDKWo8xF2UZ8NkEJz7d7pd489rHFe',
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 201,
@@ -969,23 +1028,26 @@ __decorate([
                         signature: { type: 'string', example: '5Kq...' },
                         nftMint: { type: 'string', example: '9Aqrcm...' },
                         buyerTokenAccount: { type: 'string', example: 'Cv7jep...' },
-                        explorerUrl: { type: 'string', example: 'https://explorer.solana.com/tx/...?cluster=devnet' }
-                    }
-                }
-            }
-        }
+                        explorerUrl: {
+                            type: 'string',
+                            example: 'https://explorer.solana.com/tx/...?cluster=devnet',
+                        },
+                    },
+                },
+            },
+        },
     }),
     (0, swagger_1.ApiResponse)({
         status: 401,
-        description: 'Unauthorized - Invalid or missing JWT token'
+        description: 'Unauthorized - Invalid or missing JWT token',
     }),
     (0, swagger_1.ApiResponse)({
         status: 400,
-        description: 'Bad request - Invalid input data'
+        description: 'Bad request - Invalid input data',
     }),
     (0, swagger_1.ApiResponse)({
         status: 500,
-        description: 'Internal server error'
+        description: 'Internal server error',
     }),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Body)()),
