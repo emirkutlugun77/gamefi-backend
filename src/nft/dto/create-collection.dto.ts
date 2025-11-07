@@ -4,7 +4,7 @@ import { IsString, IsNotEmpty, IsNumber, Min, Max } from 'class-validator';
 export class CreateCollectionDto {
   @ApiProperty({
     description: 'Admin public key',
-    example: 'Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M',
+    example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
     required: false,
   })
   @IsString()

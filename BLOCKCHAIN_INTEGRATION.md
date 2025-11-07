@@ -59,10 +59,10 @@ cat test-wallet.json
 
 # Public key'i al
 solana-keygen pubkey test-wallet.json
-# Output: Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M
+# Output: 8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw
 
 # Devnet SOL al
-solana airdrop 2 Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M --url devnet
+solana airdrop 2 8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw --url devnet
 ```
 
 #### Swagger UI ile Test
@@ -76,7 +76,7 @@ solana airdrop 2 Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M --url devnet
    [123,45,67,89,90,...]
    ```
 6. Form alanlarını doldur:
-   - `adminPublicKey`: Public key (örn: Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M)
+   - `adminPublicKey`: Public key (örn: 8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw)
    - `name`: VYBE_TEST_COLLECTION
    - `symbol`: VTEST
    - `royalty`: 5

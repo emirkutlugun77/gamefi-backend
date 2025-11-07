@@ -33,7 +33,7 @@ POST /auth/login
   "success": true,
   "data": {
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcml2YXRlS2V5IjoiM21pNGJ6bjI4RlhaQ3VVTGNvN3Znb...",
-    "publicKey": "Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M",
+    "publicKey": "8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw",
     "expiresIn": "1 day"
   },
   "message": "Token generated successfully. Use this token in the Authorization header as \"Bearer <token>\""
@@ -55,7 +55,7 @@ Content-Type: multipart/form-data
 
 #### Body (Form Data)
 ```
-adminPublicKey: Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M
+adminPublicKey: 8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw
 name: VYBE_TEST_COLLECTION
 symbol: VTEST
 royalty: 5
@@ -102,7 +102,7 @@ http://localhost:3001/api
 2. **POST /nft-admin/collection** endpoint'ini seç
 3. "Try it out" tıkla
 4. Form'u doldur:
-   - `adminPublicKey`: Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M
+   - `adminPublicKey`: 8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw
    - `name`: VYBE_TEST_COLLECTION
    - `symbol`: VTEST
    - `royalty`: 5
@@ -158,7 +158,7 @@ import base58
 ```json
 {
   "privateKey": "3mi4bzn28FXZCuULco7vgnFD3RAdzJo6SMt4PZ1MUv5j...",
-  "publicKey": "Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M",
+  "publicKey": "8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw",
   "iat": 1729260000,
   "exp": 1729346400
 }

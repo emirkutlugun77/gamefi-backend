@@ -18,7 +18,7 @@ POST /nft-admin/collection
 
 #### Body (Form Data)
 ```
-adminPublicKey: Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M
+adminPublicKey: 8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw
 name: VYBE_TEST_COLLECTION
 symbol: VTEST
 royalty: 5
@@ -60,7 +60,7 @@ POST /nft-admin/collection/create-transaction
 #### Body (JSON)
 ```json
 {
-  "adminPublicKey": "Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M",
+  "adminPublicKey": "8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw",
   "collectionMint": "Cv7jep4QNY4Z7TQqodb1Rwa9S3eLLxpohgzPk1TqR9Ss",
   "name": "VYBE_TEST_COLLECTION",
   "symbol": "VTEST",
@@ -204,7 +204,7 @@ solana-keygen pubkey collection-mint.json
 3. JSON'u doldur:
 ```json
 {
-  "adminPublicKey": "Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M",
+  "adminPublicKey": "8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw",
   "collectionMint": "COLLECTION_MINT_PUBLIC_KEY",
   "name": "VYBE_TEST_COLLECTION",
   "symbol": "VTEST",
@@ -298,12 +298,12 @@ solana-keygen new --outfile collection-mint.json --no-bip39-passphrase
 
 ### Balance Kontrol
 ```bash
-solana balance Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M --url devnet
+solana balance 8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw --url devnet
 ```
 
 ### Airdrop (Devnet)
 ```bash
-solana airdrop 2 Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M --url devnet
+solana airdrop 2 8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw --url devnet
 ```
 
 ### Transaction Doğrulama
