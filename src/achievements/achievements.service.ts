@@ -45,6 +45,13 @@ export class AchievementsService {
         : undefined,
     });
     const savedTask = await this.taskRepository.save(task);
+
+    // Skip automatic sync if task was created with ACTIVE status
+    // This allows creating tasks that are immediately active regardless of dates
+    if (savedTask.status === TaskStatus.ACTIVE) {
+      return savedTask;
+    }
+
     const [syncedTask] = await this.syncTaskStatuses([savedTask]);
     return syncedTask;
   }
@@ -84,6 +91,9 @@ export class AchievementsService {
   async updateTask(id: number, updateTaskDto: UpdateTaskDto): Promise<Task> {
     const task = await this.getTaskById(id);
 
+    // Check if status is being explicitly updated
+    const isManualStatusUpdate = updateTaskDto.status !== undefined;
+
     Object.assign(task, {
       ...updateTaskDto,
       start_date: updateTaskDto.start_date
@@ -99,6 +109,13 @@ export class AchievementsService {
     });
 
     const savedTask = await this.taskRepository.save(task);
+
+    // Skip automatic sync if status was manually set to ACTIVE
+    // This allows admins to override time-based status logic
+    if (isManualStatusUpdate && savedTask.status === TaskStatus.ACTIVE) {
+      return savedTask;
+    }
+
     const [syncedTask] = await this.syncTaskStatuses([savedTask]);
     return syncedTask;
   }
