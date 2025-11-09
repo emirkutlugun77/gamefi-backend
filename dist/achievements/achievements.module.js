@@ -21,6 +21,8 @@ const task_entity_1 = require("../entities/task.entity");
 const user_task_entity_1 = require("../entities/user-task.entity");
 const user_entity_1 = require("../entities/user.entity");
 const task_transaction_entity_1 = require("../entities/task-transaction.entity");
+const nft_collection_entity_1 = require("../entities/nft-collection.entity");
+const nft_type_entity_1 = require("../entities/nft-type.entity");
 const user_code_entity_1 = require("../entities/user-code.entity");
 let AchievementsModule = class AchievementsModule {
 };
@@ -34,6 +36,8 @@ exports.AchievementsModule = AchievementsModule = __decorate([
                 user_entity_1.User,
                 task_transaction_entity_1.TaskTransaction,
                 user_code_entity_1.UserCode,
+                nft_collection_entity_1.NftCollection,
+                nft_type_entity_1.NftType,
             ]),
         ],
         controllers: [achievements_controller_1.AchievementsController],

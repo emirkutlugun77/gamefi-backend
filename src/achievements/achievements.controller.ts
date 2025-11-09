@@ -101,6 +101,31 @@ export class AchievementsController {
     }
   }
 
+  @Get('tasks/config-options')
+  @ApiOperation({ summary: 'Get config metadata for task creation' })
+  @ApiResponse({
+    status: 200,
+    description: 'Configuration metadata retrieved successfully',
+  })
+  async getTaskConfigOptions() {
+    try {
+      const options = await this.achievementsService.getTaskConfigOptions();
+      return {
+        success: true,
+        data: options,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to load task configuration options',
+          error: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Get('tasks/:id')
   @ApiOperation({ summary: 'Get task by ID' })
   @ApiParam({ name: 'id', type: Number })

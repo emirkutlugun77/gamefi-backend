@@ -58,6 +58,26 @@ export class CreateTaskDto {
   @IsObject()
   verification_config?: Record<string, any>;
 
+  @ApiPropertyOptional({
+    example: true,
+    description:
+      'Whether this task requires an on-chain transaction (enables transaction_config)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  requires_transaction?: boolean;
+
+  @ApiPropertyOptional({
+    example: {
+      transactionType: 'TOKEN_SWAP',
+      fromTokenMint: 'So11111111111111111111111111111111111111112',
+    },
+    description: 'Blockchain transaction configuration',
+  })
+  @IsOptional()
+  @IsObject()
+  transaction_config?: Record<string, any>;
+
   @ApiPropertyOptional({ example: false })
   @IsOptional()
   @IsBoolean()

@@ -20,6 +20,8 @@ class CreateTaskDto {
     reward_points;
     config;
     verification_config;
+    requires_transaction;
+    transaction_config;
     is_repeatable;
     max_completions;
     start_date;
@@ -82,6 +84,27 @@ __decorate([
     (0, class_validator_1.IsObject)(),
     __metadata("design:type", Object)
 ], CreateTaskDto.prototype, "verification_config", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        example: true,
+        description: 'Whether this task requires an on-chain transaction (enables transaction_config)',
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], CreateTaskDto.prototype, "requires_transaction", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        example: {
+            transactionType: 'TOKEN_SWAP',
+            fromTokenMint: 'So11111111111111111111111111111111111111112',
+        },
+        description: 'Blockchain transaction configuration',
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsObject)(),
+    __metadata("design:type", Object)
+], CreateTaskDto.prototype, "transaction_config", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({ example: false }),
     (0, class_validator_1.IsOptional)(),

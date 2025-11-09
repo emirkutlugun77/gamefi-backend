@@ -6,6 +6,8 @@ export declare class UpdateTaskDto {
     reward_points?: number;
     config?: Record<string, any>;
     verification_config?: Record<string, any>;
+    requires_transaction?: boolean;
+    transaction_config?: Record<string, any>;
     is_repeatable?: boolean;
     max_completions?: number;
     start_date?: string;

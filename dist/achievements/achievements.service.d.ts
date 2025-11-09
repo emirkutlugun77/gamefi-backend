@@ -6,11 +6,15 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { SubmitTaskDto } from './dto/submit-task.dto';
 import { VerifyTaskDto } from './dto/verify-task.dto';
+import { NftCollection } from '../entities/nft-collection.entity';
+import { NftType } from '../entities/nft-type.entity';
 export declare class AchievementsService {
     private readonly taskRepository;
     private readonly userTaskRepository;
     private readonly userRepository;
-    constructor(taskRepository: Repository<Task>, userTaskRepository: Repository<UserTask>, userRepository: Repository<User>);
+    private readonly nftCollectionRepository;
+    private readonly nftTypeRepository;
+    constructor(taskRepository: Repository<Task>, userTaskRepository: Repository<UserTask>, userRepository: Repository<User>, nftCollectionRepository: Repository<NftCollection>, nftTypeRepository: Repository<NftType>);
     createTask(createTaskDto: CreateTaskDto): Promise<Task>;
     getAllTasks(): Promise<Task[]>;
     getActiveTasks(): Promise<Task[]>;
@@ -24,4 +28,9 @@ export declare class AchievementsService {
     getPendingVerifications(): Promise<UserTask[]>;
     getUserStats(publicKey: string): Promise<any>;
     private canCompleteTask;
+    getTaskConfigOptions(): Promise<Record<string, any>>;
+    private normalizeStatus;
+    private computeTimeDrivenStatus;
+    private syncTaskStatuses;
+    private syncAllTimeBoundTaskStatuses;
 }

@@ -5,13 +5,16 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Task, TaskStatus } from '../entities/task.entity';
+import { Task, TaskStatus, TaskType } from '../entities/task.entity';
 import { UserTask, UserTaskStatus } from '../entities/user-task.entity';
 import { User } from '../entities/user.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { SubmitTaskDto } from './dto/submit-task.dto';
 import { VerifyTaskDto } from './dto/verify-task.dto';
+import { NftCollection } from '../entities/nft-collection.entity';
+import { NftType } from '../entities/nft-type.entity';
+import { TransactionType } from '../entities/task-transaction.entity';
 
 @Injectable()
 export class AchievementsService {
@@ -22,6 +25,10 @@ export class AchievementsService {
     private readonly userTaskRepository: Repository<UserTask>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(NftCollection)
+    private readonly nftCollectionRepository: Repository<NftCollection>,
+    @InjectRepository(NftType)
+    private readonly nftTypeRepository: Repository<NftType>,
   ) {}
 
   // ========== TASK MANAGEMENT ==========
@@ -29,6 +36,7 @@ export class AchievementsService {
   async createTask(createTaskDto: CreateTaskDto): Promise<Task> {
     const task = this.taskRepository.create({
       ...createTaskDto,
+      status: this.normalizeStatus(createTaskDto.status),
       start_date: createTaskDto.start_date
         ? new Date(createTaskDto.start_date)
         : undefined,
@@ -36,18 +44,23 @@ export class AchievementsService {
         ? new Date(createTaskDto.end_date)
         : undefined,
     });
-    return this.taskRepository.save(task);
+    const savedTask = await this.taskRepository.save(task);
+    const [syncedTask] = await this.syncTaskStatuses([savedTask]);
+    return syncedTask;
   }
 
   async getAllTasks(): Promise<Task[]> {
-    return this.taskRepository.find({
+    await this.syncAllTimeBoundTaskStatuses();
+    const tasks = await this.taskRepository.find({
       order: { display_order: 'ASC', created_at: 'DESC' },
     });
+    return this.syncTaskStatuses(tasks);
   }
 
   async getActiveTasks(): Promise<Task[]> {
     const now = new Date();
-    return this.taskRepository
+    await this.syncAllTimeBoundTaskStatuses();
+    const tasks = await this.taskRepository
       .createQueryBuilder('task')
       .where('task.status = :status', { status: TaskStatus.ACTIVE })
       .andWhere('(task.start_date IS NULL OR task.start_date <= :now)', { now })
@@ -55,6 +68,8 @@ export class AchievementsService {
       .orderBy('task.display_order', 'ASC')
       .addOrderBy('task.created_at', 'DESC')
       .getMany();
+    const syncedTasks = await this.syncTaskStatuses(tasks);
+    return syncedTasks.filter((task) => task.status === TaskStatus.ACTIVE);
   }
 
   async getTaskById(id: number): Promise<Task> {
@@ -62,6 +77,7 @@ export class AchievementsService {
     if (!task) {
       throw new NotFoundException('Task not found');
     }
+    await this.syncTaskStatuses([task]);
     return task;
   }
 
@@ -76,9 +92,15 @@ export class AchievementsService {
       end_date: updateTaskDto.end_date
         ? new Date(updateTaskDto.end_date)
         : task.end_date,
+      status:
+        updateTaskDto.status !== undefined
+          ? this.normalizeStatus(updateTaskDto.status)
+          : task.status,
     });
 
-    return this.taskRepository.save(task);
+    const savedTask = await this.taskRepository.save(task);
+    const [syncedTask] = await this.syncTaskStatuses([savedTask]);
+    return syncedTask;
   }
 
   async deleteTask(id: number): Promise<void> {
@@ -308,5 +330,418 @@ export class AchievementsService {
       return false;
 
     return true;
+  }
+
+  async getTaskConfigOptions(): Promise<Record<string, any>> {
+    const [collections, nftTypes] = await Promise.all([
+      this.nftCollectionRepository.find({
+        where: { isActive: true },
+        order: { name: 'ASC' },
+      }),
+      this.nftTypeRepository.find({
+        order: { name: 'ASC' },
+      }),
+    ]);
+
+    const collectionOptions = collections.map((collection) => ({
+      value: collection.id,
+      label: collection.name,
+      symbol: collection.symbol,
+    }));
+
+    const typeOptions = nftTypes.map((type) => ({
+      value: type.id,
+      label: type.name,
+      collectionId: type.collectionId,
+    }));
+
+    const instructionSchemas: Record<string, any> = {
+      [TaskType.NFT_HOLD]: {
+        defaults: {
+          minAmount: 1,
+        },
+        fields: [
+          {
+            name: 'collectionMint',
+            label: 'NFT Koleksiyonu',
+            type: 'select',
+            required: true,
+            options: collectionOptions,
+          },
+          {
+            name: 'typeId',
+            label: 'NFT Tipi',
+            type: 'select',
+            required: false,
+            options: typeOptions,
+            dependsOn: 'collectionMint',
+          },
+          {
+            name: 'minAmount',
+            label: 'Minimum NFT Adedi',
+            type: 'number',
+            required: true,
+            min: 1,
+            defaultValue: 1,
+          },
+        ],
+      },
+      [TaskType.NFT_MINT]: {
+        defaults: {
+          quantity: 1,
+        },
+        fields: [
+          {
+            name: 'collectionMint',
+            label: 'Mint Edilecek Koleksiyon',
+            type: 'select',
+            required: true,
+            options: collectionOptions,
+          },
+          {
+            name: 'typeId',
+            label: 'NFT Tipi',
+            type: 'select',
+            required: true,
+            options: typeOptions,
+            dependsOn: 'collectionMint',
+          },
+          {
+            name: 'quantity',
+            label: 'Mint Adedi',
+            type: 'number',
+            required: true,
+            min: 1,
+            defaultValue: 1,
+          },
+          {
+            name: 'allowlistOnly',
+            label: 'Sadece Allowlist Kullanıcıları',
+            type: 'checkbox',
+            required: false,
+            defaultValue: false,
+          },
+        ],
+      },
+      [TaskType.STAKE_TOKENS]: {
+        fields: [
+          {
+            name: 'stakePoolId',
+            label: 'Stake Pool Kimliği',
+            type: 'text',
+            required: true,
+            placeholder: 'Stake pool adresini girin',
+          },
+          {
+            name: 'minAmount',
+            label: 'Minimum Stake Miktarı',
+            type: 'number',
+            required: false,
+            min: 0,
+          },
+          {
+            name: 'lockPeriodDays',
+            label: 'Kilitleme Süresi (gün)',
+            type: 'number',
+            required: false,
+            min: 0,
+          },
+        ],
+      },
+      [TaskType.TOKEN_SWAP]: {
+        fields: [
+          {
+            name: 'platform',
+            label: 'Swap Platformu',
+            type: 'text',
+            placeholder: 'Örn: Jupiter',
+            required: false,
+          },
+          {
+            name: 'allowedRoutes',
+            label: 'İzinli Swap Rotaları',
+            type: 'textarea',
+            placeholder: 'Comma-separated route IDs',
+            required: false,
+          },
+        ],
+      },
+    };
+
+    const transactionSchemas: Record<string, any> = {
+      [TaskType.NFT_MINT]: {
+        defaults: {
+          transaction_type: TransactionType.NFT_MINT,
+          required_confirmations: 1,
+        },
+        fields: [
+          {
+            name: 'transaction_type',
+            label: 'İşlem Tipi',
+            type: 'select',
+            required: true,
+            options: [
+              {
+                value: TransactionType.NFT_MINT,
+                label: 'NFT Mint',
+              },
+            ],
+          },
+          {
+            name: 'payment_token_mint',
+            label: 'Ödeme Token Mint',
+            type: 'text',
+            required: false,
+          },
+          {
+            name: 'max_price',
+            label: 'Maksimum Mint Ücreti',
+            type: 'number',
+            required: false,
+            min: 0,
+          },
+          {
+            name: 'required_confirmations',
+            label: 'Gerekli Onay Sayısı',
+            type: 'number',
+            required: true,
+            min: 1,
+            defaultValue: 1,
+          },
+        ],
+      },
+      [TaskType.TOKEN_SWAP]: {
+        defaults: {
+          transaction_type: TransactionType.TOKEN_SWAP,
+          allow_any_amount: true,
+          required_confirmations: 1,
+        },
+        fields: [
+          {
+            name: 'transaction_type',
+            label: 'İşlem Tipi',
+            type: 'select',
+            required: true,
+            options: [
+              {
+                value: TransactionType.TOKEN_SWAP,
+                label: 'Token Swap',
+              },
+            ],
+          },
+          {
+            name: 'from_token_mint',
+            label: 'Kaynak Token Mint',
+            type: 'text',
+            required: true,
+            placeholder: 'Örn: So111111...',
+          },
+          {
+            name: 'to_token_mint',
+            label: 'Hedef Token Mint',
+            type: 'text',
+            required: true,
+          },
+          {
+            name: 'min_amount',
+            label: 'Minimum Swap Tutarı',
+            type: 'number',
+            required: false,
+            min: 0,
+          },
+          {
+            name: 'allow_any_amount',
+            label: 'Herhangi Bir Miktara İzin Ver',
+            type: 'checkbox',
+            defaultValue: true,
+          },
+          {
+            name: 'required_confirmations',
+            label: 'Gerekli Onay Sayısı',
+            type: 'number',
+            required: true,
+            min: 1,
+            defaultValue: 1,
+          },
+        ],
+      },
+      [TaskType.LIQUIDITY_PROVIDE]: {
+        defaults: {
+          transaction_type: TransactionType.LIQUIDITY_ADD,
+          required_confirmations: 1,
+        },
+        fields: [
+          {
+            name: 'transaction_type',
+            label: 'İşlem Tipi',
+            type: 'select',
+            required: true,
+            options: [
+              {
+                value: TransactionType.LIQUIDITY_ADD,
+                label: 'Likidite Ekle',
+              },
+            ],
+          },
+          {
+            name: 'pool_address',
+            label: 'Likidite Havuzu Adresi',
+            type: 'text',
+            required: true,
+          },
+          {
+            name: 'token_mint_a',
+            label: 'Token A Mint',
+            type: 'text',
+            required: true,
+          },
+          {
+            name: 'token_mint_b',
+            label: 'Token B Mint',
+            type: 'text',
+            required: true,
+          },
+          {
+            name: 'required_confirmations',
+            label: 'Gerekli Onay Sayısı',
+            type: 'number',
+            required: true,
+            min: 1,
+            defaultValue: 1,
+          },
+        ],
+      },
+      [TaskType.STAKE_TOKENS]: {
+        defaults: {
+          transaction_type: TransactionType.STAKE,
+          required_confirmations: 1,
+        },
+        fields: [
+          {
+            name: 'transaction_type',
+            label: 'İşlem Tipi',
+            type: 'select',
+            required: true,
+            options: [
+              {
+                value: TransactionType.STAKE,
+                label: 'Stake',
+              },
+            ],
+          },
+          {
+            name: 'stake_pool_id',
+            label: 'Stake Pool Kimliği',
+            type: 'text',
+            required: true,
+          },
+          {
+            name: 'min_amount',
+            label: 'Minimum Stake',
+            type: 'number',
+            required: false,
+            min: 0,
+          },
+          {
+            name: 'required_confirmations',
+            label: 'Gerekli Onay Sayısı',
+            type: 'number',
+            required: true,
+            min: 1,
+            defaultValue: 1,
+          },
+        ],
+      },
+    };
+
+    const requiresTransactionDefaults: Partial<Record<TaskType, boolean>> = {
+      [TaskType.NFT_MINT]: true,
+      [TaskType.TOKEN_SWAP]: true,
+      [TaskType.LIQUIDITY_PROVIDE]: true,
+      [TaskType.STAKE_TOKENS]: true,
+    };
+
+    return {
+      generatedAt: new Date().toISOString(),
+      instructionSchemas,
+      transactionSchemas,
+      references: {
+        nftCollections: collectionOptions,
+        nftTypes: typeOptions,
+      },
+      requiresTransactionDefaults,
+    };
+  }
+
+  private normalizeStatus(status?: TaskStatus): TaskStatus {
+    if (!status) {
+      return TaskStatus.ACTIVE;
+    }
+    if (
+      status === TaskStatus.SCHEDULED ||
+      status === TaskStatus.EXPIRED
+    ) {
+      return TaskStatus.INACTIVE;
+    }
+    return status;
+  }
+
+  private computeTimeDrivenStatus(task: Task, now: Date): TaskStatus {
+    const start = task.start_date ? new Date(task.start_date).getTime() : null;
+    const end = task.end_date ? new Date(task.end_date).getTime() : null;
+    const current = now.getTime();
+
+    if (end !== null && end <= current) {
+      return TaskStatus.INACTIVE;
+    }
+
+    if (start !== null && start > current) {
+      return TaskStatus.INACTIVE;
+    }
+
+    return TaskStatus.ACTIVE;
+  }
+
+  private async syncTaskStatuses(tasks: Task[]): Promise<Task[]> {
+    if (!tasks.length) {
+      return tasks;
+    }
+
+    const now = new Date();
+    const tasksToUpdate: Task[] = [];
+
+    for (const task of tasks) {
+      const normalizedStatus = this.normalizeStatus(task.status);
+      let nextStatus = normalizedStatus;
+
+      if (task.start_date || task.end_date) {
+        nextStatus = this.computeTimeDrivenStatus(task, now);
+      }
+
+      if (task.status !== nextStatus) {
+        task.status = nextStatus;
+        tasksToUpdate.push(task);
+      }
+    }
+
+    if (tasksToUpdate.length) {
+      await this.taskRepository.save(tasksToUpdate);
+    }
+
+    return tasks;
+  }
+
+  private async syncAllTimeBoundTaskStatuses(): Promise<void> {
+    const timeBoundTasks = await this.taskRepository
+      .createQueryBuilder('task')
+      .where('task.start_date IS NOT NULL')
+      .orWhere('task.end_date IS NOT NULL')
+      .getMany();
+
+    if (!timeBoundTasks.length) {
+      return;
+    }
+
+    await this.syncTaskStatuses(timeBoundTasks);
   }
 }

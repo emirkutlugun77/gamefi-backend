@@ -27,6 +27,10 @@ export declare class AchievementsController {
         data: import("../entities/task.entity").Task[];
         count: number;
     }>;
+    getTaskConfigOptions(): Promise<{
+        success: boolean;
+        data: Record<string, any>;
+    }>;
     getTaskById(id: number): Promise<{
         success: boolean;
         data: import("../entities/task.entity").Task;

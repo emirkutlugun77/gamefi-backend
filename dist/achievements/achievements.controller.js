@@ -76,6 +76,22 @@ let AchievementsController = class AchievementsController {
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    async getTaskConfigOptions() {
+        try {
+            const options = await this.achievementsService.getTaskConfigOptions();
+            return {
+                success: true,
+                data: options,
+            };
+        }
+        catch (error) {
+            throw new common_1.HttpException({
+                success: false,
+                message: 'Failed to load task configuration options',
+                error: error.message,
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
     async getTaskById(id) {
         try {
             const task = await this.achievementsService.getTaskById(id);
@@ -348,6 +364,17 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], AchievementsController.prototype, "getTasks", null);
+__decorate([
+    (0, common_1.Get)('tasks/config-options'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get config metadata for task creation' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Configuration metadata retrieved successfully',
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AchievementsController.prototype, "getTaskConfigOptions", null);
 __decorate([
     (0, common_1.Get)('tasks/:id'),
     (0, swagger_1.ApiOperation)({ summary: 'Get task by ID' }),
