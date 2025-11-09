@@ -180,6 +180,21 @@ export class Task {
   @Column({ type: 'simple-array', nullable: true })
   prerequisite_task_ids: number[];
 
+  // Dynamic prerequisite conditions
+  // Supports complex prerequisite logic with AND/OR operators
+  // Example: {
+  //   "operator": "AND",
+  //   "conditions": [
+  //     { "type": "task_completed", "task_ids": [1, 2] },
+  //     { "type": "min_points", "points": 100 },
+  //     { "type": "min_level", "level": 5 },
+  //     { "type": "nft_hold", "collection_mint": "...", "min_amount": 1 },
+  //     { "type": "transaction_completed", "transaction_type": "TOKEN_SWAP", "min_amount": 10 }
+  //   ]
+  // }
+  @Column({ type: 'jsonb', nullable: true })
+  prerequisite_conditions: Record<string, any>;
+
   // Bonus multiplier for special events or limited time
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 1.0 })
   reward_multiplier: number;
@@ -191,6 +206,28 @@ export class Task {
   // Estimated time to complete (in minutes)
   @Column({ type: 'int', nullable: true })
   estimated_time_minutes: number;
+
+  // Whether this task requires a blockchain transaction
+  @Column({ type: 'boolean', default: false })
+  requires_transaction: boolean;
+
+  // Transaction configuration for transaction-based tasks
+  // Example: {
+  //   "transaction_type": "TOKEN_SWAP",
+  //   "min_amount": 10,
+  //   "max_amount": 1000,
+  //   "required_confirmations": 32,
+  //   "from_token": "So11111111111111111111111111111111111111112",
+  //   "to_token": "...",
+  //   "allow_any_amount": false
+  // }
+  @Column({ type: 'jsonb', nullable: true })
+  transaction_config: Record<string, any>;
+
+  // Star rating for tasks (0 to 5 in increments of 0.5)
+  // Allowed values: 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5
+  @Column({ type: 'decimal', precision: 2, scale: 1, nullable: true })
+  star_rate: number;
 
   @CreateDateColumn()
   created_at: Date;

@@ -111,9 +111,13 @@ let Task = class Task {
     icon_url;
     required_level;
     prerequisite_task_ids;
+    prerequisite_conditions;
     reward_multiplier;
     total_completions;
     estimated_time_minutes;
+    requires_transaction;
+    transaction_config;
+    star_rate;
     created_at;
     updated_at;
 };
@@ -203,6 +207,10 @@ __decorate([
     __metadata("design:type", Array)
 ], Task.prototype, "prerequisite_task_ids", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], Task.prototype, "prerequisite_conditions", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'decimal', precision: 5, scale: 2, default: 1.0 }),
     __metadata("design:type", Number)
 ], Task.prototype, "reward_multiplier", void 0);
@@ -214,6 +222,18 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'int', nullable: true }),
     __metadata("design:type", Number)
 ], Task.prototype, "estimated_time_minutes", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', default: false }),
+    __metadata("design:type", Boolean)
+], Task.prototype, "requires_transaction", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], Task.prototype, "transaction_config", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 2, scale: 1, nullable: true }),
+    __metadata("design:type", Number)
+], Task.prototype, "star_rate", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

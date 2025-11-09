@@ -21,4 +21,5 @@ export declare class CreateTaskDto {
     prerequisite_task_ids?: number[];
     reward_multiplier?: number;
     estimated_time_minutes?: number;
+    star_rate?: number;
 }

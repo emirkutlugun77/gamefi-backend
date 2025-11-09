@@ -24,7 +24,7 @@ exports.CreateCollectionDto = CreateCollectionDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Admin public key',
-        example: 'Fn4P5PRhr7H58Ye1qcnaMvqDZAk3HGsgm6hDaXkVf46M',
+        example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
         required: false,
     }),
     (0, class_validator_1.IsString)(),

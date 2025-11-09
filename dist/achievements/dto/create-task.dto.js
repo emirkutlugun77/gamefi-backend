@@ -35,6 +35,7 @@ class CreateTaskDto {
     prerequisite_task_ids;
     reward_multiplier;
     estimated_time_minutes;
+    star_rate;
 }
 exports.CreateTaskDto = CreateTaskDto;
 __decorate([
@@ -198,4 +199,14 @@ __decorate([
     (0, class_validator_1.Min)(1),
     __metadata("design:type", Number)
 ], CreateTaskDto.prototype, "estimated_time_minutes", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        example: 4.5,
+        description: 'Star rating (0 to 5 in increments of 0.5)',
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CreateTaskDto.prototype, "star_rate", void 0);
 //# sourceMappingURL=create-task.dto.js.map

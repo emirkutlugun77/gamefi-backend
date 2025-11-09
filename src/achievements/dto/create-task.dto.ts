@@ -159,4 +159,13 @@ export class CreateTaskDto {
   @IsInt()
   @Min(1)
   estimated_time_minutes?: number;
+
+  @ApiPropertyOptional({
+    example: 4.5,
+    description: 'Star rating (0 to 5 in increments of 0.5)',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  star_rate?: number;
 }

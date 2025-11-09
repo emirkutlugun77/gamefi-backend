@@ -8,6 +8,7 @@ import {
   IsObject,
   IsDateString,
   Min,
+  IsNumber,
 } from 'class-validator';
 import { TaskType, TaskStatus } from '../../entities/task.entity';
 
@@ -84,4 +85,13 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsEnum(TaskStatus)
   status?: TaskStatus;
+
+  @ApiPropertyOptional({
+    example: 4.5,
+    description: 'Star rating (0 to 5 in increments of 0.5)',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  star_rate?: number;
 }

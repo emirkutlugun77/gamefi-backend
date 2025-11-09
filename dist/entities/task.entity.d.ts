@@ -93,9 +93,13 @@ export declare class Task {
     icon_url: string;
     required_level: number;
     prerequisite_task_ids: number[];
+    prerequisite_conditions: Record<string, any>;
     reward_multiplier: number;
     total_completions: number;
     estimated_time_minutes: number;
+    requires_transaction: boolean;
+    transaction_config: Record<string, any>;
+    star_rate: number;
     created_at: Date;
     updated_at: Date;
 }

@@ -26,6 +26,7 @@ class UpdateTaskDto {
     end_date;
     display_order;
     status;
+    star_rate;
 }
 exports.UpdateTaskDto = UpdateTaskDto;
 __decorate([
@@ -113,4 +114,14 @@ __decorate([
     (0, class_validator_1.IsEnum)(task_entity_1.TaskStatus),
     __metadata("design:type", String)
 ], UpdateTaskDto.prototype, "status", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        example: 4.5,
+        description: 'Star rating (0 to 5 in increments of 0.5)',
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], UpdateTaskDto.prototype, "star_rate", void 0);
 //# sourceMappingURL=update-task.dto.js.map

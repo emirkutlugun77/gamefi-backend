@@ -12,4 +12,5 @@ export declare class UpdateTaskDto {
     end_date?: string;
     display_order?: number;
     status?: TaskStatus;
+    star_rate?: number;
 }
