@@ -15,6 +15,11 @@ import { VerifyTaskDto } from './dto/verify-task.dto';
 import { NftCollection } from '../entities/nft-collection.entity';
 import { NftType } from '../entities/nft-type.entity';
 import { TransactionType } from '../entities/task-transaction.entity';
+import {
+  TaskInputUser,
+  TaskInputType,
+  TaskInputStatus,
+} from '../entities/task-input-user.entity';
 
 @Injectable()
 export class AchievementsService {
@@ -29,6 +34,8 @@ export class AchievementsService {
     private readonly nftCollectionRepository: Repository<NftCollection>,
     @InjectRepository(NftType)
     private readonly nftTypeRepository: Repository<NftType>,
+    @InjectRepository(TaskInputUser)
+    private readonly taskInputUserRepository: Repository<TaskInputUser>,
   ) {}
 
   // ========== TASK MANAGEMENT ==========
@@ -324,6 +331,233 @@ export class AchievementsService {
         pointsFromTasks: totalPointsEarned,
       },
     };
+  }
+
+  // ========== TEXT/IMAGE SUBMISSION METHODS ==========
+
+  async submitTextTask(
+    taskId: number,
+    publicKey: string,
+    textContent: string,
+  ): Promise<TaskInputUser> {
+    // Get user
+    const user = await this.userRepository.findOne({ where: { publicKey } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Get task
+    const task = await this.getTaskById(taskId);
+
+    // Validate task type
+    if (task.type !== TaskType.SUBMIT_TEXT) {
+      throw new BadRequestException(
+        'This task is not a text submission task',
+      );
+    }
+
+    // Check if task is active
+    if (task.status !== TaskStatus.ACTIVE) {
+      throw new BadRequestException('Task is not active');
+    }
+
+    // Create TaskInputUser record
+    const taskInput = this.taskInputUserRepository.create({
+      user_id: user.id,
+      task_id: task.id,
+      input_type: TaskInputType.TEXT,
+      content: textContent,
+      status: TaskInputStatus.PENDING,
+    });
+
+    const savedInput = await this.taskInputUserRepository.save(taskInput);
+
+    // Also update UserTask record for consistency
+    let userTask = await this.userTaskRepository.findOne({
+      where: { user_id: user.id, task_id: task.id },
+    });
+
+    const now = new Date();
+    if (userTask) {
+      userTask.status = UserTaskStatus.SUBMITTED;
+      userTask.submission_data = { text: textContent, input_id: savedInput.id };
+    } else {
+      userTask = this.userTaskRepository.create({
+        user_id: user.id,
+        task_id: task.id,
+        status: UserTaskStatus.SUBMITTED,
+        submission_data: { text: textContent, input_id: savedInput.id },
+        started_at: now,
+      });
+    }
+
+    await this.userTaskRepository.save(userTask);
+
+    return savedInput;
+  }
+
+  async submitImageTask(
+    taskId: number,
+    publicKey: string,
+    imageUrl: string,
+    description?: string,
+    metadata?: Record<string, any>,
+  ): Promise<TaskInputUser> {
+    // Get user
+    const user = await this.userRepository.findOne({ where: { publicKey } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Get task
+    const task = await this.getTaskById(taskId);
+
+    // Validate task type
+    if (task.type !== TaskType.SUBMIT_IMAGE) {
+      throw new BadRequestException(
+        'This task is not an image submission task',
+      );
+    }
+
+    // Check if task is active
+    if (task.status !== TaskStatus.ACTIVE) {
+      throw new BadRequestException('Task is not active');
+    }
+
+    // Create TaskInputUser record
+    const taskInput = this.taskInputUserRepository.create({
+      user_id: user.id,
+      task_id: task.id,
+      input_type: TaskInputType.IMAGE,
+      content: imageUrl,
+      description: description || null,
+      metadata: metadata || null,
+      status: TaskInputStatus.PENDING,
+    });
+
+    const savedInput = await this.taskInputUserRepository.save(taskInput);
+
+    // Also update UserTask record for consistency
+    let userTask = await this.userTaskRepository.findOne({
+      where: { user_id: user.id, task_id: task.id },
+    });
+
+    const now = new Date();
+    if (userTask) {
+      userTask.status = UserTaskStatus.SUBMITTED;
+      userTask.submission_data = {
+        image_url: imageUrl,
+        description,
+        metadata,
+        input_id: savedInput.id,
+      };
+    } else {
+      userTask = this.userTaskRepository.create({
+        user_id: user.id,
+        task_id: task.id,
+        status: UserTaskStatus.SUBMITTED,
+        submission_data: {
+          image_url: imageUrl,
+          description,
+          metadata,
+          input_id: savedInput.id,
+        },
+        started_at: now,
+      });
+    }
+
+    await this.userTaskRepository.save(userTask);
+
+    return savedInput;
+  }
+
+  async reviewTaskInput(
+    inputId: number,
+    approved: boolean,
+    reviewedBy: number,
+    reviewComment?: string,
+  ): Promise<TaskInputUser> {
+    const taskInput = await this.taskInputUserRepository.findOne({
+      where: { id: inputId },
+      relations: ['task', 'user'],
+    });
+
+    if (!taskInput) {
+      throw new NotFoundException('Task input not found');
+    }
+
+    if (taskInput.status !== TaskInputStatus.PENDING) {
+      throw new BadRequestException('Task input is not pending review');
+    }
+
+    const now = new Date();
+
+    if (approved) {
+      taskInput.status = TaskInputStatus.APPROVED;
+      taskInput.reviewed_by = reviewedBy;
+      taskInput.reviewed_at = now;
+      taskInput.review_comment = reviewComment || null;
+
+      // Update UserTask to COMPLETED
+      const userTask = await this.userTaskRepository.findOne({
+        where: { user_id: taskInput.user_id, task_id: taskInput.task_id },
+      });
+
+      if (userTask) {
+        userTask.status = UserTaskStatus.COMPLETED;
+        userTask.completed_at = now;
+        userTask.completion_count += 1;
+        userTask.points_earned += taskInput.task.reward_points;
+
+        // Award points to user
+        const user = await this.userRepository.findOne({
+          where: { id: taskInput.user_id },
+        });
+        if (user) {
+          user.airdrop_point += taskInput.task.reward_points;
+          await this.userRepository.save(user);
+        }
+
+        await this.userTaskRepository.save(userTask);
+      }
+    } else {
+      taskInput.status = TaskInputStatus.REJECTED;
+      taskInput.reviewed_by = reviewedBy;
+      taskInput.reviewed_at = now;
+      taskInput.review_comment = reviewComment || 'Submission rejected';
+
+      // Update UserTask to REJECTED
+      const userTask = await this.userTaskRepository.findOne({
+        where: { user_id: taskInput.user_id, task_id: taskInput.task_id },
+      });
+
+      if (userTask) {
+        userTask.status = UserTaskStatus.REJECTED;
+        userTask.rejection_reason = reviewComment || 'Submission rejected';
+        await this.userTaskRepository.save(userTask);
+      }
+    }
+
+    return this.taskInputUserRepository.save(taskInput);
+  }
+
+  async getUserTaskInputs(publicKey: string): Promise<TaskInputUser[]> {
+    const user = await this.userRepository.findOne({ where: { publicKey } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.taskInputUserRepository.find({
+      where: { user_id: user.id },
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  async getPendingTaskInputs(): Promise<TaskInputUser[]> {
+    return this.taskInputUserRepository.find({
+      where: { status: TaskInputStatus.PENDING },
+      order: { created_at: 'ASC' },
+    });
   }
 
   // ========== HELPER METHODS ==========

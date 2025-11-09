@@ -71,6 +71,10 @@ export enum TaskType {
   VISIT_WEBSITE = 'VISIT_WEBSITE',
   DOWNLOAD_APP = 'DOWNLOAD_APP',
 
+  // Submission Tasks
+  SUBMIT_TEXT = 'SUBMIT_TEXT',
+  SUBMIT_IMAGE = 'SUBMIT_IMAGE',
+
   // Custom
   CUSTOM = 'CUSTOM',
 }
@@ -117,6 +121,11 @@ export class Task {
 
   @Column({ type: 'enum', enum: TaskType })
   type: TaskType;
+
+  // Prompt/header for text or image submission tasks
+  // Example: "Share your creative idea", "Upload your artwork"
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  submission_prompt: string;
 
   @Column({ type: 'int' })
   reward_points: number;

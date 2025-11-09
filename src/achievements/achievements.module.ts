@@ -16,6 +16,7 @@ import { TaskTransaction } from '../entities/task-transaction.entity';
 import { NftCollection } from '../entities/nft-collection.entity';
 import { NftType } from '../entities/nft-type.entity';
 import { UserCode } from '../entities/user-code.entity';
+import { TaskInputUser } from '../entities/task-input-user.entity';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { UserCode } from '../entities/user-code.entity';
       UserCode,
       NftCollection,
       NftType,
+      TaskInputUser,
     ]),
   ],
   controllers: [AchievementsController],

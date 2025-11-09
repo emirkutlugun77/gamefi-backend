@@ -355,6 +355,32 @@ export interface DownloadAppConfig {
 }
 
 // ============================================
+// SUBMISSION TASK CONFIGURATIONS
+// ============================================
+
+export interface SubmitTextConfig {
+  min_length?: number; // Minimum text length
+  max_length?: number; // Maximum text length
+  required_keywords?: string[]; // Must include these keywords
+  banned_words?: string[]; // Cannot include these words
+  placeholder?: string; // Placeholder text for input
+  allow_multiline?: boolean; // Allow multiple lines
+  require_unique?: boolean; // Must be unique submission (no duplicates)
+}
+
+export interface SubmitImageConfig {
+  max_file_size_mb?: number; // Maximum file size in MB (default: 5)
+  allowed_formats?: string[]; // e.g., ['jpg', 'png', 'gif', 'webp']
+  min_width?: number; // Minimum image width in pixels
+  min_height?: number; // Minimum image height in pixels
+  max_width?: number; // Maximum image width in pixels
+  max_height?: number; // Maximum image height in pixels
+  require_moderation?: boolean; // Requires admin review before approval
+  description_required?: boolean; // Must include a description with image
+  description_min_length?: number; // Min length for description
+}
+
+// ============================================
 // VERIFICATION CONFIGURATIONS
 // ============================================
 
@@ -436,4 +462,6 @@ export type TaskConfig =
   | ReferralConfig
   | VisitWebsiteConfig
   | DownloadAppConfig
+  | SubmitTextConfig
+  | SubmitImageConfig
   | Record<string, any>; // For CUSTOM tasks

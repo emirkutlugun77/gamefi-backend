@@ -27,6 +27,9 @@ import { SubmitTransactionTaskDto } from './dto/submit-transaction-task.dto';
 import { GenerateCodeDto } from './dto/generate-code.dto';
 import { VerifyTwitterCodeDto } from './dto/verify-twitter-code.dto';
 import { CheckTransactionStatusDto } from './dto/check-transaction-status.dto';
+import { SubmitTextTaskDto } from './dto/submit-text-task.dto';
+import { SubmitImageTaskDto } from './dto/submit-image-task.dto';
+import { ReviewTaskInputDto } from './dto/review-task-input.dto';
 import { TaskTransactionService } from './services/task-transaction.service';
 import { UserCodeService } from './services/user-code.service';
 import { TwitterVerificationService } from './services/twitter-verification.service';
@@ -337,6 +340,154 @@ export class AchievementsController {
           message: error.message,
         },
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // ========== TEXT/IMAGE SUBMISSION TASKS ==========
+
+  @Post('submit-text')
+  @ApiOperation({ summary: 'Submit text for a text submission task' })
+  @ApiResponse({ status: 200, description: 'Text submitted successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 404, description: 'User or task not found' })
+  async submitTextTask(@Body() dto: SubmitTextTaskDto) {
+    try {
+      const taskInput = await this.achievementsService.submitTextTask(
+        dto.task_id,
+        dto.publicKey,
+        dto.content,
+      );
+      return {
+        success: true,
+        data: taskInput,
+        message: 'Text submitted successfully for review',
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('submit-image')
+  @ApiOperation({ summary: 'Submit image for an image submission task' })
+  @ApiResponse({ status: 200, description: 'Image submitted successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 404, description: 'User or task not found' })
+  async submitImageTask(@Body() dto: SubmitImageTaskDto) {
+    try {
+      const taskInput = await this.achievementsService.submitImageTask(
+        dto.task_id,
+        dto.publicKey,
+        dto.image_url,
+        dto.description,
+        dto.metadata,
+      );
+      return {
+        success: true,
+        data: taskInput,
+        message: 'Image submitted successfully for review',
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('review-task-input')
+  @ApiOperation({ summary: 'Review and approve/reject task input (Admin)' })
+  @ApiResponse({ status: 200, description: 'Task input reviewed successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 404, description: 'Task input not found' })
+  async reviewTaskInput(@Body() dto: ReviewTaskInputDto) {
+    try {
+      const taskInput = await this.achievementsService.reviewTaskInput(
+        dto.input_id,
+        dto.approved,
+        dto.reviewed_by,
+        dto.review_comment,
+      );
+      return {
+        success: true,
+        data: taskInput,
+        message: dto.approved
+          ? 'Task input approved and points awarded'
+          : 'Task input rejected',
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('user-task-inputs')
+  @ApiOperation({ summary: 'Get user task inputs (text/image submissions)' })
+  @ApiQuery({
+    name: 'publicKey',
+    required: true,
+    description: 'User public key',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User task inputs retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getUserTaskInputs(@Query('publicKey') publicKey: string) {
+    try {
+      const inputs =
+        await this.achievementsService.getUserTaskInputs(publicKey);
+      return {
+        success: true,
+        data: inputs,
+        count: inputs.length,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('pending-task-inputs')
+  @ApiOperation({ summary: 'Get pending task inputs for review (Admin)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Pending task inputs retrieved successfully',
+  })
+  async getPendingTaskInputs() {
+    try {
+      const inputs = await this.achievementsService.getPendingTaskInputs();
+      return {
+        success: true,
+        data: inputs,
+        count: inputs.length,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
