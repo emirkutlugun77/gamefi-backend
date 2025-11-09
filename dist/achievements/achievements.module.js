@@ -17,6 +17,7 @@ const user_code_service_1 = require("./services/user-code.service");
 const twitter_verification_service_1 = require("./services/twitter-verification.service");
 const prerequisite_validator_service_1 = require("./services/prerequisite-validator.service");
 const telegram_code_verification_service_1 = require("./services/telegram-code-verification.service");
+const task_scheduler_service_1 = require("./task-scheduler.service");
 const task_entity_1 = require("../entities/task.entity");
 const user_task_entity_1 = require("../entities/user-task.entity");
 const user_entity_1 = require("../entities/user.entity");
@@ -49,6 +50,7 @@ exports.AchievementsModule = AchievementsModule = __decorate([
             twitter_verification_service_1.TwitterVerificationService,
             prerequisite_validator_service_1.PrerequisiteValidatorService,
             telegram_code_verification_service_1.TelegramCodeVerificationService,
+            task_scheduler_service_1.TaskSchedulerService,
         ],
         exports: [
             achievements_service_1.AchievementsService,

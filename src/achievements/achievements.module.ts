@@ -8,6 +8,7 @@ import { UserCodeService } from './services/user-code.service';
 import { TwitterVerificationService } from './services/twitter-verification.service';
 import { PrerequisiteValidatorService } from './services/prerequisite-validator.service';
 import { TelegramCodeVerificationService } from './services/telegram-code-verification.service';
+import { TaskSchedulerService } from './task-scheduler.service';
 import { Task } from '../entities/task.entity';
 import { UserTask } from '../entities/user-task.entity';
 import { User } from '../entities/user.entity';
@@ -37,6 +38,7 @@ import { UserCode } from '../entities/user-code.entity';
     TwitterVerificationService,
     PrerequisiteValidatorService,
     TelegramCodeVerificationService,
+    TaskSchedulerService,
   ],
   exports: [
     AchievementsService,
