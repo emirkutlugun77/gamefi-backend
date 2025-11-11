@@ -23,6 +23,8 @@ const nft_collection_entity_1 = require("../entities/nft-collection.entity");
 const nft_type_entity_1 = require("../entities/nft-type.entity");
 const task_transaction_entity_1 = require("../entities/task-transaction.entity");
 const task_input_user_entity_1 = require("../entities/task-input-user.entity");
+const user_code_service_1 = require("./services/user-code.service");
+const user_code_entity_1 = require("../entities/user-code.entity");
 let AchievementsService = class AchievementsService {
     taskRepository;
     userTaskRepository;
@@ -30,13 +32,15 @@ let AchievementsService = class AchievementsService {
     nftCollectionRepository;
     nftTypeRepository;
     taskInputUserRepository;
-    constructor(taskRepository, userTaskRepository, userRepository, nftCollectionRepository, nftTypeRepository, taskInputUserRepository) {
+    userCodeService;
+    constructor(taskRepository, userTaskRepository, userRepository, nftCollectionRepository, nftTypeRepository, taskInputUserRepository, userCodeService) {
         this.taskRepository = taskRepository;
         this.userTaskRepository = userTaskRepository;
         this.userRepository = userRepository;
         this.nftCollectionRepository = nftCollectionRepository;
         this.nftTypeRepository = nftTypeRepository;
         this.taskInputUserRepository = taskInputUserRepository;
+        this.userCodeService = userCodeService;
     }
     async createTask(createTaskDto) {
         const task = this.taskRepository.create({
@@ -291,6 +295,49 @@ let AchievementsService = class AchievementsService {
             });
         }
         await this.userTaskRepository.save(userTask);
+        if (task.requires_transaction && task.submission_prompt) {
+            const webhookUrl = task.config?.webhook_url || task.verification_config?.webhook_url;
+            let videoUrl = null;
+            if (webhookUrl) {
+                try {
+                    const webhookResponse = await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            prompt: textContent,
+                        }),
+                    });
+                    if (webhookResponse.ok) {
+                        const webhookData = await webhookResponse.json();
+                        videoUrl = webhookData.video_url || webhookData.url || webhookData.videoUrl;
+                    }
+                    else {
+                        console.error('Webhook request failed:', await webhookResponse.text());
+                    }
+                }
+                catch (error) {
+                    console.error('Error calling webhook:', error);
+                }
+            }
+            const userCode = await this.userCodeService.generateCode(user.id, task.id, user_code_entity_1.CodeType.TWITTER_EMBED, {
+                video_url: videoUrl,
+                webhook_url: webhookUrl,
+                required_platform: 'twitter',
+                task_type: task.type,
+                submission_input_id: savedInput.id,
+                user_input: textContent,
+            }, 72, 1);
+            userTask.submission_data = {
+                ...userTask.submission_data,
+                generated_code: userCode.code,
+                code_expires_at: userCode.expires_at,
+                video_url: videoUrl,
+                webhook_called: !!webhookUrl,
+            };
+            await this.userTaskRepository.save(userTask);
+        }
         return savedInput;
     }
     async submitImageTask(taskId, publicKey, imageUrl, description, metadata) {
@@ -833,6 +880,7 @@ exports.AchievementsService = AchievementsService = __decorate([
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        user_code_service_1.UserCodeService])
 ], AchievementsService);
 //# sourceMappingURL=achievements.service.js.map

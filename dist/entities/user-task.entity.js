@@ -18,6 +18,7 @@ var UserTaskStatus;
     UserTaskStatus["PENDING"] = "PENDING";
     UserTaskStatus["IN_PROGRESS"] = "IN_PROGRESS";
     UserTaskStatus["SUBMITTED"] = "SUBMITTED";
+    UserTaskStatus["AWAITING_INPUT"] = "AWAITING_INPUT";
     UserTaskStatus["COMPLETED"] = "COMPLETED";
     UserTaskStatus["REJECTED"] = "REJECTED";
 })(UserTaskStatus || (exports.UserTaskStatus = UserTaskStatus = {}));

@@ -156,11 +156,18 @@ export class TaskTransactionService {
       if (confirmations >= transaction.required_confirmations) {
         transaction.status = TransactionStatus.CONFIRMED;
 
-        // Update user task to completed if transaction is confirmed
+        // Update user task based on whether it requires input
         const userTask = transaction.userTask;
         if (userTask && userTask.status === UserTaskStatus.IN_PROGRESS) {
-          userTask.status = UserTaskStatus.COMPLETED;
-          userTask.completed_at = new Date();
+          // Check if task requires input submission
+          if (userTask.task && userTask.task.submission_prompt) {
+            // Task requires input, set to AWAITING_INPUT
+            userTask.status = UserTaskStatus.AWAITING_INPUT;
+          } else {
+            // No input required, complete the task
+            userTask.status = UserTaskStatus.COMPLETED;
+            userTask.completed_at = new Date();
+          }
           await this.userTaskRepository.save(userTask);
         }
       }

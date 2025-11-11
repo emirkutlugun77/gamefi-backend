@@ -9,6 +9,7 @@ import { VerifyTaskDto } from './dto/verify-task.dto';
 import { NftCollection } from '../entities/nft-collection.entity';
 import { NftType } from '../entities/nft-type.entity';
 import { TaskInputUser } from '../entities/task-input-user.entity';
+import { UserCodeService } from './services/user-code.service';
 export declare class AchievementsService {
     private readonly taskRepository;
     private readonly userTaskRepository;
@@ -16,7 +17,8 @@ export declare class AchievementsService {
     private readonly nftCollectionRepository;
     private readonly nftTypeRepository;
     private readonly taskInputUserRepository;
-    constructor(taskRepository: Repository<Task>, userTaskRepository: Repository<UserTask>, userRepository: Repository<User>, nftCollectionRepository: Repository<NftCollection>, nftTypeRepository: Repository<NftType>, taskInputUserRepository: Repository<TaskInputUser>);
+    private readonly userCodeService;
+    constructor(taskRepository: Repository<Task>, userTaskRepository: Repository<UserTask>, userRepository: Repository<User>, nftCollectionRepository: Repository<NftCollection>, nftTypeRepository: Repository<NftType>, taskInputUserRepository: Repository<TaskInputUser>, userCodeService: UserCodeService);
     createTask(createTaskDto: CreateTaskDto): Promise<Task>;
     getAllTasks(): Promise<Task[]>;
     getActiveTasks(): Promise<Task[]>;

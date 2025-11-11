@@ -20,6 +20,8 @@ import {
   TaskInputType,
   TaskInputStatus,
 } from '../entities/task-input-user.entity';
+import { UserCodeService } from './services/user-code.service';
+import { CodeType } from '../entities/user-code.entity';
 
 @Injectable()
 export class AchievementsService {
@@ -36,6 +38,7 @@ export class AchievementsService {
     private readonly nftTypeRepository: Repository<NftType>,
     @InjectRepository(TaskInputUser)
     private readonly taskInputUserRepository: Repository<TaskInputUser>,
+    private readonly userCodeService: UserCodeService,
   ) {}
 
   // ========== TASK MANAGEMENT ==========
@@ -392,6 +395,65 @@ export class AchievementsService {
     }
 
     await this.userTaskRepository.save(userTask);
+
+    // If this is a transaction task with submission_prompt, generate code for tweet verification
+    if (task.requires_transaction && task.submission_prompt) {
+      // Extract webhook URL from task config
+      const webhookUrl = task.config?.webhook_url || task.verification_config?.webhook_url;
+      let videoUrl = null;
+
+      // Call webhook to generate video URL
+      if (webhookUrl) {
+        try {
+          const webhookResponse = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              prompt: textContent,
+            }),
+          });
+
+          if (webhookResponse.ok) {
+            const webhookData = await webhookResponse.json();
+            // Assuming webhook returns { video_url: "..." }
+            videoUrl = webhookData.video_url || webhookData.url || webhookData.videoUrl;
+          } else {
+            console.error('Webhook request failed:', await webhookResponse.text());
+          }
+        } catch (error) {
+          console.error('Error calling webhook:', error);
+        }
+      }
+
+      // Generate verification code with video metadata
+      const userCode = await this.userCodeService.generateCode(
+        user.id,
+        task.id,
+        CodeType.TWITTER_EMBED,
+        {
+          video_url: videoUrl,
+          webhook_url: webhookUrl,
+          required_platform: 'twitter',
+          task_type: task.type,
+          submission_input_id: savedInput.id,
+          user_input: textContent,
+        },
+        72, // expires in 72 hours
+        1, // max uses
+      );
+
+      // Add code info to submission data
+      userTask.submission_data = {
+        ...userTask.submission_data,
+        generated_code: userCode.code,
+        code_expires_at: userCode.expires_at,
+        video_url: videoUrl,
+        webhook_called: !!webhookUrl,
+      };
+      await this.userTaskRepository.save(userTask);
+    }
 
     return savedInput;
   }

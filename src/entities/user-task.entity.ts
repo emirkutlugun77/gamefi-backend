@@ -15,6 +15,7 @@ export enum UserTaskStatus {
   PENDING = 'PENDING',
   IN_PROGRESS = 'IN_PROGRESS',
   SUBMITTED = 'SUBMITTED',
+  AWAITING_INPUT = 'AWAITING_INPUT', // Transaction confirmed, waiting for user input
   COMPLETED = 'COMPLETED',
   REJECTED = 'REJECTED',
 }

@@ -4,6 +4,7 @@ export declare enum UserTaskStatus {
     PENDING = "PENDING",
     IN_PROGRESS = "IN_PROGRESS",
     SUBMITTED = "SUBMITTED",
+    AWAITING_INPUT = "AWAITING_INPUT",
     COMPLETED = "COMPLETED",
     REJECTED = "REJECTED"
 }
