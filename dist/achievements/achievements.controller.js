@@ -24,6 +24,9 @@ const submit_transaction_task_dto_1 = require("./dto/submit-transaction-task.dto
 const generate_code_dto_1 = require("./dto/generate-code.dto");
 const verify_twitter_code_dto_1 = require("./dto/verify-twitter-code.dto");
 const check_transaction_status_dto_1 = require("./dto/check-transaction-status.dto");
+const submit_text_task_dto_1 = require("./dto/submit-text-task.dto");
+const submit_image_task_dto_1 = require("./dto/submit-image-task.dto");
+const review_task_input_dto_1 = require("./dto/review-task-input.dto");
 const task_transaction_service_1 = require("./services/task-transaction.service");
 const user_code_service_1 = require("./services/user-code.service");
 const twitter_verification_service_1 = require("./services/twitter-verification.service");
@@ -217,6 +220,88 @@ let AchievementsController = class AchievementsController {
                 success: false,
                 message: error.message,
             }, error.status || common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async submitTextTask(dto) {
+        try {
+            const taskInput = await this.achievementsService.submitTextTask(dto.task_id, dto.publicKey, dto.content);
+            return {
+                success: true,
+                data: taskInput,
+                message: 'Text submitted successfully for review',
+            };
+        }
+        catch (error) {
+            throw new common_1.HttpException({
+                success: false,
+                message: error.message,
+            }, error.status || common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async submitImageTask(dto) {
+        try {
+            const taskInput = await this.achievementsService.submitImageTask(dto.task_id, dto.publicKey, dto.image_url, dto.description, dto.metadata);
+            return {
+                success: true,
+                data: taskInput,
+                message: 'Image submitted successfully for review',
+            };
+        }
+        catch (error) {
+            throw new common_1.HttpException({
+                success: false,
+                message: error.message,
+            }, error.status || common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async reviewTaskInput(dto) {
+        try {
+            const taskInput = await this.achievementsService.reviewTaskInput(dto.input_id, dto.approved, dto.reviewed_by, dto.review_comment);
+            return {
+                success: true,
+                data: taskInput,
+                message: dto.approved
+                    ? 'Task input approved and points awarded'
+                    : 'Task input rejected',
+            };
+        }
+        catch (error) {
+            throw new common_1.HttpException({
+                success: false,
+                message: error.message,
+            }, error.status || common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async getUserTaskInputs(publicKey) {
+        try {
+            const inputs = await this.achievementsService.getUserTaskInputs(publicKey);
+            return {
+                success: true,
+                data: inputs,
+                count: inputs.length,
+            };
+        }
+        catch (error) {
+            throw new common_1.HttpException({
+                success: false,
+                message: error.message,
+            }, error.status || common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async getPendingTaskInputs() {
+        try {
+            const inputs = await this.achievementsService.getPendingTaskInputs();
+            return {
+                success: true,
+                data: inputs,
+                count: inputs.length,
+            };
+        }
+        catch (error) {
+            throw new common_1.HttpException({
+                success: false,
+                message: error.message,
+            }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     async submitTransactionTask(dto) {
@@ -478,6 +563,68 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], AchievementsController.prototype, "getUserStats", null);
+__decorate([
+    (0, common_1.Post)('submit-text'),
+    (0, swagger_1.ApiOperation)({ summary: 'Submit text for a text submission task' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Text submitted successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Bad request' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'User or task not found' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [submit_text_task_dto_1.SubmitTextTaskDto]),
+    __metadata("design:returntype", Promise)
+], AchievementsController.prototype, "submitTextTask", null);
+__decorate([
+    (0, common_1.Post)('submit-image'),
+    (0, swagger_1.ApiOperation)({ summary: 'Submit image for an image submission task' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Image submitted successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Bad request' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'User or task not found' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [submit_image_task_dto_1.SubmitImageTaskDto]),
+    __metadata("design:returntype", Promise)
+], AchievementsController.prototype, "submitImageTask", null);
+__decorate([
+    (0, common_1.Post)('review-task-input'),
+    (0, swagger_1.ApiOperation)({ summary: 'Review and approve/reject task input (Admin)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Task input reviewed successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Bad request' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Task input not found' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [review_task_input_dto_1.ReviewTaskInputDto]),
+    __metadata("design:returntype", Promise)
+], AchievementsController.prototype, "reviewTaskInput", null);
+__decorate([
+    (0, common_1.Get)('user-task-inputs'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get user task inputs (text/image submissions)' }),
+    (0, swagger_1.ApiQuery)({
+        name: 'publicKey',
+        required: true,
+        description: 'User public key',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'User task inputs retrieved successfully',
+    }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'User not found' }),
+    __param(0, (0, common_1.Query)('publicKey')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AchievementsController.prototype, "getUserTaskInputs", null);
+__decorate([
+    (0, common_1.Get)('pending-task-inputs'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get pending task inputs for review (Admin)' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Pending task inputs retrieved successfully',
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AchievementsController.prototype, "getPendingTaskInputs", null);
 __decorate([
     (0, common_1.Post)('submit-transaction-task'),
     (0, swagger_1.ApiOperation)({ summary: 'Submit a transaction-based task' }),

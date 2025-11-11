@@ -8,13 +8,15 @@ import { SubmitTaskDto } from './dto/submit-task.dto';
 import { VerifyTaskDto } from './dto/verify-task.dto';
 import { NftCollection } from '../entities/nft-collection.entity';
 import { NftType } from '../entities/nft-type.entity';
+import { TaskInputUser } from '../entities/task-input-user.entity';
 export declare class AchievementsService {
     private readonly taskRepository;
     private readonly userTaskRepository;
     private readonly userRepository;
     private readonly nftCollectionRepository;
     private readonly nftTypeRepository;
-    constructor(taskRepository: Repository<Task>, userTaskRepository: Repository<UserTask>, userRepository: Repository<User>, nftCollectionRepository: Repository<NftCollection>, nftTypeRepository: Repository<NftType>);
+    private readonly taskInputUserRepository;
+    constructor(taskRepository: Repository<Task>, userTaskRepository: Repository<UserTask>, userRepository: Repository<User>, nftCollectionRepository: Repository<NftCollection>, nftTypeRepository: Repository<NftType>, taskInputUserRepository: Repository<TaskInputUser>);
     createTask(createTaskDto: CreateTaskDto): Promise<Task>;
     getAllTasks(): Promise<Task[]>;
     getActiveTasks(): Promise<Task[]>;
@@ -27,6 +29,11 @@ export declare class AchievementsService {
     verifyTask(verifyTaskDto: VerifyTaskDto): Promise<UserTask>;
     getPendingVerifications(): Promise<UserTask[]>;
     getUserStats(publicKey: string): Promise<any>;
+    submitTextTask(taskId: number, publicKey: string, textContent: string): Promise<TaskInputUser>;
+    submitImageTask(taskId: number, publicKey: string, imageUrl: string, description?: string, metadata?: Record<string, any>): Promise<TaskInputUser>;
+    reviewTaskInput(inputId: number, approved: boolean, reviewedBy: number, reviewComment?: string): Promise<TaskInputUser>;
+    getUserTaskInputs(publicKey: string): Promise<TaskInputUser[]>;
+    getPendingTaskInputs(): Promise<TaskInputUser[]>;
     private canCompleteTask;
     getTaskConfigOptions(): Promise<Record<string, any>>;
     private normalizeStatus;

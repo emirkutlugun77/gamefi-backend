@@ -22,18 +22,21 @@ const user_entity_1 = require("../entities/user.entity");
 const nft_collection_entity_1 = require("../entities/nft-collection.entity");
 const nft_type_entity_1 = require("../entities/nft-type.entity");
 const task_transaction_entity_1 = require("../entities/task-transaction.entity");
+const task_input_user_entity_1 = require("../entities/task-input-user.entity");
 let AchievementsService = class AchievementsService {
     taskRepository;
     userTaskRepository;
     userRepository;
     nftCollectionRepository;
     nftTypeRepository;
-    constructor(taskRepository, userTaskRepository, userRepository, nftCollectionRepository, nftTypeRepository) {
+    taskInputUserRepository;
+    constructor(taskRepository, userTaskRepository, userRepository, nftCollectionRepository, nftTypeRepository, taskInputUserRepository) {
         this.taskRepository = taskRepository;
         this.userTaskRepository = userTaskRepository;
         this.userRepository = userRepository;
         this.nftCollectionRepository = nftCollectionRepository;
         this.nftTypeRepository = nftTypeRepository;
+        this.taskInputUserRepository = taskInputUserRepository;
     }
     async createTask(createTaskDto) {
         const task = this.taskRepository.create({
@@ -47,6 +50,9 @@ let AchievementsService = class AchievementsService {
                 : undefined,
         });
         const savedTask = await this.taskRepository.save(task);
+        if (savedTask.status === task_entity_1.TaskStatus.ACTIVE) {
+            return savedTask;
+        }
         const [syncedTask] = await this.syncTaskStatuses([savedTask]);
         return syncedTask;
     }
@@ -81,6 +87,7 @@ let AchievementsService = class AchievementsService {
     }
     async updateTask(id, updateTaskDto) {
         const task = await this.getTaskById(id);
+        const isManualStatusUpdate = updateTaskDto.status !== undefined;
         Object.assign(task, {
             ...updateTaskDto,
             start_date: updateTaskDto.start_date
@@ -94,6 +101,9 @@ let AchievementsService = class AchievementsService {
                 : task.status,
         });
         const savedTask = await this.taskRepository.save(task);
+        if (isManualStatusUpdate && savedTask.status === task_entity_1.TaskStatus.ACTIVE) {
+            return savedTask;
+        }
         const [syncedTask] = await this.syncTaskStatuses([savedTask]);
         return syncedTask;
     }
@@ -242,6 +252,165 @@ let AchievementsService = class AchievementsService {
                 pointsFromTasks: totalPointsEarned,
             },
         };
+    }
+    async submitTextTask(taskId, publicKey, textContent) {
+        const user = await this.userRepository.findOne({ where: { publicKey } });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        const task = await this.getTaskById(taskId);
+        if (task.type !== task_entity_1.TaskType.SUBMIT_TEXT) {
+            throw new common_1.BadRequestException('This task is not a text submission task');
+        }
+        if (task.status !== task_entity_1.TaskStatus.ACTIVE) {
+            throw new common_1.BadRequestException('Task is not active');
+        }
+        const taskInput = this.taskInputUserRepository.create({
+            user_id: user.id,
+            task_id: task.id,
+            input_type: task_input_user_entity_1.TaskInputType.TEXT,
+            content: textContent,
+            status: task_input_user_entity_1.TaskInputStatus.PENDING,
+        });
+        const savedInput = await this.taskInputUserRepository.save(taskInput);
+        let userTask = await this.userTaskRepository.findOne({
+            where: { user_id: user.id, task_id: task.id },
+        });
+        const now = new Date();
+        if (userTask) {
+            userTask.status = user_task_entity_1.UserTaskStatus.SUBMITTED;
+            userTask.submission_data = { text: textContent, input_id: savedInput.id };
+        }
+        else {
+            userTask = this.userTaskRepository.create({
+                user_id: user.id,
+                task_id: task.id,
+                status: user_task_entity_1.UserTaskStatus.SUBMITTED,
+                submission_data: { text: textContent, input_id: savedInput.id },
+                started_at: now,
+            });
+        }
+        await this.userTaskRepository.save(userTask);
+        return savedInput;
+    }
+    async submitImageTask(taskId, publicKey, imageUrl, description, metadata) {
+        const user = await this.userRepository.findOne({ where: { publicKey } });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        const task = await this.getTaskById(taskId);
+        if (task.type !== task_entity_1.TaskType.SUBMIT_IMAGE) {
+            throw new common_1.BadRequestException('This task is not an image submission task');
+        }
+        if (task.status !== task_entity_1.TaskStatus.ACTIVE) {
+            throw new common_1.BadRequestException('Task is not active');
+        }
+        const taskInput = this.taskInputUserRepository.create({
+            user_id: user.id,
+            task_id: task.id,
+            input_type: task_input_user_entity_1.TaskInputType.IMAGE,
+            content: imageUrl,
+            description: description || null,
+            metadata: metadata || null,
+            status: task_input_user_entity_1.TaskInputStatus.PENDING,
+        });
+        const savedInput = await this.taskInputUserRepository.save(taskInput);
+        let userTask = await this.userTaskRepository.findOne({
+            where: { user_id: user.id, task_id: task.id },
+        });
+        const now = new Date();
+        if (userTask) {
+            userTask.status = user_task_entity_1.UserTaskStatus.SUBMITTED;
+            userTask.submission_data = {
+                image_url: imageUrl,
+                description,
+                metadata,
+                input_id: savedInput.id,
+            };
+        }
+        else {
+            userTask = this.userTaskRepository.create({
+                user_id: user.id,
+                task_id: task.id,
+                status: user_task_entity_1.UserTaskStatus.SUBMITTED,
+                submission_data: {
+                    image_url: imageUrl,
+                    description,
+                    metadata,
+                    input_id: savedInput.id,
+                },
+                started_at: now,
+            });
+        }
+        await this.userTaskRepository.save(userTask);
+        return savedInput;
+    }
+    async reviewTaskInput(inputId, approved, reviewedBy, reviewComment) {
+        const taskInput = await this.taskInputUserRepository.findOne({
+            where: { id: inputId },
+            relations: ['task', 'user'],
+        });
+        if (!taskInput) {
+            throw new common_1.NotFoundException('Task input not found');
+        }
+        if (taskInput.status !== task_input_user_entity_1.TaskInputStatus.PENDING) {
+            throw new common_1.BadRequestException('Task input is not pending review');
+        }
+        const now = new Date();
+        if (approved) {
+            taskInput.status = task_input_user_entity_1.TaskInputStatus.APPROVED;
+            taskInput.reviewed_by = reviewedBy;
+            taskInput.reviewed_at = now;
+            taskInput.review_comment = reviewComment || null;
+            const userTask = await this.userTaskRepository.findOne({
+                where: { user_id: taskInput.user_id, task_id: taskInput.task_id },
+            });
+            if (userTask) {
+                userTask.status = user_task_entity_1.UserTaskStatus.COMPLETED;
+                userTask.completed_at = now;
+                userTask.completion_count += 1;
+                userTask.points_earned += taskInput.task.reward_points;
+                const user = await this.userRepository.findOne({
+                    where: { id: taskInput.user_id },
+                });
+                if (user) {
+                    user.airdrop_point += taskInput.task.reward_points;
+                    await this.userRepository.save(user);
+                }
+                await this.userTaskRepository.save(userTask);
+            }
+        }
+        else {
+            taskInput.status = task_input_user_entity_1.TaskInputStatus.REJECTED;
+            taskInput.reviewed_by = reviewedBy;
+            taskInput.reviewed_at = now;
+            taskInput.review_comment = reviewComment || 'Submission rejected';
+            const userTask = await this.userTaskRepository.findOne({
+                where: { user_id: taskInput.user_id, task_id: taskInput.task_id },
+            });
+            if (userTask) {
+                userTask.status = user_task_entity_1.UserTaskStatus.REJECTED;
+                userTask.rejection_reason = reviewComment || 'Submission rejected';
+                await this.userTaskRepository.save(userTask);
+            }
+        }
+        return this.taskInputUserRepository.save(taskInput);
+    }
+    async getUserTaskInputs(publicKey) {
+        const user = await this.userRepository.findOne({ where: { publicKey } });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        return this.taskInputUserRepository.find({
+            where: { user_id: user.id },
+            order: { created_at: 'DESC' },
+        });
+    }
+    async getPendingTaskInputs() {
+        return this.taskInputUserRepository.find({
+            where: { status: task_input_user_entity_1.TaskInputStatus.PENDING },
+            order: { created_at: 'ASC' },
+        });
     }
     canCompleteTask(task, userTask) {
         if (task.status !== task_entity_1.TaskStatus.ACTIVE)
@@ -658,7 +827,9 @@ exports.AchievementsService = AchievementsService = __decorate([
     __param(2, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __param(3, (0, typeorm_1.InjectRepository)(nft_collection_entity_1.NftCollection)),
     __param(4, (0, typeorm_1.InjectRepository)(nft_type_entity_1.NftType)),
+    __param(5, (0, typeorm_1.InjectRepository)(task_input_user_entity_1.TaskInputUser)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

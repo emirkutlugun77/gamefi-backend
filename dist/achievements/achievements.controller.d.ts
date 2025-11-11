@@ -7,6 +7,9 @@ import { SubmitTransactionTaskDto } from './dto/submit-transaction-task.dto';
 import { GenerateCodeDto } from './dto/generate-code.dto';
 import { VerifyTwitterCodeDto } from './dto/verify-twitter-code.dto';
 import { CheckTransactionStatusDto } from './dto/check-transaction-status.dto';
+import { SubmitTextTaskDto } from './dto/submit-text-task.dto';
+import { SubmitImageTaskDto } from './dto/submit-image-task.dto';
+import { ReviewTaskInputDto } from './dto/review-task-input.dto';
 import { TaskTransactionService } from './services/task-transaction.service';
 import { UserCodeService } from './services/user-code.service';
 import { TwitterVerificationService } from './services/twitter-verification.service';
@@ -65,6 +68,31 @@ export declare class AchievementsController {
     getUserStats(publicKey: string): Promise<{
         success: boolean;
         data: any;
+    }>;
+    submitTextTask(dto: SubmitTextTaskDto): Promise<{
+        success: boolean;
+        data: import("../entities/task-input-user.entity").TaskInputUser;
+        message: string;
+    }>;
+    submitImageTask(dto: SubmitImageTaskDto): Promise<{
+        success: boolean;
+        data: import("../entities/task-input-user.entity").TaskInputUser;
+        message: string;
+    }>;
+    reviewTaskInput(dto: ReviewTaskInputDto): Promise<{
+        success: boolean;
+        data: import("../entities/task-input-user.entity").TaskInputUser;
+        message: string;
+    }>;
+    getUserTaskInputs(publicKey: string): Promise<{
+        success: boolean;
+        data: import("../entities/task-input-user.entity").TaskInputUser[];
+        count: number;
+    }>;
+    getPendingTaskInputs(): Promise<{
+        success: boolean;
+        data: import("../entities/task-input-user.entity").TaskInputUser[];
+        count: number;
     }>;
     submitTransactionTask(dto: SubmitTransactionTaskDto): Promise<{
         success: boolean;

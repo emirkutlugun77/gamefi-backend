@@ -52,11 +52,11 @@ export class TaskInputUser {
 
   // Optional description for image submissions
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description: string | null;
 
   // Metadata about the submission (e.g., file size, image dimensions, etc.)
   @Column({ type: 'jsonb', nullable: true })
-  metadata: Record<string, any>;
+  metadata: Record<string, any> | null;
 
   @Column({
     type: 'enum',
@@ -67,14 +67,14 @@ export class TaskInputUser {
 
   // Reviewer's comment or rejection reason
   @Column({ type: 'text', nullable: true })
-  review_comment: string;
+  review_comment: string | null;
 
   // Admin/reviewer who approved/rejected
   @Column({ type: 'int', nullable: true })
-  reviewed_by: number;
+  reviewed_by: number | null;
 
   @Column({ type: 'timestamp', nullable: true })
-  reviewed_at: Date;
+  reviewed_at: Date | null;
 
   @CreateDateColumn()
   created_at: Date;

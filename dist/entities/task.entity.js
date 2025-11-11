@@ -59,6 +59,8 @@ var TaskType;
     TaskType["REFERRAL"] = "REFERRAL";
     TaskType["VISIT_WEBSITE"] = "VISIT_WEBSITE";
     TaskType["DOWNLOAD_APP"] = "DOWNLOAD_APP";
+    TaskType["SUBMIT_TEXT"] = "SUBMIT_TEXT";
+    TaskType["SUBMIT_IMAGE"] = "SUBMIT_IMAGE";
     TaskType["CUSTOM"] = "CUSTOM";
 })(TaskType || (exports.TaskType = TaskType = {}));
 var TaskStatus;
@@ -95,6 +97,7 @@ let Task = class Task {
     title;
     description;
     type;
+    submission_prompt;
     reward_points;
     status;
     config;
@@ -138,6 +141,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'enum', enum: TaskType }),
     __metadata("design:type", String)
 ], Task.prototype, "type", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 500, nullable: true }),
+    __metadata("design:type", String)
+], Task.prototype, "submission_prompt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'int' }),
     __metadata("design:type", Number)

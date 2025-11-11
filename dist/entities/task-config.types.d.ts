@@ -268,6 +268,26 @@ export interface DownloadAppConfig {
     play_store_url?: string;
     require_open?: boolean;
 }
+export interface SubmitTextConfig {
+    min_length?: number;
+    max_length?: number;
+    required_keywords?: string[];
+    banned_words?: string[];
+    placeholder?: string;
+    allow_multiline?: boolean;
+    require_unique?: boolean;
+}
+export interface SubmitImageConfig {
+    max_file_size_mb?: number;
+    allowed_formats?: string[];
+    min_width?: number;
+    min_height?: number;
+    max_width?: number;
+    max_height?: number;
+    require_moderation?: boolean;
+    description_required?: boolean;
+    description_min_length?: number;
+}
 export interface VerificationConfig {
     method: 'manual' | 'automatic' | 'semi_automatic' | 'proof_required';
     api_endpoint?: string;
@@ -284,4 +304,4 @@ export interface VerificationConfig {
     require_admin_approval?: boolean;
     auto_reject_criteria?: string[];
 }
-export type TaskConfig = TwitterFollowConfig | TwitterLikeConfig | TwitterRetweetConfig | TwitterCommentConfig | TwitterTweetConfig | TwitterQuoteConfig | InstagramFollowConfig | InstagramLikeConfig | InstagramCommentConfig | InstagramShareStoryConfig | InstagramPostConfig | InstagramReelConfig | FacebookFollowConfig | FacebookLikeConfig | FacebookShareConfig | FacebookCommentConfig | FacebookJoinGroupConfig | TelegramJoinConfig | TelegramShareConfig | TelegramReactConfig | TelegramInviteConfig | DiscordJoinConfig | DiscordVerifyConfig | DiscordMessageConfig | DiscordReactConfig | YouTubeSubscribeConfig | YouTubeLikeConfig | YouTubeCommentConfig | YouTubeWatchConfig | TikTokFollowConfig | TikTokLikeConfig | TikTokShareConfig | TikTokCommentConfig | NftHoldConfig | NftMintConfig | WalletConnectConfig | TokenSwapConfig | LiquidityProvideConfig | StakeTokensConfig | DailyLoginConfig | StreakMaintainConfig | QuizConfig | SurveyConfig | ReferralConfig | VisitWebsiteConfig | DownloadAppConfig | Record<string, any>;
+export type TaskConfig = TwitterFollowConfig | TwitterLikeConfig | TwitterRetweetConfig | TwitterCommentConfig | TwitterTweetConfig | TwitterQuoteConfig | InstagramFollowConfig | InstagramLikeConfig | InstagramCommentConfig | InstagramShareStoryConfig | InstagramPostConfig | InstagramReelConfig | FacebookFollowConfig | FacebookLikeConfig | FacebookShareConfig | FacebookCommentConfig | FacebookJoinGroupConfig | TelegramJoinConfig | TelegramShareConfig | TelegramReactConfig | TelegramInviteConfig | DiscordJoinConfig | DiscordVerifyConfig | DiscordMessageConfig | DiscordReactConfig | YouTubeSubscribeConfig | YouTubeLikeConfig | YouTubeCommentConfig | YouTubeWatchConfig | TikTokFollowConfig | TikTokLikeConfig | TikTokShareConfig | TikTokCommentConfig | NftHoldConfig | NftMintConfig | WalletConnectConfig | TokenSwapConfig | LiquidityProvideConfig | StakeTokensConfig | DailyLoginConfig | StreakMaintainConfig | QuizConfig | SurveyConfig | ReferralConfig | VisitWebsiteConfig | DownloadAppConfig | SubmitTextConfig | SubmitImageConfig | Record<string, any>;

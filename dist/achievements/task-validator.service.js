@@ -167,6 +167,47 @@ let TaskValidatorService = class TaskValidatorService {
                     errors.push('Platform (ios/android/both) is required');
                 }
                 break;
+            case task_entity_1.TaskType.SUBMIT_TEXT:
+                if (config?.min_length && config.min_length < 1) {
+                    errors.push('Minimum text length must be at least 1 character');
+                }
+                if (config?.max_length &&
+                    config.min_length &&
+                    config.max_length < config.min_length) {
+                    errors.push('Maximum length must be greater than minimum length');
+                }
+                if (config?.required_keywords &&
+                    !Array.isArray(config.required_keywords)) {
+                    errors.push('Required keywords must be an array');
+                }
+                if (config?.banned_words && !Array.isArray(config.banned_words)) {
+                    errors.push('Banned words must be an array');
+                }
+                break;
+            case task_entity_1.TaskType.SUBMIT_IMAGE:
+                if (config?.max_file_size_mb && config.max_file_size_mb < 0.1) {
+                    errors.push('Maximum file size must be at least 0.1 MB');
+                }
+                if (config?.allowed_formats &&
+                    !Array.isArray(config.allowed_formats)) {
+                    errors.push('Allowed formats must be an array');
+                }
+                if (config?.min_width &&
+                    config?.max_width &&
+                    config.max_width < config.min_width) {
+                    errors.push('Maximum width must be greater than minimum width');
+                }
+                if (config?.min_height &&
+                    config?.max_height &&
+                    config.max_height < config.min_height) {
+                    errors.push('Maximum height must be greater than minimum height');
+                }
+                if (config?.description_required &&
+                    config?.description_min_length &&
+                    config.description_min_length < 1) {
+                    errors.push('Description minimum length must be at least 1 character');
+                }
+                break;
             case task_entity_1.TaskType.CUSTOM:
                 break;
             default:
@@ -242,6 +283,79 @@ let TaskValidatorService = class TaskValidatorService {
             case task_entity_1.TaskType.REFERRAL:
                 if (!Array.isArray(submissionData.referral_ids)) {
                     errors.push('Referral IDs must be an array');
+                }
+                break;
+            case task_entity_1.TaskType.SUBMIT_TEXT:
+                const textConfig = config;
+                const textContent = submissionData.text || submissionData.content;
+                if (!textContent) {
+                    errors.push('Text content is required');
+                }
+                else {
+                    if (textConfig.min_length && textContent.length < textConfig.min_length) {
+                        errors.push(`Text must be at least ${textConfig.min_length} characters`);
+                    }
+                    if (textConfig.max_length && textContent.length > textConfig.max_length) {
+                        errors.push(`Text must not exceed ${textConfig.max_length} characters`);
+                    }
+                    if (textConfig.required_keywords && textConfig.required_keywords.length > 0) {
+                        const keywordValidation = this.validateKeywords(textContent, textConfig.required_keywords);
+                        if (!keywordValidation.valid) {
+                            errors.push(`Missing required keywords: ${keywordValidation.missing.join(', ')}`);
+                        }
+                    }
+                    if (textConfig.banned_words && textConfig.banned_words.length > 0) {
+                        const textLower = textContent.toLowerCase();
+                        const foundBanned = textConfig.banned_words.filter((word) => textLower.includes(word.toLowerCase()));
+                        if (foundBanned.length > 0) {
+                            errors.push(`Text contains banned words: ${foundBanned.join(', ')}`);
+                        }
+                    }
+                }
+                break;
+            case task_entity_1.TaskType.SUBMIT_IMAGE:
+                const imageConfig = config;
+                const imageUrl = submissionData.image_url || submissionData.url;
+                if (!imageUrl) {
+                    errors.push('Image URL is required');
+                }
+                else if (!this.isValidUrl(imageUrl)) {
+                    errors.push('Invalid image URL format');
+                }
+                if (imageConfig.description_required) {
+                    const description = submissionData.description || submissionData.image_description;
+                    if (!description) {
+                        errors.push('Image description is required');
+                    }
+                    else if (imageConfig.description_min_length &&
+                        description.length < imageConfig.description_min_length) {
+                        errors.push(`Description must be at least ${imageConfig.description_min_length} characters`);
+                    }
+                }
+                if (submissionData.metadata) {
+                    const metadata = submissionData.metadata;
+                    if (imageConfig.max_file_size_mb &&
+                        metadata.file_size_mb &&
+                        metadata.file_size_mb > imageConfig.max_file_size_mb) {
+                        errors.push(`Image file size exceeds maximum of ${imageConfig.max_file_size_mb} MB`);
+                    }
+                    if (imageConfig.allowed_formats &&
+                        metadata.format &&
+                        !imageConfig.allowed_formats.includes(metadata.format.toLowerCase())) {
+                        errors.push(`Image format must be one of: ${imageConfig.allowed_formats.join(', ')}`);
+                    }
+                    if (imageConfig.min_width && metadata.width && metadata.width < imageConfig.min_width) {
+                        errors.push(`Image width must be at least ${imageConfig.min_width} pixels`);
+                    }
+                    if (imageConfig.max_width && metadata.width && metadata.width > imageConfig.max_width) {
+                        errors.push(`Image width must not exceed ${imageConfig.max_width} pixels`);
+                    }
+                    if (imageConfig.min_height && metadata.height && metadata.height < imageConfig.min_height) {
+                        errors.push(`Image height must be at least ${imageConfig.min_height} pixels`);
+                    }
+                    if (imageConfig.max_height && metadata.height && metadata.height > imageConfig.max_height) {
+                        errors.push(`Image height must not exceed ${imageConfig.max_height} pixels`);
+                    }
                 }
                 break;
         }

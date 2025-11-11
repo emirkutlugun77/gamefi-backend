@@ -45,6 +45,8 @@ export declare enum TaskType {
     REFERRAL = "REFERRAL",
     VISIT_WEBSITE = "VISIT_WEBSITE",
     DOWNLOAD_APP = "DOWNLOAD_APP",
+    SUBMIT_TEXT = "SUBMIT_TEXT",
+    SUBMIT_IMAGE = "SUBMIT_IMAGE",
     CUSTOM = "CUSTOM"
 }
 export declare enum TaskStatus {
@@ -77,6 +79,7 @@ export declare class Task {
     title: string;
     description: string;
     type: TaskType;
+    submission_prompt: string;
     reward_points: number;
     status: TaskStatus;
     config: Record<string, any>;
