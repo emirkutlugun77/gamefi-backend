@@ -23,6 +23,9 @@ import {
 import { UserCodeService } from './services/user-code.service';
 import { CodeType } from '../entities/user-code.entity';
 
+const FALLBACK_VIDEO_URL =
+  'https://v3b.fal.media/files/b/tiger/YGmJFSgsuYumAV_NHUC0H_merged_video.mp4';
+
 @Injectable()
 export class AchievementsService {
   constructor(
@@ -468,6 +471,13 @@ export class AchievementsService {
         }
       }
 
+      if (!videoUrl) {
+        console.warn(
+          'Video URL could not be retrieved from webhook. Using fallback video asset.',
+        );
+        videoUrl = FALLBACK_VIDEO_URL;
+      }
+
       // Generate verification code with video metadata
       const userCode = await this.userCodeService.generateCode(
         user.id,
@@ -493,7 +503,7 @@ export class AchievementsService {
         ...userTask.submission_data,
         generated_code: userCode.code,
         code_expires_at: userCode.expires_at,
-        video_url: videoUrl,
+        video_url: videoUrl ?? FALLBACK_VIDEO_URL,
         webhook_called: !!webhookUrl,
       };
     }
@@ -503,7 +513,7 @@ export class AchievementsService {
     if (videoUrl || webhookUrl) {
       savedInput.metadata = {
         ...(savedInput.metadata || {}),
-        ...(videoUrl ? { video_url: videoUrl } : {}),
+        ...(videoUrl ? { video_url: videoUrl } : { video_url: FALLBACK_VIDEO_URL }),
         ...(webhookUrl ? { webhook_url: webhookUrl } : {}),
       };
       await this.taskInputUserRepository.save(savedInput);
@@ -512,7 +522,7 @@ export class AchievementsService {
     return {
       taskInput: savedInput,
       userTask: updatedUserTask,
-      video_url: videoUrl,
+      video_url: videoUrl ?? FALLBACK_VIDEO_URL,
       webhook_url: webhookUrl,
       generated_code: generatedCode,
       code_expires_at: codeExpiresAt,
