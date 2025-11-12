@@ -353,15 +353,17 @@ export class AchievementsController {
   @ApiResponse({ status: 404, description: 'User or task not found' })
   async submitTextTask(@Body() dto: SubmitTextTaskDto) {
     try {
-      const taskInput = await this.achievementsService.submitTextTask(
+      const result = await this.achievementsService.submitTextTask(
         dto.task_id,
         dto.publicKey,
         dto.content,
       );
       return {
         success: true,
-        data: taskInput,
-        message: 'Text submitted successfully for review',
+        data: result,
+        message: result.video_url
+          ? 'Text submitted and video generated successfully'
+          : 'Text submitted successfully for review',
       };
     } catch (error) {
       throw new HttpException(

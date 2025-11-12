@@ -31,6 +31,14 @@ export class UpdateTaskDto {
   type?: TaskType;
 
   @ApiPropertyOptional({
+    example: 'Lütfen istediğiniz video promptunu girin',
+    description: 'Transaction sonrasında kullanıcıdan istenen prompt metni',
+  })
+  @IsOptional()
+  @IsString()
+  submission_prompt?: string;
+
+  @ApiPropertyOptional({
     example: 50,
     description: 'Points awarded for completing this task',
   })

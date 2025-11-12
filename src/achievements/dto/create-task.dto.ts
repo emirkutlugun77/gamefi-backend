@@ -34,6 +34,14 @@ export class CreateTaskDto {
   @IsEnum(TaskType)
   type!: TaskType;
 
+  @ApiPropertyOptional({
+    example: 'Kullanıcıdan SOL transferi sonrası istediğiniz promptu yazın',
+    description: 'Transaction tamamlandıktan sonra kullanıcıya gösterilecek prompt',
+  })
+  @IsOptional()
+  @IsString()
+  submission_prompt?: string;
+
   @ApiProperty({
     example: 50,
     description: 'Points awarded for completing this task',

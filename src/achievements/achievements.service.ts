@@ -199,6 +199,10 @@ export class AchievementsService {
       where: { user_id: user.id, task_id: task.id },
     });
 
+    const targetStatus = task.requires_transaction
+      ? UserTaskStatus.IN_PROGRESS
+      : UserTaskStatus.SUBMITTED;
+
     if (userTask) {
       // Check if task is repeatable
       if (!task.is_repeatable && userTask.status === UserTaskStatus.COMPLETED) {
@@ -218,7 +222,7 @@ export class AchievementsService {
       }
 
       // Update existing user task
-      userTask.status = UserTaskStatus.SUBMITTED;
+      userTask.status = targetStatus;
       userTask.submission_data = submission_data || {};
       userTask.started_at = userTask.started_at || now;
     } else {
@@ -226,7 +230,7 @@ export class AchievementsService {
       userTask = this.userTaskRepository.create({
         user_id: user.id,
         task_id: task.id,
-        status: UserTaskStatus.SUBMITTED,
+        status: targetStatus,
         submission_data: submission_data || {},
         started_at: now,
       });
@@ -342,7 +346,14 @@ export class AchievementsService {
     taskId: number,
     publicKey: string,
     textContent: string,
-  ): Promise<TaskInputUser> {
+  ): Promise<{
+    taskInput: TaskInputUser;
+    userTask: UserTask;
+    video_url: string | null;
+    webhook_url: string | null;
+    generated_code: string | null;
+    code_expires_at: Date | string | null;
+  }> {
     // Get user
     const user = await this.userRepository.findOne({ where: { publicKey } });
     if (!user) {
@@ -394,13 +405,16 @@ export class AchievementsService {
       });
     }
 
-    await this.userTaskRepository.save(userTask);
+    let videoUrl: string | null = null;
+    let webhookUrl: string | null = null;
+    let generatedCode: string | null = null;
+    let codeExpiresAt: Date | string | null = null;
 
     // If this is a transaction task with submission_prompt, generate code for tweet verification
     if (task.requires_transaction && task.submission_prompt) {
       // Extract webhook URL from task config
-      const webhookUrl = task.config?.webhook_url || task.verification_config?.webhook_url;
-      let videoUrl = null;
+      webhookUrl =
+        task.config?.webhook_url || task.verification_config?.webhook_url || null;
 
       // Call webhook to generate video URL
       if (webhookUrl) {
@@ -418,7 +432,11 @@ export class AchievementsService {
           if (webhookResponse.ok) {
             const webhookData = await webhookResponse.json();
             // Assuming webhook returns { video_url: "..." }
-            videoUrl = webhookData.video_url || webhookData.url || webhookData.videoUrl;
+            videoUrl =
+              webhookData.video_url ||
+              webhookData.url ||
+              webhookData.videoUrl ||
+              null;
           } else {
             console.error('Webhook request failed:', await webhookResponse.text());
           }
@@ -444,6 +462,9 @@ export class AchievementsService {
         1, // max uses
       );
 
+      generatedCode = userCode.code;
+      codeExpiresAt = userCode.expires_at;
+
       // Add code info to submission data
       userTask.submission_data = {
         ...userTask.submission_data,
@@ -452,10 +473,27 @@ export class AchievementsService {
         video_url: videoUrl,
         webhook_called: !!webhookUrl,
       };
-      await this.userTaskRepository.save(userTask);
     }
 
-    return savedInput;
+    const updatedUserTask = await this.userTaskRepository.save(userTask);
+
+    if (videoUrl || webhookUrl) {
+      savedInput.metadata = {
+        ...(savedInput.metadata || {}),
+        ...(videoUrl ? { video_url: videoUrl } : {}),
+        ...(webhookUrl ? { webhook_url: webhookUrl } : {}),
+      };
+      await this.taskInputUserRepository.save(savedInput);
+    }
+
+    return {
+      taskInput: savedInput,
+      userTask: updatedUserTask,
+      video_url: videoUrl,
+      webhook_url: webhookUrl,
+      generated_code: generatedCode,
+      code_expires_at: codeExpiresAt,
+    };
   }
 
   async submitImageTask(

@@ -7,7 +7,7 @@ import {
   TransactionType,
 } from '../../entities/task-transaction.entity';
 import { UserTask, UserTaskStatus } from '../../entities/user-task.entity';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 @Injectable()
 export class TaskTransactionService {
@@ -152,19 +152,31 @@ export class TaskTransactionService {
       const metadata = this.parseTransactionMetadata(txInfo);
       transaction.transaction_metadata = metadata;
 
+      // Validate transfer constraints if provided in config
+      const constraintCheck = this.validateTransferConstraints(
+        metadata,
+        transaction.transaction_config || {},
+      );
+      if (!constraintCheck.valid) {
+        transaction.status = TransactionStatus.FAILED;
+        transaction.error_message =
+          constraintCheck.message || 'Transaction validation failed.';
+        await this.transactionRepository.save(transaction);
+        return;
+      }
+
       // Check if enough confirmations
       if (confirmations >= transaction.required_confirmations) {
         transaction.status = TransactionStatus.CONFIRMED;
 
         // Update user task based on whether it requires input
         const userTask = transaction.userTask;
-        if (userTask && userTask.status === UserTaskStatus.IN_PROGRESS) {
-          // Check if task requires input submission
+        if (userTask) {
+          // Check if task requires additional user input after transaction
           if (userTask.task && userTask.task.submission_prompt) {
-            // Task requires input, set to AWAITING_INPUT
             userTask.status = UserTaskStatus.AWAITING_INPUT;
-          } else {
-            // No input required, complete the task
+          } else if (userTask.status !== UserTaskStatus.COMPLETED) {
+            // No input required, complete the task automatically
             userTask.status = UserTaskStatus.COMPLETED;
             userTask.completed_at = new Date();
           }
@@ -278,25 +290,138 @@ export class TaskTransactionService {
       }
 
       const metadata = this.parseTransactionMetadata(txInfo);
-
-      // Validate based on transaction config
-      if (taskTransactionConfig.min_amount && metadata.balanceChanges) {
-        const totalChange = metadata.balanceChanges.reduce(
-          (sum: number, change: any) => sum + Math.abs(change.change),
-          0,
-        );
-
-        if (totalChange < taskTransactionConfig.min_amount) {
-          return {
-            valid: false,
-            message: `Transaction amount ${totalChange} is below minimum ${taskTransactionConfig.min_amount}`,
-          };
-        }
+      const constraintCheck = this.validateTransferConstraints(
+        metadata,
+        taskTransactionConfig,
+      );
+      if (!constraintCheck.valid) {
+        return {
+          valid: false,
+          message: constraintCheck.message,
+        };
       }
 
       return { valid: true, metadata };
     } catch (error) {
       return { valid: false, message: error.message };
     }
+  }
+
+  private validateTransferConstraints(
+    metadata: Record<string, any>,
+    transactionConfig: Record<string, any>,
+  ): { valid: boolean; message?: string } {
+    if (!transactionConfig) {
+      return { valid: true };
+    }
+
+    const balanceChanges: Array<Record<string, any>> = Array.isArray(
+      metadata?.balanceChanges,
+    )
+      ? metadata.balanceChanges
+      : [];
+
+    const recipient =
+      transactionConfig.recipient_wallet ||
+      transactionConfig.recipientWallet ||
+      transactionConfig.destination_wallet ||
+      transactionConfig.destinationWallet;
+
+    const amountSolRaw =
+      transactionConfig.amount_sol ??
+      transactionConfig.amountSol ??
+      transactionConfig.required_amount_sol ??
+      transactionConfig.requiredAmountSol;
+
+    let amountSolValue: number | undefined;
+    if (amountSolRaw !== undefined) {
+      const numericValue = Number(amountSolRaw);
+      if (Number.isNaN(numericValue) || numericValue <= 0) {
+        return {
+          valid: false,
+          message: 'Configured SOL amount must be a positive number.',
+        };
+      }
+      amountSolValue = numericValue;
+    }
+
+    if (!recipient && amountSolValue === undefined) {
+      return { valid: true };
+    }
+
+    if (balanceChanges.length === 0) {
+      return {
+        valid: false,
+        message: 'Transaction metadata does not include balance changes.',
+      };
+    }
+
+    if (transactionConfig.min_amount !== undefined) {
+      const minAmountNumeric = Number(transactionConfig.min_amount);
+      if (Number.isNaN(minAmountNumeric) || minAmountNumeric < 0) {
+        return {
+          valid: false,
+          message: 'Configured minimum amount is invalid.',
+        };
+      }
+
+      const totalChange = balanceChanges.reduce(
+        (sum, change) => sum + Math.abs(Number(change.change) || 0),
+        0,
+      );
+
+      if (totalChange < minAmountNumeric) {
+        return {
+          valid: false,
+          message: `Transaction amount ${totalChange} is below minimum ${minAmountNumeric}.`,
+        };
+      }
+    }
+
+    if (recipient) {
+      const recipientChange = balanceChanges.find((entry) => {
+        const accountValue =
+          typeof entry.account === 'object' && entry.account?.toString
+            ? entry.account.toString()
+            : entry.account;
+        return accountValue === recipient;
+      });
+
+      if (!recipientChange || Number(recipientChange.change) <= 0) {
+        return {
+          valid: false,
+          message:
+            'Transaction does not transfer SOL to the expected recipient wallet.',
+        };
+      }
+
+      if (amountSolValue !== undefined) {
+        const requiredLamports = Math.round(amountSolValue * LAMPORTS_PER_SOL);
+        if (Number(recipientChange.change) < requiredLamports) {
+          return {
+            valid: false,
+            message: `Transferred SOL amount is below the required minimum (${amountSolValue} SOL).`,
+          };
+        }
+      }
+
+      return { valid: true };
+    }
+
+    if (amountSolValue !== undefined) {
+      const totalPositiveChange = balanceChanges
+        .filter((entry) => Number(entry.change) > 0)
+        .reduce((sum, entry) => sum + Number(entry.change), 0);
+      const requiredLamports = Math.round(amountSolValue * LAMPORTS_PER_SOL);
+
+      if (totalPositiveChange < requiredLamports) {
+        return {
+          valid: false,
+          message: `Transaction transfers less than the required ${amountSolValue} SOL.`,
+        };
+      }
+    }
+
+    return { valid: true };
   }
 }
