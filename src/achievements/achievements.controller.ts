@@ -502,6 +502,23 @@ export class AchievementsController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   async submitTransactionTask(@Body() dto: SubmitTransactionTaskDto) {
     try {
+      // Get the task to access its transaction_config
+      const task = await this.achievementsService.getTaskById(dto.task_id);
+
+      if (!task.requires_transaction) {
+        throw new HttpException(
+          'This task does not require a transaction',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (!task.transaction_config) {
+        throw new HttpException(
+          'Task transaction configuration is missing',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       // First, submit the task
       const userTask = await this.achievementsService.submitTask({
         task_id: dto.task_id,
@@ -512,13 +529,20 @@ export class AchievementsController {
         },
       });
 
-      // Create transaction record
+      // Use task's transaction_config for validation (not from DTO)
+      const transactionConfig = task.transaction_config;
+      const requiredConfirmations =
+        transactionConfig.required_confirmations ||
+        dto.required_confirmations ||
+        1;
+
+      // Create transaction record with task's config
       const transaction = await this.transactionService.createTransaction(
         userTask.id,
         dto.signature,
         dto.transaction_type,
-        dto.transaction_config,
-        dto.required_confirmations || 1,
+        transactionConfig,
+        requiredConfirmations,
       );
 
       return {

@@ -308,6 +308,13 @@ let AchievementsController = class AchievementsController {
     }
     async submitTransactionTask(dto) {
         try {
+            const task = await this.achievementsService.getTaskById(dto.task_id);
+            if (!task.requires_transaction) {
+                throw new common_1.HttpException('This task does not require a transaction', common_1.HttpStatus.BAD_REQUEST);
+            }
+            if (!task.transaction_config) {
+                throw new common_1.HttpException('Task transaction configuration is missing', common_1.HttpStatus.BAD_REQUEST);
+            }
             const userTask = await this.achievementsService.submitTask({
                 task_id: dto.task_id,
                 publicKey: dto.publicKey,
@@ -316,7 +323,11 @@ let AchievementsController = class AchievementsController {
                     transaction_type: dto.transaction_type,
                 },
             });
-            const transaction = await this.transactionService.createTransaction(userTask.id, dto.signature, dto.transaction_type, dto.transaction_config, dto.required_confirmations || 1);
+            const transactionConfig = task.transaction_config;
+            const requiredConfirmations = transactionConfig.required_confirmations ||
+                dto.required_confirmations ||
+                1;
+            const transaction = await this.transactionService.createTransaction(userTask.id, dto.signature, dto.transaction_type, transactionConfig, requiredConfirmations);
             return {
                 success: true,
                 data: {

@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task, TaskStatus } from '../entities/task.entity';
+import { TaskTransactionService } from './services/task-transaction.service';
 
 @Injectable()
 export class TaskSchedulerService {
@@ -11,6 +12,7 @@ export class TaskSchedulerService {
   constructor(
     @InjectRepository(Task)
     private taskRepository: Repository<Task>,
+    private transactionService: TaskTransactionService,
   ) {}
 
   /**
@@ -66,6 +68,70 @@ export class TaskSchedulerService {
       }
     } catch (error) {
       this.logger.error('Error during task status update cron job', error.stack);
+    }
+  }
+
+  /**
+   * Monitor pending transactions every 30 seconds
+   * Checks blockchain for transaction confirmations and updates task status
+   */
+  @Cron('*/30 * * * * *') // Every 30 seconds
+  async handleTransactionMonitoring() {
+    const startTime = Date.now();
+    this.logger.log('Starting transaction monitoring cron job...');
+
+    try {
+      const pendingTransactions =
+        await this.transactionService.getPendingTransactions();
+
+      if (pendingTransactions.length === 0) {
+        this.logger.debug('No pending transactions to monitor');
+        return;
+      }
+
+      this.logger.log(
+        `Found ${pendingTransactions.length} pending transactions to monitor`,
+      );
+
+      let confirmedCount = 0;
+      let failedCount = 0;
+      let stillPendingCount = 0;
+
+      for (const transaction of pendingTransactions) {
+        try {
+          await this.transactionService.monitorTransaction(transaction.id);
+
+          // Re-fetch to get updated status
+          const updated =
+            await this.transactionService.getTransactionBySignature(
+              transaction.signature,
+            );
+
+          if (updated.status === 'CONFIRMED') {
+            confirmedCount++;
+          } else if (updated.status === 'FAILED') {
+            failedCount++;
+          } else {
+            stillPendingCount++;
+          }
+        } catch (error) {
+          this.logger.error(
+            `Error monitoring transaction ${transaction.signature}: ${error.message}`,
+          );
+          failedCount++;
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      this.logger.log(
+        `Transaction monitoring completed in ${duration}ms. ` +
+          `Confirmed: ${confirmedCount}, Failed: ${failedCount}, Still Pending: ${stillPendingCount}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        'Error during transaction monitoring cron job',
+        error.stack,
+      );
     }
   }
 

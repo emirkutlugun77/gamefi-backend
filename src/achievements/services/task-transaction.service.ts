@@ -103,49 +103,75 @@ export class TaskTransactionService {
   async monitorTransaction(transactionId: number): Promise<void> {
     const transaction = await this.transactionRepository.findOne({
       where: { id: transactionId },
-      relations: ['userTask'],
+      relations: ['userTask', 'userTask.task'],
     });
 
     if (!transaction) {
       throw new NotFoundException('Transaction not found');
     }
 
-    if (transaction.status !== TransactionStatus.PENDING) {
-      return; // Already processed
+    // Skip if already confirmed or failed
+    if (
+      transaction.status === TransactionStatus.CONFIRMED ||
+      transaction.status === TransactionStatus.FAILED
+    ) {
+      return;
     }
 
     try {
-      // Update status to confirming
-      transaction.status = TransactionStatus.CONFIRMING;
-      await this.transactionRepository.save(transaction);
+      // Update status to confirming if still pending
+      if (transaction.status === TransactionStatus.PENDING) {
+        transaction.status = TransactionStatus.CONFIRMING;
+        await this.transactionRepository.save(transaction);
+      }
 
-      // Fetch transaction from blockchain
-      const txInfo = await this.connection.getTransaction(transaction.signature, {
-        maxSupportedTransactionVersion: 0,
-      });
+      // Fetch transaction from blockchain with retry logic
+      let txInfo;
+      try {
+        txInfo = await this.connection.getTransaction(transaction.signature, {
+          maxSupportedTransactionVersion: 0,
+          commitment: 'confirmed',
+        });
+      } catch (rpcError) {
+        console.error(
+          `RPC error fetching transaction ${transaction.signature}:`,
+          rpcError.message,
+        );
+        // Keep status as CONFIRMING, will retry later
+        return;
+      }
 
       if (!txInfo) {
-        // Transaction not found yet, keep as confirming
-        console.log(`Transaction ${transaction.signature} not found on blockchain yet`);
+        // Transaction not found yet on blockchain
+        // This is normal for newly submitted transactions
+        console.log(
+          `Transaction ${transaction.signature} not yet confirmed on blockchain. Will retry later.`,
+        );
         return;
       }
 
+      // Check if transaction failed on blockchain
       if (txInfo.meta?.err) {
-        // Transaction failed
         transaction.status = TransactionStatus.FAILED;
-        transaction.error_message = JSON.stringify(txInfo.meta.err);
+        transaction.error_message = `Transaction failed on blockchain: ${JSON.stringify(txInfo.meta.err)}`;
         await this.transactionRepository.save(transaction);
+        console.error(
+          `Transaction ${transaction.signature} failed:`,
+          transaction.error_message,
+        );
         return;
       }
 
-      // Get current slot
-      const currentSlot = await this.connection.getSlot();
+      // Get current slot for confirmation count
+      const currentSlot = await this.connection.getSlot('confirmed');
       const confirmations = currentSlot - txInfo.slot;
 
       // Update transaction details
       transaction.slot = BigInt(txInfo.slot);
       transaction.confirmations = confirmations;
-      transaction.block_time = txInfo.blockTime ? new Date(txInfo.blockTime * 1000) : null;
+      transaction.block_time = txInfo.blockTime
+        ? new Date(txInfo.blockTime * 1000)
+        : null;
       transaction.fee = BigInt(txInfo.meta?.fee || 0);
 
       // Parse transaction metadata
@@ -162,34 +188,54 @@ export class TaskTransactionService {
         transaction.error_message =
           constraintCheck.message || 'Transaction validation failed.';
         await this.transactionRepository.save(transaction);
+        console.error(
+          `Transaction ${transaction.signature} validation failed:`,
+          constraintCheck.message,
+        );
         return;
       }
 
       // Check if enough confirmations
       if (confirmations >= transaction.required_confirmations) {
         transaction.status = TransactionStatus.CONFIRMED;
+        console.log(
+          `Transaction ${transaction.signature} confirmed with ${confirmations} confirmations`,
+        );
 
         // Update user task based on whether it requires input
         const userTask = transaction.userTask;
-        if (userTask) {
+        if (userTask && userTask.task) {
           // Check if task requires additional user input after transaction
-          if (userTask.task && userTask.task.submission_prompt) {
+          if (userTask.task.submission_prompt) {
             userTask.status = UserTaskStatus.AWAITING_INPUT;
+            console.log(
+              `User task ${userTask.id} set to AWAITING_INPUT for additional user input`,
+            );
           } else if (userTask.status !== UserTaskStatus.COMPLETED) {
             // No input required, complete the task automatically
             userTask.status = UserTaskStatus.COMPLETED;
             userTask.completed_at = new Date();
+            console.log(
+              `User task ${userTask.id} completed automatically (no input required)`,
+            );
           }
           await this.userTaskRepository.save(userTask);
         }
+      } else {
+        console.log(
+          `Transaction ${transaction.signature} has ${confirmations}/${transaction.required_confirmations} confirmations`,
+        );
       }
 
       await this.transactionRepository.save(transaction);
     } catch (error) {
-      console.error(`Error monitoring transaction ${transaction.signature}:`, error);
-      transaction.status = TransactionStatus.FAILED;
-      transaction.error_message = error.message;
-      await this.transactionRepository.save(transaction);
+      console.error(
+        `Error monitoring transaction ${transaction.signature}:`,
+        error.message,
+        error.stack,
+      );
+      // Don't mark as FAILED immediately, might be a temporary RPC issue
+      // Keep as CONFIRMING so it can be retried
     }
   }
 

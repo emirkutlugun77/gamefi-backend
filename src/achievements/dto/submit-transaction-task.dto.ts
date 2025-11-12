@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, IsEnum, IsOptional, IsObject } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsEnum, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TransactionType } from '../../entities/task-transaction.entity';
 
@@ -13,7 +13,7 @@ export class SubmitTransactionTaskDto {
   @IsString()
   publicKey: string;
 
-  @ApiProperty({ description: 'Transaction signature', example: '5wHu7QR...' })
+  @ApiProperty({ description: 'Transaction signature from Solana', example: '5wHu7QRa8F3X...' })
   @IsNotEmpty()
   @IsString()
   signature: string;
@@ -21,18 +21,16 @@ export class SubmitTransactionTaskDto {
   @ApiProperty({
     description: 'Transaction type',
     enum: TransactionType,
-    example: TransactionType.TOKEN_SWAP,
+    example: TransactionType.SOL_TRANSFER,
   })
   @IsNotEmpty()
   @IsEnum(TransactionType)
   transaction_type: TransactionType;
 
-  @ApiPropertyOptional({ description: 'Transaction configuration data', example: { amount: 100 } })
-  @IsOptional()
-  @IsObject()
-  transaction_config?: Record<string, any>;
-
-  @ApiPropertyOptional({ description: 'Required confirmations', example: 1, default: 1 })
+  @ApiPropertyOptional({
+    description: 'Override required confirmations (defaults to task config)',
+    example: 1,
+  })
   @IsOptional()
   @IsNumber()
   required_confirmations?: number;
