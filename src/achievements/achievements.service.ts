@@ -419,26 +419,49 @@ export class AchievementsService {
       // Call webhook to generate video URL
       if (webhookUrl) {
         try {
+          const webhookPayload = { prompt: textContent };
+          console.log('Calling webhook:', webhookUrl);
+          console.log('Webhook payload:', JSON.stringify(webhookPayload, null, 2));
+
           const webhookResponse = await fetch(webhookUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              prompt: textContent,
-            }),
+            body: JSON.stringify(webhookPayload),
           });
 
+          console.log('Webhook response status:', webhookResponse.status);
+
           if (webhookResponse.ok) {
-            const webhookData = await webhookResponse.json();
-            // Assuming webhook returns { video_url: "..." }
-            videoUrl =
-              webhookData.video_url ||
-              webhookData.url ||
-              webhookData.videoUrl ||
-              null;
+            const responseText = await webhookResponse.text();
+            console.log('Webhook response body:', responseText);
+
+            // Check if response is not empty and try to parse JSON
+            if (responseText && responseText.trim().length > 0) {
+              try {
+                const webhookData = JSON.parse(responseText);
+                console.log('Parsed webhook data:', webhookData);
+
+                // Assuming webhook returns { video_url: "..." }
+                videoUrl =
+                  webhookData.video_url ||
+                  webhookData.url ||
+                  webhookData.videoUrl ||
+                  null;
+
+                console.log('Extracted video URL:', videoUrl);
+              } catch (parseError) {
+                console.error('Failed to parse webhook response as JSON:', responseText);
+                console.error('Parse error:', parseError);
+              }
+            } else {
+              console.warn('Webhook returned empty response despite OK status');
+            }
           } else {
-            console.error('Webhook request failed:', await webhookResponse.text());
+            const errorText = await webhookResponse.text();
+            console.error('Webhook request failed with status:', webhookResponse.status);
+            console.error('Error response:', errorText);
           }
         } catch (error) {
           console.error('Error calling webhook:', error);
