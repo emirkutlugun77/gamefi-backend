@@ -31,7 +31,14 @@ export declare class AchievementsService {
     verifyTask(verifyTaskDto: VerifyTaskDto): Promise<UserTask>;
     getPendingVerifications(): Promise<UserTask[]>;
     getUserStats(publicKey: string): Promise<any>;
-    submitTextTask(taskId: number, publicKey: string, textContent: string): Promise<TaskInputUser>;
+    submitTextTask(taskId: number, publicKey: string, textContent: string): Promise<{
+        taskInput: TaskInputUser;
+        userTask: UserTask;
+        video_url: string | null;
+        webhook_url: string | null;
+        generated_code: string | null;
+        code_expires_at: Date | string | null;
+    }>;
     submitImageTask(taskId: number, publicKey: string, imageUrl: string, description?: string, metadata?: Record<string, any>): Promise<TaskInputUser>;
     reviewTaskInput(inputId: number, approved: boolean, reviewedBy: number, reviewComment?: string): Promise<TaskInputUser>;
     getUserTaskInputs(publicKey: string): Promise<TaskInputUser[]>;

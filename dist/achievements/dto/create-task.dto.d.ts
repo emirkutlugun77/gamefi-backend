@@ -3,6 +3,7 @@ export declare class CreateTaskDto {
     title: string;
     description: string;
     type: TaskType;
+    submission_prompt?: string;
     reward_points: number;
     config?: Record<string, any>;
     verification_config?: Record<string, any>;

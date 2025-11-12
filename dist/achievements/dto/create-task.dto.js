@@ -17,6 +17,7 @@ class CreateTaskDto {
     title;
     description;
     type;
+    submission_prompt;
     reward_points;
     config;
     verification_config;
@@ -57,6 +58,15 @@ __decorate([
     (0, class_validator_1.IsEnum)(task_entity_1.TaskType),
     __metadata("design:type", String)
 ], CreateTaskDto.prototype, "type", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        example: 'Kullanıcıdan SOL transferi sonrası istediğiniz promptu yazın',
+        description: 'Transaction tamamlandıktan sonra kullanıcıya gösterilecek prompt',
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateTaskDto.prototype, "submission_prompt", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
         example: 50,

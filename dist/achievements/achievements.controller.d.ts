@@ -71,7 +71,14 @@ export declare class AchievementsController {
     }>;
     submitTextTask(dto: SubmitTextTaskDto): Promise<{
         success: boolean;
-        data: import("../entities/task-input-user.entity").TaskInputUser;
+        data: {
+            taskInput: import("../entities/task-input-user.entity").TaskInputUser;
+            userTask: import("../entities/user-task.entity").UserTask;
+            video_url: string | null;
+            webhook_url: string | null;
+            generated_code: string | null;
+            code_expires_at: Date | string | null;
+        };
         message: string;
     }>;
     submitImageTask(dto: SubmitImageTaskDto): Promise<{
