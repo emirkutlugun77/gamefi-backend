@@ -20,8 +20,10 @@ export class TaskTransactionService {
     private readonly userTaskRepository: Repository<UserTask>,
   ) {
     // Initialize Solana connection
-    const endpoint = process.env.QUICKNODE_ENDPOINT || 'https://api.devnet.solana.com';
+    // Using mainnet-beta for better stability
+    const endpoint = process.env.QUICKNODE_ENDPOINT || 'https://api.mainnet-beta.solana.com';
     this.connection = new Connection(endpoint, 'confirmed');
+    console.log('Task Transaction Service initialized with endpoint:', endpoint);
   }
 
   /**
@@ -127,21 +129,49 @@ export class TaskTransactionService {
 
       // Fetch transaction from blockchain with retry logic
       let txInfo;
-      try {
-        txInfo = await this.connection.getTransaction(transaction.signature, {
-          maxSupportedTransactionVersion: 0,
-          commitment: 'confirmed',
-        });
-      } catch (rpcError) {
-        console.error(
-          `RPC error fetching transaction ${transaction.signature}:`,
-          rpcError.message,
-        );
-        // Keep status as CONFIRMING, will retry later
-        return;
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
+        try {
+          txInfo = await this.connection.getTransaction(transaction.signature, {
+            maxSupportedTransactionVersion: 0,
+            commitment: 'confirmed',
+          });
+          break; // Success, exit retry loop
+        } catch (rpcError) {
+          retryCount++;
+          console.error(
+            `RPC error fetching transaction ${transaction.signature} (attempt ${retryCount}/${maxRetries}):`,
+            rpcError.message,
+          );
+
+          if (retryCount < maxRetries) {
+            // Wait before retrying (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          } else {
+            // Max retries reached, keep status as CONFIRMING
+            return;
+          }
+        }
       }
 
       if (!txInfo) {
+        // Check if transaction is too old (more than 2 minutes since creation)
+        const transactionAge = Date.now() - transaction.created_at.getTime();
+        const twoMinutes = 2 * 60 * 1000;
+
+        if (transactionAge > twoMinutes) {
+          console.warn(
+            `Transaction ${transaction.signature} not found after ${Math.round(transactionAge / 1000)}s. Possible expiry or invalid signature.`,
+          );
+          transaction.status = TransactionStatus.FAILED;
+          transaction.error_message =
+            'Transaction blockchain\'de bulunamadı. Transaction expire olmuş veya blockchain\'e ulaşmamış olabilir.';
+          await this.transactionRepository.save(transaction);
+          return;
+        }
+
         // Transaction not found yet on blockchain
         // This is normal for newly submitted transactions
         console.log(
