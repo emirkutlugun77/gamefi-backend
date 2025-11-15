@@ -448,8 +448,7 @@ export class NftAdminController {
   })
   async getAllCollections() {
     try {
-      // Fetch from blockchain instead of database (blockchain is source of truth)
-      const { collections } = await this.nftService.fetchCollections();
+      const collections = await this.nftAdminService.getAllCollections();
       return {
         success: true,
         data: collections,
