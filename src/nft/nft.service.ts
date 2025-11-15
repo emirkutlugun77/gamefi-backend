@@ -6,14 +6,14 @@ import { dasApi } from '@metaplex-foundation/digital-asset-standard-api';
 import { publicKey as umiPublicKey } from '@metaplex-foundation/umi';
 
 // Constants from the marketplace website
-const PROGRAM_ID = new PublicKey('ptcbSp1UEqYLmod2jgFxGPZnFMqBECcrRyU1fTmnJ5b');
+const PROGRAM_ID = new PublicKey('6Zw5z9y5YvF1NhJnAWTe1TVt1GR8kR7ecPiKG3hgXULm');
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
   'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
 );
 
 // Staking program constants (same as marketplace program)
 const STAKING_PROGRAM_ID = new PublicKey(
-  'ptcbSp1UEqYLmod2jgFxGPZnFMqBECcrRyU1fTmnJ5b',
+  '6Zw5z9y5YvF1NhJnAWTe1TVt1GR8kR7ecPiKG3hgXULm',
 );
 const REWARD_TOKEN_MINT = new PublicKey(
   'GshYgeeG5xmeMJ4crtg1SHGafYXBpnCyPz9VNF8DXxSW',

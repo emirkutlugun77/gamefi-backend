@@ -24,7 +24,7 @@ const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
   'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
 );
 const PROGRAM_ID = new PublicKey(
-  'B6c38JtYJXDiaW2XNJWrueLUULAD4vsxChz1VJk1d9zX',
+  '6Zw5z9y5YvF1NhJnAWTe1TVt1GR8kR7ecPiKG3hgXULm',
 );
 
 @Injectable()

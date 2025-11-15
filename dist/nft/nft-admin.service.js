@@ -27,7 +27,7 @@ const solana_contract_service_1 = require("./solana-contract.service");
 const nft_service_1 = require("./nft.service");
 const auth_service_1 = require("../auth/auth.service");
 const axios_1 = __importDefault(require("axios"));
-const PROGRAM_ID = new web3_js_1.PublicKey('B6c38JtYJXDiaW2XNJWrueLUULAD4vsxChz1VJk1d9zX');
+const PROGRAM_ID = new web3_js_1.PublicKey('6Zw5z9y5YvF1NhJnAWTe1TVt1GR8kR7ecPiKG3hgXULm');
 let NftAdminService = class NftAdminService {
     nftCollectionRepo;
     nftTypeRepo;
