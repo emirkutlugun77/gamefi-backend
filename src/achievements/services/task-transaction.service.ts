@@ -20,8 +20,8 @@ export class TaskTransactionService {
     private readonly userTaskRepository: Repository<UserTask>,
   ) {
     // Initialize Solana connection
-    // Using mainnet-beta for better stability
-    const endpoint = process.env.QUICKNODE_ENDPOINT || 'https://api.mainnet-beta.solana.com';
+    // Using standard RPC (NO JITO BUNDLER)
+    const endpoint = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
     this.connection = new Connection(endpoint, 'confirmed');
     console.log('Task Transaction Service initialized with endpoint:', endpoint);
   }

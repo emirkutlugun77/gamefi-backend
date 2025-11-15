@@ -31,7 +31,8 @@ export class PrerequisiteValidatorService {
     @InjectRepository(TaskTransaction)
     private readonly transactionRepository: Repository<TaskTransaction>,
   ) {
-    const endpoint = process.env.QUICKNODE_ENDPOINT || 'https://api.devnet.solana.com';
+    // Use standard Solana RPC (NO JITO BUNDLER)
+    const endpoint = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
     this.connection = new Connection(endpoint, 'confirmed');
   }
 
