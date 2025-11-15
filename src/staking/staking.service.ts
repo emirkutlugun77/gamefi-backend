@@ -5,37 +5,42 @@ import {
   Keypair,
   Transaction,
   SystemProgram,
-  sendAndConfirmTransaction,
   SYSVAR_RENT_PUBKEY,
+  ComputeBudgetProgram,
 } from '@solana/web3.js';
 import { Program, AnchorProvider, Wallet, BN } from '@coral-xyz/anchor';
 import {
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
-  TOKEN_2022_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction,
 } from '@solana/spl-token';
-import { SolanaContractService } from '../nft/solana-contract.service';
 import * as IDL from '../nft/nft_marketplace_idl.json';
 import * as bs58Module from 'bs58';
 const bs58 = (bs58Module as any).default || bs58Module;
 
+// NEW CONTRACT ADDRESSES - DEPLOYED
 const PROGRAM_ID = new PublicKey(
-  'B6c38JtYJXDiaW2XNJWrueLUULAD4vsxChz1VJk1d9zX',
+  '6Zw5z9y5YvF1NhJnAWTe1TVt1GR8kR7ecPiKG3hgXULm',
 );
-const VYBE_TOKEN_MINT = new PublicKey(
-  'GshYgeeG5xmeMJ4crtg1SHGafYXBpnCyPz9VNF8DXxSW',
+const STAKE_POOL_PDA = new PublicKey(
+  'EfM1NdCiMwGMwY8wcfEX77CcfBMWeaKms2s65mpiZ9iH',
 );
-const TOKEN_PROGRAM = TOKEN_2022_PROGRAM_ID; // VYBE uses Token-2022!
+const REWARD_TOKEN_MINT = new PublicKey(
+  'Fgq5ViuM4ir7s1qgKFYXcDkNFKQwituPZ4grgdgf9kBc',
+);
+const REWARD_VAULT_PDA = new PublicKey(
+  '9ZLFe1Y3Ccj1u2zT4aMvsQoTEN4s6GfiTZicro8zojNg',
+);
 
 @Injectable()
 export class StakingService {
   private connection: Connection;
   private program: Program;
 
-  constructor(private readonly solanaContractService: SolanaContractService) {
+  constructor() {
     const rpcUrl =
-      process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+      process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
     this.connection = new Connection(rpcUrl, 'confirmed');
 
     // Create a dummy wallet for read-only operations
@@ -49,66 +54,21 @@ export class StakingService {
   }
 
   /**
-   * Get all staked NFTs for a given owner
-   */
-  async getStakedNFTs(ownerPubkey: string): Promise<any[]> {
-    try {
-      const owner = new PublicKey(ownerPubkey);
-
-      // Fetch all StakedNFT accounts
-      const stakedNFTs = await (this.program.account as any).stakedNft.all([
-        {
-          memcmp: {
-            offset: 8, // After discriminator
-            bytes: owner.toBase58(),
-          },
-        },
-      ]);
-
-      return stakedNFTs.map((nft: any) => ({
-        publicKey: nft.publicKey.toString(),
-        owner: nft.account.owner.toString(),
-        nftMint: nft.account.nftMint.toString(),
-        stakingPool: nft.account.stakingPool.toString(),
-        stakedAt: nft.account.stakedAt.toString(),
-        lastClaimed: nft.account.lastClaimed.toString(),
-        isPlaced: nft.account.isPlaced,
-      }));
-    } catch (error) {
-      console.error('Error fetching staked NFTs:', error);
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to fetch staked NFTs',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  /**
    * Get staking pool info
    */
   async getStakingPool(): Promise<any> {
     try {
-      const [stakingPoolPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('staking_pool')],
-        PROGRAM_ID,
-      );
-
-      const stakingPool = await (this.program.account as any).stakingPool.fetch(
-        stakingPoolPda,
+      const stakingPool = await (this.program.account as any).stakePool.fetch(
+        STAKE_POOL_PDA,
       );
 
       return {
-        publicKey: stakingPoolPda.toString(),
+        publicKey: STAKE_POOL_PDA.toString(),
         admin: stakingPool.admin.toString(),
         rewardTokenMint: stakingPool.rewardTokenMint.toString(),
-        solVault: stakingPool.solVault.toString(),
-        tokenVault: stakingPool.tokenVault.toString(),
-        rewardRate: stakingPool.rewardRate.toString(),
+        rewardRatePerSecond: stakingPool.rewardRatePerSecond.toString(),
         totalStaked: stakingPool.totalStaked.toString(),
+        rewardVault: REWARD_VAULT_PDA.toString(),
       };
     } catch (error) {
       console.error('Error fetching staking pool:', error);
@@ -124,62 +84,101 @@ export class StakingService {
   }
 
   /**
-   * Admin function to distribute rewards to all placed NFTs
-   * This is a backend-only operation that requires admin private key
+   * Get all staked NFTs for a given owner
    */
-  async distributeStakingRewards(adminPrivateKey: string): Promise<any> {
+  async getStakedNFTs(ownerPubkey: string): Promise<any[]> {
     try {
-      console.log('🎁 Starting staking rewards distribution...');
+      const owner = new PublicKey(ownerPubkey);
 
-      // Get all StakedNFT accounts that are placed (is_placed = true)
-      const allStakedNFTs = await (this.program.account as any).stakedNft.all();
-      const placedNFTs = allStakedNFTs.filter(
-        (nft: any) => nft.account.isPlaced === true,
-      );
+      // Fetch all StakeAccount accounts for this owner
+      const stakeAccounts = await (
+        this.program.account as any
+      ).stakeAccount.all([
+        {
+          memcmp: {
+            offset: 8, // After discriminator
+            bytes: owner.toBase58(),
+          },
+        },
+      ]);
 
-      console.log(
-        `Found ${placedNFTs.length} placed NFTs out of ${allStakedNFTs.length} total staked NFTs`,
-      );
-
-      if (placedNFTs.length === 0) {
-        return {
-          success: true,
-          message: 'No placed NFTs to distribute rewards to',
-          distributed: 0,
-        };
-      }
-
-      // For each placed NFT, we would call claim_rewards
-      // However, claim_rewards requires the owner's signature
-      // So this function is more of a "list of who should get rewards"
-      // In a real implementation, you might want to:
-      // 1. Create a merkle tree of eligible addresses
-      // 2. Allow users to claim via frontend
-      // 3. Or use a cron job to send rewards via airdrops
-
-      const eligibleForRewards = placedNFTs.map((nft: any) => ({
-        owner: nft.account.owner.toString(),
-        nftMint: nft.account.nftMint.toString(),
-        stakedAt: new Date(
-          nft.account.stakedAt.toNumber() * 1000,
-        ).toISOString(),
-        lastClaimed: new Date(
-          nft.account.lastClaimed.toNumber() * 1000,
-        ).toISOString(),
+      return stakeAccounts.map((account: any) => ({
+        publicKey: account.publicKey.toString(),
+        owner: account.account.owner.toString(),
+        nftMint: account.account.nftMint.toString(),
+        nftType: account.account.nftType.toString(),
+        stakePool: account.account.stakePool.toString(),
+        stakeTimestamp: account.account.stakeTimestamp.toString(),
+        lastClaimTimestamp: account.account.lastClaimTimestamp.toString(),
+        stakeMultiplier: account.account.stakeMultiplier.toString(),
       }));
-
-      return {
-        success: true,
-        message: `Found ${eligibleForRewards.length} NFTs eligible for rewards`,
-        eligibleNFTs: eligibleForRewards,
-        note: 'Users must claim rewards themselves through the frontend',
-      };
     } catch (error) {
-      console.error('Error distributing staking rewards:', error);
+      console.error('Error fetching staked NFTs:', error);
       throw new HttpException(
         {
           success: false,
-          message: 'Failed to distribute staking rewards',
+          message: 'Failed to fetch staked NFTs',
+          error: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Calculate pending rewards for a staked NFT
+   */
+  async calculatePendingRewards(
+    nftMintAddress: string,
+    stakerAddress: string,
+  ): Promise<any> {
+    try {
+      const nftMint = new PublicKey(nftMintAddress);
+      const staker = new PublicKey(stakerAddress);
+
+      // Derive stake account PDA
+      const [stakeAccountPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('stake_account'), staker.toBuffer(), nftMint.toBuffer()],
+        PROGRAM_ID,
+      );
+
+      // Fetch stake account
+      const stakeAccount = await (
+        this.program.account as any
+      ).stakeAccount.fetch(stakeAccountPda);
+
+      // Fetch stake pool to get reward rate
+      const stakePool = await (this.program.account as any).stakePool.fetch(
+        STAKE_POOL_PDA,
+      );
+
+      // Calculate rewards
+      const currentTime = Math.floor(Date.now() / 1000);
+      const timeSinceLastClaim =
+        currentTime - stakeAccount.lastClaimTimestamp.toNumber();
+      const baseRewards =
+        timeSinceLastClaim * stakePool.rewardRatePerSecond.toNumber();
+      const rewards = Math.floor(
+        (baseRewards * stakeAccount.stakeMultiplier.toNumber()) / 10000,
+      );
+
+      return {
+        success: true,
+        nftMint: nftMintAddress,
+        staker: stakerAddress,
+        pendingRewards: rewards,
+        pendingRewardsFormatted: (rewards / 1e9).toFixed(9), // Assuming 9 decimals
+        stakeTimestamp: stakeAccount.stakeTimestamp.toString(),
+        lastClaimTimestamp: stakeAccount.lastClaimTimestamp.toString(),
+        stakeMultiplier: stakeAccount.stakeMultiplier.toString(),
+        timeSinceLastClaim: timeSinceLastClaim,
+      };
+    } catch (error) {
+      console.error('Error calculating pending rewards:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to calculate pending rewards',
           error: error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -193,48 +192,106 @@ export class StakingService {
   async prepareStakeNFT(
     userWallet: string,
     nftMintAddress: string,
+    collectionName: string,
+    typeName: string,
   ): Promise<any> {
     try {
       console.log('📦 Preparing stake transaction for NFT:', nftMintAddress);
 
-      const owner = new PublicKey(userWallet);
+      const staker = new PublicKey(userWallet);
       const nftMint = new PublicKey(nftMintAddress);
 
       // Derive PDAs
-      const [stakingPoolPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('staking_pool')],
+      const [collectionPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('collection'), Buffer.from(collectionName)],
         PROGRAM_ID,
       );
 
-      const [stakedNftPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('staked_nft'), nftMint.toBuffer()],
+      const [nftTypePda] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('type'),
+          collectionPda.toBuffer(),
+          Buffer.from(typeName),
+        ],
         PROGRAM_ID,
       );
 
-      console.log('Staking Pool PDA:', stakingPoolPda.toString());
-      console.log('Staked NFT PDA:', stakedNftPda.toString());
+      const [stakeAccountPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('stake_account'), staker.toBuffer(), nftMint.toBuffer()],
+        PROGRAM_ID,
+      );
+
+      const [vaultNftTokenAccount] = PublicKey.findProgramAddressSync(
+        [Buffer.from('vault'), nftMint.toBuffer()],
+        PROGRAM_ID,
+      );
+
+      // Get staker's NFT token account
+      const stakerNftTokenAccount = await getAssociatedTokenAddress(
+        nftMint,
+        staker,
+      );
+
+      // Get NFT metadata PDA (Metaplex)
+      const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
+        'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
+      );
+      const [nftMetadataPda] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('metadata'),
+          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+          nftMint.toBuffer(),
+        ],
+        TOKEN_METADATA_PROGRAM_ID,
+      );
+
+      console.log('Stake Pool PDA:', STAKE_POOL_PDA.toString());
+      console.log('Stake Account PDA:', stakeAccountPda.toString());
+      console.log('NFT Type PDA:', nftTypePda.toString());
+      console.log('Vault NFT Account:', vaultNftTokenAccount.toString());
 
       // Build instruction
       const instruction = await (this.program.methods as any)
         .stakeNft()
         .accounts({
-          stakingPool: stakingPoolPda,
-          stakedNft: stakedNftPda,
-          owner: owner,
+          stakePool: STAKE_POOL_PDA,
+          stakeAccount: stakeAccountPda,
+          collection: collectionPda,
+          nftType: nftTypePda,
           nftMint: nftMint,
+          nftMetadata: nftMetadataPda,
+          stakerNftTokenAccount: stakerNftTokenAccount,
+          vaultNftTokenAccount: vaultNftTokenAccount,
+          staker: staker,
           systemProgram: SystemProgram.programId,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+          rent: SYSVAR_RENT_PUBKEY,
         })
         .instruction();
 
       // Create transaction
       const transaction = new Transaction();
+
+      // Add compute budget
+      transaction.add(
+        ComputeBudgetProgram.setComputeUnitLimit({
+          units: 400000,
+        }),
+      );
+      transaction.add(
+        ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: 1,
+        }),
+      );
+
       transaction.add(instruction);
 
       // Get recent blockhash
       const { blockhash } =
         await this.connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
-      transaction.feePayer = owner;
+      transaction.feePayer = staker;
 
       // Serialize transaction
       const serializedTransaction = transaction.serialize({
@@ -248,7 +305,7 @@ export class StakingService {
         success: true,
         message: 'Transaction prepared. Please sign with your wallet.',
         transaction: serializedTransaction.toString('base64'),
-        stakedNftPda: stakedNftPda.toString(),
+        stakeAccountPda: stakeAccountPda.toString(),
       };
     } catch (error) {
       console.error('Error preparing stake transaction:', error);
@@ -256,162 +313,6 @@ export class StakingService {
         {
           success: false,
           message: 'Failed to prepare stake transaction',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  /**
-   * Prepare place NFT transaction
-   */
-  async preparePlaceNFT(
-    userWallet: string,
-    nftMintAddress: string,
-    typeName: string,
-    nftTypePda: string,
-  ): Promise<any> {
-    try {
-      console.log('🏘️ Preparing place NFT transaction:', nftMintAddress);
-
-      const owner = new PublicKey(userWallet);
-      const nftMint = new PublicKey(nftMintAddress);
-      const nftType = new PublicKey(nftTypePda);
-
-      // Derive PDAs
-      const [stakingPoolPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('staking_pool')],
-        PROGRAM_ID,
-      );
-
-      const [stakedNftPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('staked_nft'), nftMint.toBuffer()],
-        PROGRAM_ID,
-      );
-
-      const [tokenVaultPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('token_vault')],
-        PROGRAM_ID,
-      );
-
-      // Get owner's VYBE token account (Token-2022!)
-      const ownerTokenAccount = await getAssociatedTokenAddress(
-        VYBE_TOKEN_MINT,
-        owner,
-        false,
-        TOKEN_PROGRAM,
-      );
-
-      // Build instruction
-      const instruction = await (this.program.methods as any)
-        .placeNft(typeName)
-        .accounts({
-          stakingPool: stakingPoolPda,
-          stakedNft: stakedNftPda,
-          nftType: nftType,
-          tokenVault: tokenVaultPda,
-          ownerTokenAccount: ownerTokenAccount,
-          owner: owner,
-          nftMint: nftMint,
-          tokenProgram: TOKEN_PROGRAM, // Token-2022
-        })
-        .instruction();
-
-      // Create transaction
-      const transaction = new Transaction();
-      transaction.add(instruction);
-
-      // Get recent blockhash
-      const { blockhash } =
-        await this.connection.getLatestBlockhash('confirmed');
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = owner;
-
-      // Serialize transaction
-      const serializedTransaction = transaction.serialize({
-        requireAllSignatures: false,
-        verifySignatures: false,
-      });
-
-      console.log('✅ Place NFT transaction prepared');
-
-      return {
-        success: true,
-        message: 'Transaction prepared. Please sign with your wallet.',
-        transaction: serializedTransaction.toString('base64'),
-      };
-    } catch (error) {
-      console.error('Error preparing place NFT transaction:', error);
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to prepare place NFT transaction',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  /**
-   * Prepare unplace NFT transaction
-   */
-  async prepareUnplaceNFT(
-    userWallet: string,
-    nftMintAddress: string,
-  ): Promise<any> {
-    try {
-      console.log('🚪 Preparing unplace NFT transaction:', nftMintAddress);
-
-      const owner = new PublicKey(userWallet);
-      const nftMint = new PublicKey(nftMintAddress);
-
-      // Derive PDAs
-      const [stakedNftPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('staked_nft'), nftMint.toBuffer()],
-        PROGRAM_ID,
-      );
-
-      // Build instruction
-      const instruction = await (this.program.methods as any)
-        .unplaceNft()
-        .accounts({
-          stakedNft: stakedNftPda,
-          owner: owner,
-          nftMint: nftMint,
-        })
-        .instruction();
-
-      // Create transaction
-      const transaction = new Transaction();
-      transaction.add(instruction);
-
-      // Get recent blockhash
-      const { blockhash } =
-        await this.connection.getLatestBlockhash('confirmed');
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = owner;
-
-      // Serialize transaction
-      const serializedTransaction = transaction.serialize({
-        requireAllSignatures: false,
-        verifySignatures: false,
-      });
-
-      console.log('✅ Unplace NFT transaction prepared');
-
-      return {
-        success: true,
-        message: 'Transaction prepared. Please sign with your wallet.',
-        transaction: serializedTransaction.toString('base64'),
-      };
-    } catch (error) {
-      console.error('Error preparing unplace NFT transaction:', error);
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to prepare unplace NFT transaction',
           error: error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -429,40 +330,85 @@ export class StakingService {
     try {
       console.log('📤 Preparing unstake NFT transaction:', nftMintAddress);
 
-      const owner = new PublicKey(userWallet);
+      const staker = new PublicKey(userWallet);
       const nftMint = new PublicKey(nftMintAddress);
 
       // Derive PDAs
-      const [stakingPoolPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('staking_pool')],
+      const [stakeAccountPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('stake_account'), staker.toBuffer(), nftMint.toBuffer()],
         PROGRAM_ID,
       );
 
-      const [stakedNftPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('staked_nft'), nftMint.toBuffer()],
+      const [vaultNftTokenAccount] = PublicKey.findProgramAddressSync(
+        [Buffer.from('vault'), nftMint.toBuffer()],
         PROGRAM_ID,
       );
+
+      // Get staker's NFT token account
+      const stakerNftTokenAccount = await getAssociatedTokenAddress(
+        nftMint,
+        staker,
+      );
+
+      // Get staker's reward token account
+      const stakerRewardTokenAccount = await getAssociatedTokenAddress(
+        REWARD_TOKEN_MINT,
+        staker,
+      );
+
+      // Check if staker reward account exists, if not we'll create it
+      const stakerRewardAccountInfo =
+        await this.connection.getAccountInfo(stakerRewardTokenAccount);
 
       // Build instruction
       const instruction = await (this.program.methods as any)
         .unstakeNft()
         .accounts({
-          stakingPool: stakingPoolPda,
-          stakedNft: stakedNftPda,
-          owner: owner,
-          nftMint: nftMint,
+          stakePool: STAKE_POOL_PDA,
+          stakeAccount: stakeAccountPda,
+          rewardTokenMint: REWARD_TOKEN_MINT,
+          rewardTokenVault: REWARD_VAULT_PDA,
+          stakerRewardTokenAccount: stakerRewardTokenAccount,
+          vaultNftTokenAccount: vaultNftTokenAccount,
+          stakerNftTokenAccount: stakerNftTokenAccount,
+          staker: staker,
+          systemProgram: SystemProgram.programId,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          rent: SYSVAR_RENT_PUBKEY,
         })
         .instruction();
 
       // Create transaction
       const transaction = new Transaction();
+
+      // Add compute budget
+      transaction.add(
+        ComputeBudgetProgram.setComputeUnitLimit({
+          units: 400000,
+        }),
+      );
+
+      // Create reward token account if it doesn't exist
+      if (!stakerRewardAccountInfo) {
+        console.log('Creating reward token account for staker...');
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            staker,
+            stakerRewardTokenAccount,
+            staker,
+            REWARD_TOKEN_MINT,
+          ),
+        );
+      }
+
       transaction.add(instruction);
 
       // Get recent blockhash
       const { blockhash } =
         await this.connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
-      transaction.feePayer = owner;
+      transaction.feePayer = staker;
 
       // Serialize transaction
       const serializedTransaction = transaction.serialize({
@@ -491,146 +437,101 @@ export class StakingService {
   }
 
   /**
-   * Admin: Initialize staking pool
+   * Prepare claim rewards transaction
    */
-  async initializeStakingPool(
-    adminPrivateKey: string,
-    rewardRate: number,
+  async prepareClaimRewards(
+    userWallet: string,
+    nftMintAddress: string,
   ): Promise<any> {
     try {
-      console.log('🎯 Initializing staking pool with reward rate:', rewardRate);
+      console.log('💰 Preparing claim rewards transaction:', nftMintAddress);
 
-      // Decode admin private key
-      const privateKeyBytes = bs58.decode(adminPrivateKey);
-      const adminKeypair = Keypair.fromSecretKey(privateKeyBytes);
-      const admin = adminKeypair.publicKey;
-
-      // Create provider with admin wallet
-      const wallet = new Wallet(adminKeypair);
-      const provider = new AnchorProvider(this.connection, wallet, {
-        commitment: 'confirmed',
-      });
-      const program = new Program(IDL as any, provider);
+      const staker = new PublicKey(userWallet);
+      const nftMint = new PublicKey(nftMintAddress);
 
       // Derive PDAs
-      const [stakingPoolPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('staking_pool')],
+      const [stakeAccountPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('stake_account'), staker.toBuffer(), nftMint.toBuffer()],
         PROGRAM_ID,
       );
 
-      const [solVaultPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('sol_vault')],
-        PROGRAM_ID,
+      // Get staker's reward token account
+      const stakerRewardTokenAccount = await getAssociatedTokenAddress(
+        REWARD_TOKEN_MINT,
+        staker,
       );
 
-      // Token vault will be the Associated Token Account of the staking pool (Token-2022!)
-      const tokenVault = await getAssociatedTokenAddress(
-        VYBE_TOKEN_MINT,
-        stakingPoolPda,
-        true, // allowOwnerOffCurve - PDA can own token accounts
-        TOKEN_PROGRAM, // Token-2022
-      );
+      // Check if staker reward account exists
+      const stakerRewardAccountInfo =
+        await this.connection.getAccountInfo(stakerRewardTokenAccount);
 
-      console.log('Staking Pool PDA:', stakingPoolPda.toString());
-      console.log('SOL Vault PDA:', solVaultPda.toString());
-      console.log('Token Vault (ATA):', tokenVault.toString());
-
-      const tx = await (program.methods as any)
-        .initializeStakingPool(new BN(rewardRate))
+      // Build instruction
+      const instruction = await (this.program.methods as any)
+        .claimRewards()
         .accounts({
-          stakingPool: stakingPoolPda,
-          admin: admin,
-          rewardTokenMint: VYBE_TOKEN_MINT,
-          solVault: solVaultPda,
-          tokenVault: tokenVault,
-          tokenProgram: TOKEN_PROGRAM, // Token-2022
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          stakePool: STAKE_POOL_PDA,
+          stakeAccount: stakeAccountPda,
+          rewardTokenMint: REWARD_TOKEN_MINT,
+          rewardTokenVault: REWARD_VAULT_PDA,
+          stakerRewardTokenAccount: stakerRewardTokenAccount,
+          staker: staker,
           systemProgram: SystemProgram.programId,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           rent: SYSVAR_RENT_PUBKEY,
         })
-        .rpc();
+        .instruction();
 
-      console.log('✅ Staking pool initialized! TX:', tx);
+      // Create transaction
+      const transaction = new Transaction();
 
-      return {
-        success: true,
-        message: 'Staking pool initialized successfully',
-        transaction: tx,
-        stakingPoolPda: stakingPoolPda.toString(),
-        solVaultPda: solVaultPda.toString(),
-        tokenVaultAddress: tokenVault.toString(),
-        rewardRate: rewardRate,
-        note: 'Token vault (ATA) will be created automatically when you fund the pool',
-      };
-    } catch (error) {
-      console.error('Error initializing staking pool:', error);
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to initialize staking pool',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
+      // Add compute budget
+      transaction.add(
+        ComputeBudgetProgram.setComputeUnitLimit({
+          units: 300000,
+        }),
       );
-    }
-  }
 
-  /**
-   * Admin: Fund pool with SOL
-   */
-  async fundPoolSOL(
-    adminPrivateKey: string,
-    amountLamports: number,
-  ): Promise<any> {
-    try {
-      console.log('💰 Funding pool with SOL:', amountLamports, 'lamports');
+      // Create reward token account if it doesn't exist
+      if (!stakerRewardAccountInfo) {
+        console.log('Creating reward token account for staker...');
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            staker,
+            stakerRewardTokenAccount,
+            staker,
+            REWARD_TOKEN_MINT,
+          ),
+        );
+      }
 
-      // Decode admin private key
-      const privateKeyBytes = bs58.decode(adminPrivateKey);
-      const adminKeypair = Keypair.fromSecretKey(privateKeyBytes);
-      const admin = adminKeypair.publicKey;
+      transaction.add(instruction);
 
-      // Create provider with admin wallet
-      const wallet = new Wallet(adminKeypair);
-      const provider = new AnchorProvider(this.connection, wallet, {
-        commitment: 'confirmed',
+      // Get recent blockhash
+      const { blockhash } =
+        await this.connection.getLatestBlockhash('confirmed');
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = staker;
+
+      // Serialize transaction
+      const serializedTransaction = transaction.serialize({
+        requireAllSignatures: false,
+        verifySignatures: false,
       });
-      const program = new Program(IDL as any, provider);
 
-      // Derive PDAs
-      const [stakingPoolPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('staking_pool')],
-        PROGRAM_ID,
-      );
-
-      const [solVaultPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('sol_vault')],
-        PROGRAM_ID,
-      );
-
-      const tx = await (program.methods as any)
-        .fundPoolSol(new BN(amountLamports))
-        .accounts({
-          stakingPool: stakingPoolPda,
-          solVault: solVaultPda,
-          admin: admin,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc();
-
-      console.log('✅ Pool funded with SOL! TX:', tx);
+      console.log('✅ Claim rewards transaction prepared');
 
       return {
         success: true,
-        message: `Pool funded with ${amountLamports} lamports SOL`,
-        transaction: tx,
+        message: 'Transaction prepared. Please sign with your wallet.',
+        transaction: serializedTransaction.toString('base64'),
       };
     } catch (error) {
-      console.error('Error funding pool with SOL:', error);
+      console.error('Error preparing claim rewards transaction:', error);
       throw new HttpException(
         {
           success: false,
-          message: 'Failed to fund pool with SOL',
+          message: 'Failed to prepare claim rewards transaction',
           error: error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -639,73 +540,70 @@ export class StakingService {
   }
 
   /**
-   * Admin: Fund pool with VYBE tokens
+   * Admin: Fund reward vault with tokens
    */
-  async fundPoolTokens(
+  async fundRewardVault(
     adminPrivateKey: string,
     amountTokens: number,
   ): Promise<any> {
     try {
-      console.log('💎 Funding pool with VYBE tokens:', amountTokens);
+      console.log('💎 Funding reward vault with tokens:', amountTokens);
 
       // Decode admin private key
       const privateKeyBytes = bs58.decode(adminPrivateKey);
       const adminKeypair = Keypair.fromSecretKey(privateKeyBytes);
       const admin = adminKeypair.publicKey;
 
-      // Create provider with admin wallet
-      const wallet = new Wallet(adminKeypair);
-      const provider = new AnchorProvider(this.connection, wallet, {
-        commitment: 'confirmed',
-      });
-      const program = new Program(IDL as any, provider);
-
-      // Derive PDAs
-      const [stakingPoolPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('staking_pool')],
-        PROGRAM_ID,
-      );
-
-      // Token vault is the ATA of staking pool for VYBE (Token-2022!)
-      const tokenVault = await getAssociatedTokenAddress(
-        VYBE_TOKEN_MINT,
-        stakingPoolPda,
-        true, // allowOwnerOffCurve
-        TOKEN_PROGRAM,
-      );
-
-      // Get admin's VYBE token account (Token-2022!)
+      // Get admin's token account
       const adminTokenAccount = await getAssociatedTokenAddress(
-        VYBE_TOKEN_MINT,
+        REWARD_TOKEN_MINT,
         admin,
-        false,
-        TOKEN_PROGRAM,
       );
 
-      const tx = await (program.methods as any)
-        .fundPoolTokens(new BN(amountTokens))
-        .accounts({
-          stakingPool: stakingPoolPda,
-          tokenVault: tokenVault,
-          adminTokenAccount: adminTokenAccount,
-          admin: admin,
-          tokenProgram: TOKEN_PROGRAM, // Token-2022
-        })
-        .rpc();
+      // Create transfer instruction
+      const { Token} = require('@solana/spl-token');
+      
+      // Create transaction
+      const transaction = new Transaction();
+      
+      // Add transfer instruction (SPL Token transfer)
+      const transferIx = Token.createTransferInstruction(
+        TOKEN_PROGRAM_ID,
+        adminTokenAccount,
+        REWARD_VAULT_PDA,
+        admin,
+        [],
+        amountTokens,
+      );
+      
+      transaction.add(transferIx);
 
-      console.log('✅ Pool funded with VYBE tokens! TX:', tx);
+      // Get recent blockhash
+      const { blockhash } =
+        await this.connection.getLatestBlockhash('confirmed');
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = admin;
+
+      // Sign and send
+      transaction.partialSign(adminKeypair);
+      const tx = await this.connection.sendRawTransaction(
+        transaction.serialize(),
+      );
+      await this.connection.confirmTransaction(tx, 'confirmed');
+
+      console.log('✅ Reward vault funded! TX:', tx);
 
       return {
         success: true,
-        message: `Pool funded with ${amountTokens} VYBE tokens`,
+        message: `Reward vault funded with ${amountTokens} tokens`,
         transaction: tx,
       };
     } catch (error) {
-      console.error('Error funding pool with tokens:', error);
+      console.error('Error funding reward vault:', error);
       throw new HttpException(
         {
           success: false,
-          message: 'Failed to fund pool with tokens',
+          message: 'Failed to fund reward vault',
           error: error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,

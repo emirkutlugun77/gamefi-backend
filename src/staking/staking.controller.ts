@@ -27,11 +27,30 @@ export class StakingController {
     return this.stakingService.getStakedNFTs(owner);
   }
 
+  @Get('pending-rewards')
+  @ApiOperation({ summary: 'Calculate pending rewards for a staked NFT' })
+  @ApiQuery({
+    name: 'nftMint',
+    required: true,
+    description: 'NFT mint address',
+  })
+  @ApiQuery({
+    name: 'staker',
+    required: true,
+    description: 'Staker wallet address',
+  })
+  async getPendingRewards(
+    @Query('nftMint') nftMint: string,
+    @Query('staker') staker: string,
+  ) {
+    return this.stakingService.calculatePendingRewards(nftMint, staker);
+  }
+
   @Post('prepare-stake')
   @ApiOperation({
     summary: 'Prepare stake NFT transaction',
     description:
-      'Returns a serialized transaction for the user to sign with their wallet',
+      'Returns a serialized transaction for the user to sign with their wallet. Stakes NFT and starts earning hourly rewards.',
   })
   @ApiBody({
     schema: {
@@ -45,95 +64,37 @@ export class StakingController {
           type: 'string',
           description: 'NFT mint address',
         },
+        collectionName: {
+          type: 'string',
+          description: 'Collection name (e.g., "VYBE")',
+        },
+        typeName: {
+          type: 'string',
+          description: 'NFT type name (e.g., "Barbarian")',
+        },
       },
-      required: ['userWallet', 'nftMintAddress'],
+      required: ['userWallet', 'nftMintAddress', 'collectionName', 'typeName'],
     },
   })
   async prepareStakeNFT(
     @Body('userWallet') userWallet: string,
     @Body('nftMintAddress') nftMintAddress: string,
-  ) {
-    return this.stakingService.prepareStakeNFT(userWallet, nftMintAddress);
-  }
-
-  @Post('prepare-place')
-  @ApiOperation({
-    summary: 'Prepare place NFT transaction',
-    description:
-      'Returns a serialized transaction for the user to sign with their wallet. Places NFT in village to receive instant VYBE reward.',
-  })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        userWallet: {
-          type: 'string',
-          description: 'User wallet public key',
-        },
-        nftMintAddress: {
-          type: 'string',
-          description: 'NFT mint address',
-        },
-        typeName: {
-          type: 'string',
-          description: 'NFT type name',
-        },
-        nftTypePda: {
-          type: 'string',
-          description: 'NFT Type PDA address',
-        },
-      },
-      required: ['userWallet', 'nftMintAddress', 'typeName', 'nftTypePda'],
-    },
-  })
-  async preparePlaceNFT(
-    @Body('userWallet') userWallet: string,
-    @Body('nftMintAddress') nftMintAddress: string,
+    @Body('collectionName') collectionName: string,
     @Body('typeName') typeName: string,
-    @Body('nftTypePda') nftTypePda: string,
   ) {
-    return this.stakingService.preparePlaceNFT(
+    return this.stakingService.prepareStakeNFT(
       userWallet,
       nftMintAddress,
+      collectionName,
       typeName,
-      nftTypePda,
     );
-  }
-
-  @Post('prepare-unplace')
-  @ApiOperation({
-    summary: 'Prepare unplace NFT transaction',
-    description:
-      'Returns a serialized transaction for the user to sign with their wallet',
-  })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        userWallet: {
-          type: 'string',
-          description: 'User wallet public key',
-        },
-        nftMintAddress: {
-          type: 'string',
-          description: 'NFT mint address',
-        },
-      },
-      required: ['userWallet', 'nftMintAddress'],
-    },
-  })
-  async prepareUnplaceNFT(
-    @Body('userWallet') userWallet: string,
-    @Body('nftMintAddress') nftMintAddress: string,
-  ) {
-    return this.stakingService.prepareUnplaceNFT(userWallet, nftMintAddress);
   }
 
   @Post('prepare-unstake')
   @ApiOperation({
     summary: 'Prepare unstake NFT transaction',
     description:
-      'Returns a serialized transaction for the user to sign with their wallet',
+      'Returns a serialized transaction for the user to sign with their wallet. Unstakes NFT and claims all pending rewards.',
   })
   @ApiBody({
     schema: {
@@ -158,72 +119,43 @@ export class StakingController {
     return this.stakingService.prepareUnstakeNFT(userWallet, nftMintAddress);
   }
 
-  @Post('initialize-pool')
+  @Post('prepare-claim')
+  @ApiOperation({
+    summary: 'Prepare claim rewards transaction',
+    description:
+      'Returns a serialized transaction for the user to sign with their wallet. Claims rewards without unstaking NFT.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        userWallet: {
+          type: 'string',
+          description: 'User wallet public key',
+        },
+        nftMintAddress: {
+          type: 'string',
+          description: 'NFT mint address',
+        },
+      },
+      required: ['userWallet', 'nftMintAddress'],
+    },
+  })
+  async prepareClaimRewards(
+    @Body('userWallet') userWallet: string,
+    @Body('nftMintAddress') nftMintAddress: string,
+  ) {
+    return this.stakingService.prepareClaimRewards(userWallet, nftMintAddress);
+  }
+
+  @Post('fund-reward-vault')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Admin: Initialize staking pool',
+    summary: 'Admin: Fund reward vault with tokens',
     description:
-      'One-time initialization of the staking pool. Creates the pool PDA, derives token vault ATA, and sets reward rate.',
+      'Transfer reward tokens to the vault so stakers can claim their rewards',
   })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        adminPrivateKey: {
-          type: 'string',
-          description: 'Admin private key (base58 encoded)',
-        },
-        rewardRate: {
-          type: 'number',
-          description:
-            'Reward rate in tokens per month (in smallest unit). Example: 1000000000 for 1 VYBE/month',
-        },
-      },
-      required: ['adminPrivateKey', 'rewardRate'],
-    },
-  })
-  async initializePool(
-    @Body('adminPrivateKey') adminPrivateKey: string,
-    @Body('rewardRate') rewardRate: number,
-  ) {
-    return this.stakingService.initializeStakingPool(
-      adminPrivateKey,
-      rewardRate,
-    );
-  }
-
-  @Post('fund-pool-sol')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Admin: Fund staking pool with SOL' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        adminPrivateKey: {
-          type: 'string',
-          description: 'Admin private key (base58 encoded)',
-        },
-        amountLamports: {
-          type: 'number',
-          description: 'Amount in lamports',
-        },
-      },
-      required: ['adminPrivateKey', 'amountLamports'],
-    },
-  })
-  async fundPoolSOL(
-    @Body('adminPrivateKey') adminPrivateKey: string,
-    @Body('amountLamports') amountLamports: number,
-  ) {
-    return this.stakingService.fundPoolSOL(adminPrivateKey, amountLamports);
-  }
-
-  @Post('fund-pool-tokens')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Admin: Fund staking pool with VYBE tokens' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -234,40 +166,16 @@ export class StakingController {
         },
         amountTokens: {
           type: 'number',
-          description: 'Amount of tokens (in smallest unit)',
+          description: 'Amount of tokens (in smallest unit, e.g., 1e9 for 1 token)',
         },
       },
       required: ['adminPrivateKey', 'amountTokens'],
     },
   })
-  async fundPoolTokens(
+  async fundRewardVault(
     @Body('adminPrivateKey') adminPrivateKey: string,
     @Body('amountTokens') amountTokens: number,
   ) {
-    return this.stakingService.fundPoolTokens(adminPrivateKey, amountTokens);
-  }
-
-  @Post('distribute-rewards')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({
-    summary: 'Admin: List NFTs eligible for rewards distribution',
-    description:
-      'Returns a list of all placed NFTs that are eligible for rewards. Users must claim rewards themselves through the frontend.',
-  })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        adminPrivateKey: {
-          type: 'string',
-          description: 'Admin private key (base58 encoded)',
-        },
-      },
-      required: ['adminPrivateKey'],
-    },
-  })
-  async distributeRewards(@Body('adminPrivateKey') adminPrivateKey: string) {
-    return this.stakingService.distributeStakingRewards(adminPrivateKey);
+    return this.stakingService.fundRewardVault(adminPrivateKey, amountTokens);
   }
 }

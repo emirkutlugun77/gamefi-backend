@@ -25,6 +25,7 @@ const task_transaction_entity_1 = require("../entities/task-transaction.entity")
 const task_input_user_entity_1 = require("../entities/task-input-user.entity");
 const user_code_service_1 = require("./services/user-code.service");
 const user_code_entity_1 = require("../entities/user-code.entity");
+const FALLBACK_VIDEO_URL = 'https://v3b.fal.media/files/b/tiger/YGmJFSgsuYumAV_NHUC0H_merged_video.mp4';
 let AchievementsService = class AchievementsService {
     taskRepository;
     userTaskRepository;
@@ -306,30 +307,53 @@ let AchievementsService = class AchievementsService {
                 task.config?.webhook_url || task.verification_config?.webhook_url || null;
             if (webhookUrl) {
                 try {
+                    const webhookPayload = { prompt: textContent };
+                    console.log('Calling webhook:', webhookUrl);
+                    console.log('Webhook payload:', JSON.stringify(webhookPayload, null, 2));
                     const webhookResponse = await fetch(webhookUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({
-                            prompt: textContent,
-                        }),
+                        body: JSON.stringify(webhookPayload),
                     });
+                    console.log('Webhook response status:', webhookResponse.status);
                     if (webhookResponse.ok) {
-                        const webhookData = await webhookResponse.json();
-                        videoUrl =
-                            webhookData.video_url ||
-                                webhookData.url ||
-                                webhookData.videoUrl ||
-                                null;
+                        const responseText = await webhookResponse.text();
+                        console.log('Webhook response body:', responseText);
+                        if (responseText && responseText.trim().length > 0) {
+                            try {
+                                const webhookData = JSON.parse(responseText);
+                                console.log('Parsed webhook data:', webhookData);
+                                videoUrl =
+                                    webhookData.video_url ||
+                                        webhookData.url ||
+                                        webhookData.videoUrl ||
+                                        null;
+                                console.log('Extracted video URL:', videoUrl);
+                            }
+                            catch (parseError) {
+                                console.error('Failed to parse webhook response as JSON:', responseText);
+                                console.error('Parse error:', parseError);
+                            }
+                        }
+                        else {
+                            console.warn('Webhook returned empty response despite OK status');
+                        }
                     }
                     else {
-                        console.error('Webhook request failed:', await webhookResponse.text());
+                        const errorText = await webhookResponse.text();
+                        console.error('Webhook request failed with status:', webhookResponse.status);
+                        console.error('Error response:', errorText);
                     }
                 }
                 catch (error) {
                     console.error('Error calling webhook:', error);
                 }
+            }
+            if (!videoUrl) {
+                console.warn('Video URL could not be retrieved from webhook. Using fallback video asset.');
+                videoUrl = FALLBACK_VIDEO_URL;
             }
             const userCode = await this.userCodeService.generateCode(user.id, task.id, user_code_entity_1.CodeType.TWITTER_EMBED, {
                 video_url: videoUrl,
@@ -345,7 +369,7 @@ let AchievementsService = class AchievementsService {
                 ...userTask.submission_data,
                 generated_code: userCode.code,
                 code_expires_at: userCode.expires_at,
-                video_url: videoUrl,
+                video_url: videoUrl ?? FALLBACK_VIDEO_URL,
                 webhook_called: !!webhookUrl,
             };
         }
@@ -353,7 +377,7 @@ let AchievementsService = class AchievementsService {
         if (videoUrl || webhookUrl) {
             savedInput.metadata = {
                 ...(savedInput.metadata || {}),
-                ...(videoUrl ? { video_url: videoUrl } : {}),
+                ...(videoUrl ? { video_url: videoUrl } : { video_url: FALLBACK_VIDEO_URL }),
                 ...(webhookUrl ? { webhook_url: webhookUrl } : {}),
             };
             await this.taskInputUserRepository.save(savedInput);
@@ -361,7 +385,7 @@ let AchievementsService = class AchievementsService {
         return {
             taskInput: savedInput,
             userTask: updatedUserTask,
-            video_url: videoUrl,
+            video_url: videoUrl ?? FALLBACK_VIDEO_URL,
             webhook_url: webhookUrl,
             generated_code: generatedCode,
             code_expires_at: codeExpiresAt,
