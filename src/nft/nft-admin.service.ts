@@ -551,16 +551,25 @@ export class NftAdminService {
       const syncedCollections: any[] = [];
 
       for (const bcCollection of blockchainCollections) {
+        const collectionId = bcCollection.mint || bcCollection.pubkey;
+
         // Check if collection exists in DB
         let dbCollection = await this.nftCollectionRepo.findOne({
-          where: { name: bcCollection.name },
+          where: { id: collectionId },
         });
+
+        if (!dbCollection) {
+          dbCollection = await this.nftCollectionRepo.findOne({
+            where: { name: bcCollection.name },
+          });
+        }
 
         if (dbCollection) {
           // Update existing collection
+          dbCollection.id = collectionId;
           dbCollection.symbol = bcCollection.symbol;
           dbCollection.uri = bcCollection.uri;
-          dbCollection.royalty = bcCollection.royalty;
+          dbCollection.royalty = Number(bcCollection.royalty);
           dbCollection.admin = bcCollection.admin;
           dbCollection.isActive = bcCollection.isActive;
           dbCollection.updatedAt = new Date();
@@ -572,11 +581,11 @@ export class NftAdminService {
         } else {
           // Create new collection
           dbCollection = this.nftCollectionRepo.create({
-            id: `${bcCollection.name}_${Date.now()}`,
+            id: collectionId,
             name: bcCollection.name,
             symbol: bcCollection.symbol,
             uri: bcCollection.uri,
-            royalty: bcCollection.royalty,
+            royalty: Number(bcCollection.royalty),
             admin: bcCollection.admin,
             isActive: bcCollection.isActive,
             createdAt: new Date(),
@@ -629,9 +638,15 @@ export class NftAdminService {
     try {
       console.log('🔄 Syncing NFT types from blockchain...');
 
-      // Fetch types from blockchain
-      const blockchainTypes =
-        await this.solanaContractService.syncTypesFromBlockchain();
+      // Fetch blockchain data once
+      const [blockchainTypes, blockchainCollections] = await Promise.all([
+        this.solanaContractService.syncTypesFromBlockchain(),
+        this.solanaContractService.syncCollectionsFromBlockchain(),
+      ]);
+
+      const collectionMap = new Map(
+        blockchainCollections.map((c) => [c.pubkey, c]),
+      );
 
       let created = 0;
       let updated = 0;
@@ -655,11 +670,7 @@ export class NftAdminService {
 
         try {
           // Fetch the collection account from blockchain to get its name
-          const collectionAccountData: any =
-            await this.solanaContractService.syncCollectionsFromBlockchain();
-          const matchingBcCollection = collectionAccountData.find(
-            (c: any) => c.pubkey === collectionPDA,
-          );
+          const matchingBcCollection = collectionMap.get(collectionPDA);
 
           console.log(
             `  Matching blockchain collection:`,
@@ -1258,6 +1269,29 @@ export class NftAdminService {
         dto.royalty,
       );
 
+      // Persist (or update) the collection record locally so UI can list it immediately
+      const now = new Date();
+      let dbCollection = await this.nftCollectionRepo.findOne({
+        where: { id: collectionMint },
+      });
+
+      if (!dbCollection) {
+        dbCollection = this.nftCollectionRepo.create({
+          id: collectionMint,
+          createdAt: now,
+        });
+      }
+
+      dbCollection.admin = admin.toString();
+      dbCollection.name = dto.name;
+      dbCollection.symbol = dto.symbol;
+      dbCollection.uri = metadataUri;
+      dbCollection.royalty = dto.royalty;
+      dbCollection.isActive = true;
+      dbCollection.updatedAt = now;
+
+      await this.nftCollectionRepo.save(dbCollection);
+
       // Sign with mint keypair before returning to client
       transaction.partialSign(collectionMintKeypair);
 
@@ -1274,6 +1308,7 @@ export class NftAdminService {
           collectionMint,
           metadataUri,
           imageUri,
+          collectionRecord: dbCollection,
           requiredSigners: [admin.toString()],
           message:
             'Transaction prepared. Please sign and send using your wallet.',

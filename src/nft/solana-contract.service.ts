@@ -675,68 +675,28 @@ export class SolanaContractService {
    */
   async syncCollectionsFromBlockchain(): Promise<any[]> {
     try {
-      console.log('🔄 Starting blockchain sync...');
-      console.log('Program ID:', PROGRAM_ID.toString());
+      console.log('🔄 Fetching NFT collections via Anchor coder...');
 
-      // Get all program accounts for NFTCollection
-      const accounts = await this.connection.getProgramAccounts(PROGRAM_ID, {
-        filters: [
-          {
-            // Filter by account discriminator for NFTCollection
-            // First 8 bytes are the discriminator
-            memcmp: {
-              offset: 0,
-              bytes: 'base58', // We'll need to get the actual discriminator from IDL
-            },
-          },
-        ],
-      });
+      const collectionAccounts = await (this.program.account as any).nftCollection
+        .all();
 
-      console.log(`Found ${accounts.length} program accounts`);
-
-      // Alternatively, fetch all accounts and decode them
-      const allAccounts = await this.connection.getProgramAccounts(PROGRAM_ID);
-      console.log(`Total program accounts: ${allAccounts.length}`);
-
-      const collections: any[] = [];
-
-      for (const account of allAccounts) {
-        try {
-          // Try to decode as NFTCollection
-          const collectionData: any = await (
-            this.program.account as any
-          ).nftCollection.fetch(account.pubkey);
-
-          console.log('✅ Found collection:', {
-            pubkey: account.pubkey.toString(),
-            name: collectionData.name,
-            symbol: collectionData.symbol,
-            mint: collectionData.mint.toString(),
-            admin: collectionData.admin.toString(),
-            royalty: collectionData.royalty,
-            isActive: collectionData.isActive,
-          });
-
-          collections.push({
-            pubkey: account.pubkey.toString(),
-            name: collectionData.name,
-            symbol: collectionData.symbol,
-            uri: collectionData.uri,
-            royalty: collectionData.royalty,
-            mint: collectionData.mint.toString(),
-            admin: collectionData.admin.toString(),
-            isActive: collectionData.isActive,
-            bump: collectionData.bump,
-          });
-        } catch (err) {
-          // Not a collection account, skip
-          continue;
-        }
-      }
-
-      console.log(
-        `✅ Synced ${collections.length} collections from blockchain`,
+      const collections = collectionAccounts.map(
+        ({ publicKey, account }: { publicKey: PublicKey; account: any }) => ({
+          pubkey: publicKey.toString(),
+          name: account.name,
+          symbol: account.symbol,
+          uri: account.uri,
+          royalty: typeof account.royalty === 'number'
+            ? account.royalty
+            : Number(account.royalty),
+          mint: account.mint.toString(),
+          admin: account.admin.toString(),
+          isActive: account.isActive,
+          bump: account.bump,
+        }),
       );
+
+      console.log(`✅ Synced ${collections.length} collections from blockchain`);
       return collections;
     } catch (error) {
       console.error('Error syncing collections from blockchain:', error);
@@ -757,43 +717,23 @@ export class SolanaContractService {
    */
   async syncTypesFromBlockchain(): Promise<any[]> {
     try {
-      console.log('🔄 Starting NFT types blockchain sync...');
+      console.log('🔄 Fetching NFT types via Anchor coder...');
 
-      const allAccounts = await this.connection.getProgramAccounts(PROGRAM_ID);
-      const nftTypes: any[] = [];
+      const typeAccounts = await (this.program.account as any).nftType.all();
 
-      for (const account of allAccounts) {
-        try {
-          // Try to decode as NFTType
-          const typeData: any = await (
-            this.program.account as any
-          ).nftType.fetch(account.pubkey);
-
-          console.log('✅ Found NFT type:', {
-            pubkey: account.pubkey.toString(),
-            name: typeData.name,
-            collection: typeData.collection.toString(),
-            price: typeData.price.toString(),
-            maxSupply: typeData.maxSupply.toString(),
-            currentSupply: typeData.currentSupply.toString(),
-          });
-
-          nftTypes.push({
-            pubkey: account.pubkey.toString(),
-            collection: typeData.collection.toString(),
-            name: typeData.name,
-            uri: typeData.uri,
-            price: typeData.price.toString(),
-            maxSupply: typeData.maxSupply.toString(),
-            currentSupply: typeData.currentSupply.toString(),
-            stakingAmount: typeData.stakingAmount.toString(),
-            bump: typeData.bump,
-          });
-        } catch (err) {
-          // Not an NFT type account, skip
-          continue;
-        }
-      }
+      const nftTypes = typeAccounts.map(
+        ({ publicKey, account }: { publicKey: PublicKey; account: any }) => ({
+          pubkey: publicKey.toString(),
+          collection: account.collection.toString(),
+          name: account.name,
+          uri: account.uri,
+          price: account.price.toString(),
+          maxSupply: account.maxSupply.toString(),
+          currentSupply: account.currentSupply.toString(),
+          stakingAmount: account.stakingAmount.toString(),
+          bump: account.bump,
+        }),
+      );
 
       console.log(`✅ Synced ${nftTypes.length} NFT types from blockchain`);
       return nftTypes;

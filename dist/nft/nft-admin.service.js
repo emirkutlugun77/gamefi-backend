@@ -371,13 +371,20 @@ let NftAdminService = class NftAdminService {
             let updated = 0;
             const syncedCollections = [];
             for (const bcCollection of blockchainCollections) {
+                const collectionId = bcCollection.mint || bcCollection.pubkey;
                 let dbCollection = await this.nftCollectionRepo.findOne({
-                    where: { name: bcCollection.name },
+                    where: { id: collectionId },
                 });
+                if (!dbCollection) {
+                    dbCollection = await this.nftCollectionRepo.findOne({
+                        where: { name: bcCollection.name },
+                    });
+                }
                 if (dbCollection) {
+                    dbCollection.id = collectionId;
                     dbCollection.symbol = bcCollection.symbol;
                     dbCollection.uri = bcCollection.uri;
-                    dbCollection.royalty = bcCollection.royalty;
+                    dbCollection.royalty = Number(bcCollection.royalty);
                     dbCollection.admin = bcCollection.admin;
                     dbCollection.isActive = bcCollection.isActive;
                     dbCollection.updatedAt = new Date();
@@ -387,11 +394,11 @@ let NftAdminService = class NftAdminService {
                 }
                 else {
                     dbCollection = this.nftCollectionRepo.create({
-                        id: `${bcCollection.name}_${Date.now()}`,
+                        id: collectionId,
                         name: bcCollection.name,
                         symbol: bcCollection.symbol,
                         uri: bcCollection.uri,
-                        royalty: bcCollection.royalty,
+                        royalty: Number(bcCollection.royalty),
                         admin: bcCollection.admin,
                         isActive: bcCollection.isActive,
                         createdAt: new Date(),
@@ -426,7 +433,11 @@ let NftAdminService = class NftAdminService {
     async syncTypesFromBlockchain() {
         try {
             console.log('🔄 Syncing NFT types from blockchain...');
-            const blockchainTypes = await this.solanaContractService.syncTypesFromBlockchain();
+            const [blockchainTypes, blockchainCollections] = await Promise.all([
+                this.solanaContractService.syncTypesFromBlockchain(),
+                this.solanaContractService.syncCollectionsFromBlockchain(),
+            ]);
+            const collectionMap = new Map(blockchainCollections.map((c) => [c.pubkey, c]));
             let created = 0;
             let updated = 0;
             let skipped = 0;
@@ -437,8 +448,7 @@ let NftAdminService = class NftAdminService {
                 const collectionPDA = bcType.collection;
                 let collection = null;
                 try {
-                    const collectionAccountData = await this.solanaContractService.syncCollectionsFromBlockchain();
-                    const matchingBcCollection = collectionAccountData.find((c) => c.pubkey === collectionPDA);
+                    const matchingBcCollection = collectionMap.get(collectionPDA);
                     console.log(`  Matching blockchain collection:`, matchingBcCollection ? matchingBcCollection.name : 'NOT FOUND');
                     if (matchingBcCollection) {
                         collection = await this.nftCollectionRepo.findOne({
@@ -829,6 +839,24 @@ let NftAdminService = class NftAdminService {
             };
             const metadataUri = await this.uploadToIPFS(metadata);
             const { transaction, collectionMintKeypair, collectionPda, collectionMint, } = await this.solanaContractService.prepareCreateCollectionTransaction(admin, dto.name, dto.symbol, metadataUri, dto.royalty);
+            const now = new Date();
+            let dbCollection = await this.nftCollectionRepo.findOne({
+                where: { id: collectionMint },
+            });
+            if (!dbCollection) {
+                dbCollection = this.nftCollectionRepo.create({
+                    id: collectionMint,
+                    createdAt: now,
+                });
+            }
+            dbCollection.admin = admin.toString();
+            dbCollection.name = dto.name;
+            dbCollection.symbol = dto.symbol;
+            dbCollection.uri = metadataUri;
+            dbCollection.royalty = dto.royalty;
+            dbCollection.isActive = true;
+            dbCollection.updatedAt = now;
+            await this.nftCollectionRepo.save(dbCollection);
             transaction.partialSign(collectionMintKeypair);
             const serialized = transaction.serialize({
                 requireAllSignatures: false,
@@ -842,6 +870,7 @@ let NftAdminService = class NftAdminService {
                     collectionMint,
                     metadataUri,
                     imageUri,
+                    collectionRecord: dbCollection,
                     requiredSigners: [admin.toString()],
                     message: 'Transaction prepared. Please sign and send using your wallet.',
                 },
