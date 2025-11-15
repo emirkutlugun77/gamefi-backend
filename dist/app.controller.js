@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppController = void 0;
 const common_1 = require("@nestjs/common");
 const app_service_1 = require("./app.service");
+const swagger_1 = require("@nestjs/swagger");
 let AppController = class AppController {
     appService;
     constructor(appService) {
@@ -23,18 +24,6 @@ let AppController = class AppController {
     getHello() {
         return this.appService.getHello();
     }
-    async getPresaleInfo() {
-        return this.appService.getPresaleInfo();
-    }
-    async contributePresale(body) {
-        return this.appService.contributePresale(body.wallet, body.amount);
-    }
-    async endPresale(body) {
-        return this.appService.endPresale(body.adminWallet);
-    }
-    async restartPresale(body) {
-        return this.appService.restartPresale(body.adminWallet);
-    }
     async chooseSide(body) {
         return this.appService.chooseSide(body.publicKey, body.side);
     }
@@ -42,45 +31,21 @@ let AppController = class AppController {
 exports.AppController = AppController;
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Health check endpoint' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", String)
 ], AppController.prototype, "getHello", null);
 __decorate([
-    (0, common_1.Get)('presale'),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], AppController.prototype, "getPresaleInfo", null);
-__decorate([
-    (0, common_1.Post)('presale/contribute'),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], AppController.prototype, "contributePresale", null);
-__decorate([
-    (0, common_1.Post)('presale/end'),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], AppController.prototype, "endPresale", null);
-__decorate([
-    (0, common_1.Post)('presale/restart'),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], AppController.prototype, "restartPresale", null);
-__decorate([
     (0, common_1.Post)('user/choose-side'),
+    (0, swagger_1.ApiOperation)({ summary: 'Choose user side (DARK or HOLY)' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "chooseSide", null);
 exports.AppController = AppController = __decorate([
+    (0, swagger_1.ApiTags)('App'),
     (0, common_1.Controller)(),
     __metadata("design:paramtypes", [app_service_1.AppService])
 ], AppController);

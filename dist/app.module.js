@@ -17,6 +17,7 @@ const nft_module_1 = require("./nft/nft.module");
 const user_module_1 = require("./user/user.module");
 const achievements_module_1 = require("./achievements/achievements.module");
 const staking_module_1 = require("./staking/staking.module");
+const presale_module_1 = require("./presale/presale.module");
 const nft_collection_entity_1 = require("./entities/nft-collection.entity");
 const nft_type_entity_1 = require("./entities/nft-type.entity");
 const user_nft_entity_1 = require("./entities/user-nft.entity");
@@ -52,6 +53,7 @@ exports.AppModule = AppModule = __decorate([
             user_module_1.UserModule,
             achievements_module_1.AchievementsModule,
             staking_module_1.StakingModule,
+            presale_module_1.PresaleModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

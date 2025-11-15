@@ -1,21 +1,26 @@
-import { Connection } from '@solana/web3.js';
 export interface PresaleInfo {
+    publicKey: string;
     admin: string;
     startTs: number;
     endTs: number;
     totalRaised: number;
+    totalRaisedSol: string;
     targetLamports: number;
+    targetSol: string;
     isActive: boolean;
-    bump: number;
+    timeRemaining: number;
+    progress: number;
 }
 export declare class PresaleService {
     private connection;
     private program;
-    constructor(connection: Connection);
+    constructor();
     private getPresalePDA;
     private getContributionPDA;
     getPresaleInfo(): Promise<PresaleInfo>;
-    contributePresale(walletAddress: string, amount: number): Promise<string>;
-    endPresale(adminWallet: string): Promise<string>;
-    restartPresale(adminWallet: string): Promise<string>;
+    getContribution(walletAddress: string): Promise<any>;
+    prepareInitializePresale(adminWallet: string): Promise<any>;
+    prepareContributePresale(contributorWallet: string, amountSol: number): Promise<any>;
+    prepareEndPresale(adminWallet: string): Promise<any>;
+    prepareRestartPresale(adminWallet: string): Promise<any>;
 }
