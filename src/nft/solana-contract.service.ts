@@ -52,9 +52,8 @@ export class SolanaContractService {
       commitment: 'confirmed',
     });
 
-    // Initialize Program with the IDL - address is in the IDL itself
-    // @ts-ignore
-    this.program = new Program(IDL, provider);
+    // Initialize Program using IDL address (kept in nft_marketplace.json)
+    this.program = new Program(IDL as any, provider);
   }
 
   /**
