@@ -468,10 +468,18 @@ export class NftService {
   }
 
   private transformDasAsset(asset: any): any {
+    const nftName = asset.content?.metadata?.name || 'Unknown NFT';
+    
+    // Extract type name from NFT name (e.g., "Barbarian #1" -> "Barbarian")
+    const typeName = nftName.includes('#') 
+      ? nftName.split('#')[0].trim() 
+      : nftName;
+
     return {
       mint: asset.id,
       metadata: asset.content?.metadata || null,
-      name: asset.content?.metadata?.name || 'Unknown NFT',
+      name: nftName,
+      typeName: typeName, // For staking
       image:
         asset.content?.files?.[0]?.uri ||
         asset.content?.metadata?.image ||

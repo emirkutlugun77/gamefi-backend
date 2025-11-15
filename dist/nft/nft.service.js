@@ -305,10 +305,15 @@ let NftService = class NftService {
         }
     }
     transformDasAsset(asset) {
+        const nftName = asset.content?.metadata?.name || 'Unknown NFT';
+        const typeName = nftName.includes('#')
+            ? nftName.split('#')[0].trim()
+            : nftName;
         return {
             mint: asset.id,
             metadata: asset.content?.metadata || null,
-            name: asset.content?.metadata?.name || 'Unknown NFT',
+            name: nftName,
+            typeName: typeName,
             image: asset.content?.files?.[0]?.uri ||
                 asset.content?.metadata?.image ||
                 '/placeholder.svg',

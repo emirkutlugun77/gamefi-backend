@@ -54,6 +54,46 @@ export class StakingService {
   }
 
   /**
+   * Get all contract addresses
+   */
+  async getContractAddresses(): Promise<any> {
+    return {
+      success: true,
+      network: 'devnet',
+      rpcUrl: this.connection.rpcEndpoint,
+      addresses: {
+        programId: PROGRAM_ID.toString(),
+        stakePoolPda: STAKE_POOL_PDA.toString(),
+        rewardVaultPda: REWARD_VAULT_PDA.toString(),
+        rewardTokenMint: REWARD_TOKEN_MINT.toString(),
+      },
+      explorer: {
+        program: `https://solscan.io/account/${PROGRAM_ID.toString()}?cluster=devnet`,
+        stakePool: `https://solscan.io/account/${STAKE_POOL_PDA.toString()}?cluster=devnet`,
+        rewardVault: `https://solscan.io/account/${REWARD_VAULT_PDA.toString()}?cluster=devnet`,
+        rewardToken: `https://solscan.io/account/${REWARD_TOKEN_MINT.toString()}?cluster=devnet`,
+      },
+      deployment: {
+        programId: '6Zw5z9y5YvF1NhJnAWTe1TVt1GR8kR7ecPiKG3hgXULm',
+        deployer: 'EwfrQdyQTBhaTCvCpAt1Nr596MVi72q6hD15wnjGtETr',
+        deploymentTx: '2ySM7ZenuHNKvzcEetVmRqLibuLW6JvUYx2YXMztRDMESrZ5rK8H5VaDCmkygBd2K9RZuqZcxRcRfH93j5bDqa4r',
+        stakingPoolInitTx: '2GDsw7hKq8NL8cb4YeNBBbbPogbe6DzD5gpnW8eNqrGkbbwb44KajdqZyddPGgTDj7Givs9YKUtMcFu3t5Lnrjo',
+      },
+      rewardConfig: {
+        baseRatePerSecond: 277777,
+        tokensPerHour: 1,
+        formula: 'actual_rewards = base_rate × stake_multiplier / 10000',
+        multiplierExamples: {
+          common: { multiplier: 10000, tokensPerHour: 1 },
+          rare: { multiplier: 20000, tokensPerHour: 2 },
+          epic: { multiplier: 30000, tokensPerHour: 3 },
+          legendary: { multiplier: 50000, tokensPerHour: 5 },
+        },
+      },
+    };
+  }
+
+  /**
    * Get staking pool info
    */
   async getStakingPool(): Promise<any> {

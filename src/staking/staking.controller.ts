@@ -14,6 +14,16 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class StakingController {
   constructor(private readonly stakingService: StakingService) {}
 
+  @Get('addresses')
+  @ApiOperation({
+    summary: 'Get all contract addresses',
+    description:
+      'Returns all deployed smart contract addresses including program ID, stake pool, reward vault, etc.',
+  })
+  async getContractAddresses() {
+    return this.stakingService.getContractAddresses();
+  }
+
   @Get('pool')
   @ApiOperation({ summary: 'Get staking pool information' })
   async getStakingPool() {
