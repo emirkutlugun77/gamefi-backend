@@ -13,6 +13,7 @@ exports.CreateTypeDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 class CreateTypeDto {
+    adminPublicKey;
     collectionName;
     name;
     price;
@@ -24,6 +25,15 @@ class CreateTypeDto {
     attributes;
 }
 exports.CreateTypeDto = CreateTypeDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Admin public key that will sign the transaction',
+        example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateTypeDto.prototype, "adminPublicKey", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Collection name to add this type to',

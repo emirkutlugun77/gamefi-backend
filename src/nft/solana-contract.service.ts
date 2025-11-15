@@ -92,10 +92,47 @@ export class SolanaContractService {
     signature: string;
     marketplacePda: string;
   }> {
+    const admin = adminKeypair.publicKey;
+    const {
+      transaction,
+      marketplacePda,
+    } = await this.prepareInitializeMarketplaceTransaction(admin, feeBps);
+
+    transaction.sign(adminKeypair);
+
+    // Send and confirm transaction
+    console.log('Sending transaction to Solana...');
+    const signature = await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [adminKeypair],
+      {
+        commitment: 'confirmed',
+      },
+    );
+
+    console.log('✅ Marketplace initialized successfully!');
+    console.log('   Signature:', signature);
+    console.log('   Marketplace PDA:', marketplacePda);
+
+    return {
+      signature,
+      marketplacePda,
+    };
+  }
+
+  async prepareInitializeMarketplaceTransaction(
+    admin: PublicKey,
+    feeBps: number = 500,
+  ): Promise<{
+    transaction: Transaction;
+    marketplacePda: string;
+    blockhash: string;
+    lastValidBlockHeight: number;
+  }> {
     try {
       console.log('Initializing marketplace with fee:', feeBps, 'bps');
 
-      const admin = adminKeypair.publicKey;
       const marketplacePda = this.getMarketplacePda();
 
       console.log('Marketplace PDA:', marketplacePda.toString());
@@ -131,31 +168,16 @@ export class SolanaContractService {
       transaction.add(instruction);
 
       // Get recent blockhash
-      const { blockhash } = await this.connection.getLatestBlockhash();
+      const { blockhash, lastValidBlockHeight } =
+        await this.connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = admin;
 
-      // Sign transaction
-      transaction.sign(adminKeypair);
-
-      // Send and confirm transaction
-      console.log('Sending transaction to Solana...');
-      const signature = await sendAndConfirmTransaction(
-        this.connection,
-        transaction,
-        [adminKeypair],
-        {
-          commitment: 'confirmed',
-        },
-      );
-
-      console.log('✅ Marketplace initialized successfully!');
-      console.log('   Signature:', signature);
-      console.log('   Marketplace PDA:', marketplacePda.toString());
-
       return {
-        signature,
+        transaction,
         marketplacePda: marketplacePda.toString(),
+        blockhash,
+        lastValidBlockHeight,
       };
     } catch (error) {
       console.error('Error initializing marketplace:', error);
@@ -185,10 +207,62 @@ export class SolanaContractService {
     collectionPda: string;
     collectionMint: string;
   }> {
-    try {
-      console.log('Creating and submitting collection:', collectionName);
+    const admin = adminKeypair.publicKey;
+    const {
+      transaction,
+      collectionMintKeypair: tempMintKeypair,
+      collectionPda,
+      collectionMint,
+    } = await this.prepareCreateCollectionTransaction(
+      admin,
+      collectionName,
+      symbol,
+      uri,
+      royalty,
+    );
 
-      const admin = adminKeypair.publicKey;
+    transaction.partialSign(adminKeypair, tempMintKeypair);
+
+    console.log('Sending transaction to Solana...');
+    const signature = await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [adminKeypair, tempMintKeypair],
+      {
+        commitment: 'confirmed',
+      },
+    );
+
+    console.log('✅ Collection created successfully!');
+    console.log('   Signature:', signature);
+    console.log('   Collection PDA:', collectionPda);
+    console.log('   Collection Mint:', collectionMint);
+
+    return {
+      signature,
+      collectionPda,
+      collectionMint,
+    };
+  }
+
+  async prepareCreateCollectionTransaction(
+    admin: PublicKey,
+    collectionName: string,
+    symbol: string,
+    uri: string,
+    royalty: number,
+  ): Promise<{
+    transaction: Transaction;
+    collectionMintKeypair: Keypair;
+    collectionPda: string;
+    collectionMint: string;
+    blockhash: string;
+    lastValidBlockHeight: number;
+  }> {
+    try {
+      console.log('Preparing collection transaction:', collectionName);
+
+      const collectionMintKeypair = Keypair.generate();
       const collectionMint = collectionMintKeypair.publicKey;
 
       // Derive PDAs
@@ -234,8 +308,6 @@ export class SolanaContractService {
         adminTokenAccount: adminTokenAccount.toString(),
       });
 
-      // Create instruction using Anchor
-      // Convert royalty to BN for Anchor
       const royaltyBN = new BN(royalty);
 
       const instruction = await this.program.methods
@@ -256,16 +328,10 @@ export class SolanaContractService {
         })
         .instruction();
 
-      // Create transaction with increased compute budget
       const transaction = new Transaction();
-
-      // Add compute budget instructions to increase limit
-      // Set compute unit limit to 400,000 (2x default)
       const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
         units: 400000,
       });
-
-      // Set compute unit price (priority fee) - 1 micro lamport per compute unit
       const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
         microLamports: 1,
       });
@@ -274,42 +340,25 @@ export class SolanaContractService {
       transaction.add(addPriorityFee);
       transaction.add(instruction);
 
-      // Get recent blockhash
-      const { blockhash } = await this.connection.getLatestBlockhash();
+      const { blockhash, lastValidBlockHeight } =
+        await this.connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = admin;
 
-      // Sign transaction with both keypairs
-      transaction.partialSign(adminKeypair);
-      transaction.partialSign(collectionMintKeypair);
-
-      // Send and confirm transaction
-      console.log('Sending transaction to Solana...');
-      const signature = await sendAndConfirmTransaction(
-        this.connection,
-        transaction,
-        [adminKeypair, collectionMintKeypair],
-        {
-          commitment: 'confirmed',
-        },
-      );
-
-      console.log('✅ Collection created successfully!');
-      console.log('   Signature:', signature);
-      console.log('   Collection PDA:', collectionPda.toString());
-      console.log('   Collection Mint:', collectionMint.toString());
-
       return {
-        signature,
+        transaction,
+        collectionMintKeypair,
         collectionPda: collectionPda.toString(),
         collectionMint: collectionMint.toString(),
+        blockhash,
+        lastValidBlockHeight,
       };
     } catch (error) {
-      console.error('Error creating collection transaction:', error);
+      console.error('Error preparing collection transaction:', error);
       throw new HttpException(
         {
           success: false,
-          message: 'Failed to create collection transaction',
+          message: 'Failed to prepare collection transaction',
           error: error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -332,15 +381,60 @@ export class SolanaContractService {
     signature: string;
     nftTypePda: string;
   }> {
+    const admin = adminKeypair.publicKey;
+    const { transaction, nftTypePda } =
+      await this.prepareCreateNftTypeTransaction(
+        admin,
+        collectionName,
+        typeName,
+        uri,
+        price,
+        maxSupply,
+        stakingAmount,
+      );
+
+    transaction.sign(adminKeypair);
+
+    console.log('Sending transaction to Solana...');
+    const signature = await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [adminKeypair],
+      {
+        commitment: 'confirmed',
+      },
+    );
+
+    console.log('✅ NFT type created successfully!');
+    console.log('   Signature:', signature);
+    console.log('   NFT Type PDA:', nftTypePda);
+
+    return {
+      signature,
+      nftTypePda,
+    };
+  }
+
+  async prepareCreateNftTypeTransaction(
+    admin: PublicKey,
+    collectionName: string,
+    typeName: string,
+    uri: string,
+    price: number,
+    maxSupply: number,
+    stakingAmount: number,
+  ): Promise<{
+    transaction: Transaction;
+    nftTypePda: string;
+    blockhash: string;
+    lastValidBlockHeight: number;
+  }> {
     try {
-      console.log('Creating and submitting NFT type:', {
+      console.log('Preparing NFT type transaction:', {
         collectionName,
         typeName,
       });
 
-      const admin = adminKeypair.publicKey;
-
-      // Derive PDAs
       const [collectionPda] = PublicKey.findProgramAddressSync(
         [Buffer.from('collection'), Buffer.from(collectionName)],
         PROGRAM_ID,
@@ -351,13 +445,6 @@ export class SolanaContractService {
         PROGRAM_ID,
       );
 
-      console.log('PDAs derived:', {
-        collection: collectionPda.toString(),
-        nftType: nftTypePda.toString(),
-      });
-
-      // Create instruction using Anchor
-      // Convert numbers to BN for Anchor
       const priceBN = new BN(price);
       const maxSupplyBN = new BN(maxSupply);
       const stakingAmountBN = new BN(stakingAmount);
@@ -372,14 +459,10 @@ export class SolanaContractService {
         })
         .instruction();
 
-      // Create transaction with increased compute budget
       const transaction = new Transaction();
-
-      // Add compute budget instructions
       const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
         units: 300000,
       });
-
       const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
         microLamports: 1,
       });
@@ -388,39 +471,23 @@ export class SolanaContractService {
       transaction.add(addPriorityFee);
       transaction.add(instruction);
 
-      // Get recent blockhash
-      const { blockhash } = await this.connection.getLatestBlockhash();
+      const { blockhash, lastValidBlockHeight } =
+        await this.connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = admin;
 
-      // Sign transaction
-      transaction.sign(adminKeypair);
-
-      // Send and confirm transaction
-      console.log('Sending transaction to Solana...');
-      const signature = await sendAndConfirmTransaction(
-        this.connection,
-        transaction,
-        [adminKeypair],
-        {
-          commitment: 'confirmed',
-        },
-      );
-
-      console.log('✅ NFT type created successfully!');
-      console.log('   Signature:', signature);
-      console.log('   NFT Type PDA:', nftTypePda.toString());
-
       return {
-        signature,
+        transaction,
         nftTypePda: nftTypePda.toString(),
+        blockhash,
+        lastValidBlockHeight,
       };
     } catch (error) {
-      console.error('Error creating NFT type transaction:', error);
+      console.error('Error preparing NFT type transaction:', error);
       throw new HttpException(
         {
           success: false,
-          message: 'Failed to create NFT type transaction',
+          message: 'Failed to prepare NFT type transaction',
           error: error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -443,17 +510,66 @@ export class SolanaContractService {
     nftMint: string;
     buyerTokenAccount: string;
   }> {
+    const {
+      transaction,
+      nftMintKeypair,
+      nftMint,
+      buyerTokenAccount,
+    } = await this.prepareMintNftTransaction(
+      collectionAdminKeypair.publicKey,
+      buyerKeypair.publicKey,
+      collectionName,
+      typeName,
+      collectionMintAddress,
+    );
+
+    transaction.partialSign(collectionAdminKeypair, buyerKeypair, nftMintKeypair);
+
+    console.log('Sending transaction to Solana...');
+    const signature = await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [collectionAdminKeypair, buyerKeypair, nftMintKeypair],
+      {
+        commitment: 'confirmed',
+      },
+    );
+
+    console.log('✅ NFT minted successfully!');
+    console.log('   Signature:', signature);
+    console.log('   NFT Mint:', nftMint);
+    console.log('   Buyer Token Account:', buyerTokenAccount);
+
+    return {
+      signature,
+      nftMint,
+      buyerTokenAccount,
+    };
+  }
+
+  async prepareMintNftTransaction(
+    collectionAdmin: PublicKey,
+    buyer: PublicKey,
+    collectionName: string,
+    typeName: string,
+    collectionMintAddress: string,
+  ): Promise<{
+    transaction: Transaction;
+    nftMintKeypair: Keypair;
+    nftMint: string;
+    buyerTokenAccount: string;
+    blockhash: string;
+    lastValidBlockHeight: number;
+  }> {
     try {
-      console.log('Minting NFT:', { collectionName, typeName });
+      console.log('Preparing mint NFT transaction:', {
+        collectionName,
+        typeName,
+      });
 
-      const collectionAdmin = collectionAdminKeypair.publicKey;
-      const buyer = buyerKeypair.publicKey;
-
-      // Generate new NFT mint keypair
       const nftMintKeypair = Keypair.generate();
       const nftMint = nftMintKeypair.publicKey;
 
-      // Derive PDAs
       const [collectionPda] = PublicKey.findProgramAddressSync(
         [Buffer.from('collection'), Buffer.from(collectionName)],
         PROGRAM_ID,
@@ -464,13 +580,9 @@ export class SolanaContractService {
         PROGRAM_ID,
       );
 
-      // Get buyer's token account
       const buyerTokenAccount = await getAssociatedTokenAddress(nftMint, buyer);
-
-      // Use provided collection mint
       const collectionMintAccount = new PublicKey(collectionMintAddress);
 
-      // Get collection metadata PDAs
       const [collectionMetadataPda] = PublicKey.findProgramAddressSync(
         [
           Buffer.from('metadata'),
@@ -490,7 +602,6 @@ export class SolanaContractService {
         TOKEN_METADATA_PROGRAM_ID,
       );
 
-      // Get NFT metadata PDA
       const [nftMetadataPda] = PublicKey.findProgramAddressSync(
         [
           Buffer.from('metadata'),
@@ -500,15 +611,6 @@ export class SolanaContractService {
         TOKEN_METADATA_PROGRAM_ID,
       );
 
-      console.log('PDAs derived:', {
-        collection: collectionPda.toString(),
-        nftType: nftTypePda.toString(),
-        nftMint: nftMint.toString(),
-        buyerTokenAccount: buyerTokenAccount.toString(),
-        collectionMintAccount: collectionMintAccount.toString(),
-      });
-
-      // Create instruction using Anchor - account names must match IDL exactly
       const instruction = await this.program.methods
         .mintNftFromCollection(typeName)
         .accounts({
@@ -519,9 +621,9 @@ export class SolanaContractService {
           nftMetadata: nftMetadataPda,
           collectionMetadata: collectionMetadataPda,
           collectionMasterEdition: collectionMasterEditionPda,
-          collectionMintAccount, // Must match IDL name exactly
-          collectionAdmin, // Required signer per IDL
-          buyer, // Required signer per IDL
+          collectionMintAccount,
+          collectionAdmin,
+          buyer,
           systemProgram: SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -530,14 +632,10 @@ export class SolanaContractService {
         })
         .instruction();
 
-      // Create transaction with increased compute budget
       const transaction = new Transaction();
-
-      // Add compute budget instructions
       const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
-        units: 500000, // Increased for NFT minting with metadata
+        units: 500000,
       });
-
       const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
         microLamports: 1,
       });
@@ -546,45 +644,25 @@ export class SolanaContractService {
       transaction.add(addPriorityFee);
       transaction.add(instruction);
 
-      // Get recent blockhash
-      const { blockhash } = await this.connection.getLatestBlockhash();
+      const { blockhash, lastValidBlockHeight } =
+        await this.connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = buyer;
 
-      // Sign transaction with all required signers: admin, buyer, and nft mint
-      transaction.sign(collectionAdminKeypair, buyerKeypair, nftMintKeypair);
-
-      // Send and confirm transaction
-      console.log('Sending transaction to Solana...');
-      const signature = await sendAndConfirmTransaction(
-        this.connection,
-        transaction,
-        [collectionAdminKeypair, buyerKeypair, nftMintKeypair],
-        {
-          commitment: 'confirmed',
-        },
-      );
-
-      console.log('✅ NFT minted successfully!');
-      console.log('   Signature:', signature);
-      console.log('   NFT Mint:', nftMint.toString());
-      console.log('   Buyer Token Account:', buyerTokenAccount.toString());
-      console.log(
-        '   Explorer:',
-        `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
-      );
-
       return {
-        signature,
+        transaction,
+        nftMintKeypair,
         nftMint: nftMint.toString(),
         buyerTokenAccount: buyerTokenAccount.toString(),
+        blockhash,
+        lastValidBlockHeight,
       };
     } catch (error) {
-      console.error('Error minting NFT:', error);
+      console.error('Error preparing mint NFT transaction:', error);
       throw new HttpException(
         {
           success: false,
-          message: 'Failed to mint NFT',
+          message: 'Failed to prepare mint NFT transaction',
           error: error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,

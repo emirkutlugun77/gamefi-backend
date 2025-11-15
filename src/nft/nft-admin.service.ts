@@ -20,7 +20,6 @@ import {
 } from './dto/store-config.dto';
 import { SolanaContractService } from './solana-contract.service';
 import { NftService } from './nft.service';
-import { AuthService } from '../auth/auth.service';
 import axios from 'axios';
 
 const PROGRAM_ID = new PublicKey(
@@ -40,7 +39,6 @@ export class NftAdminService {
     private storeConfigRepo: Repository<StoreConfig>,
     public solanaContractService: SolanaContractService,
     private nftService: NftService,
-    private authService: AuthService,
   ) {
     this.connection = new Connection(
       'https://api.devnet.solana.com',
@@ -384,7 +382,7 @@ export class NftAdminService {
   }
 
   /**
-   * Create NFT type with IPFS metadata (DEPRECATED - use createTypeWithAuth instead)
+   * Create NFT type with IPFS metadata (DEPRECATED - use prepareCreateType instead)
    */
   async createType(dto: CreateTypeDto): Promise<any> {
     try {
@@ -1026,7 +1024,7 @@ export class NftAdminService {
   }
 
   /**
-   * Create NFT type with uploaded files (DEPRECATED - use createTypeWithAuth instead)
+   * Create NFT type with uploaded files (DEPRECATED - use prepareCreateType instead)
    */
   async createTypeWithFiles(
     dto: CreateTypeDto,
@@ -1182,15 +1180,26 @@ export class NftAdminService {
   /**
    * Create collection with authentication - full workflow
    */
-  async createCollectionWithAuth(
-    encryptedPrivateKey: string,
+  async prepareCreateCollection(
+    adminPublicKey: string,
     dto: CreateCollectionDto,
     imageFile: Express.Multer.File,
   ): Promise<any> {
     try {
-      console.log('Creating collection with auth:', dto.name);
+      console.log('Preparing create collection tx:', dto.name);
 
-      // Check if marketplace is initialized
+      if (!adminPublicKey) {
+        throw new HttpException(
+          {
+            success: false,
+            message: 'adminPublicKey is required',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const admin = new PublicKey(adminPublicKey);
+
       const isInitialized =
         await this.solanaContractService.isMarketplaceInitialized();
       if (!isInitialized) {
@@ -1198,25 +1207,12 @@ export class NftAdminService {
           {
             success: false,
             message:
-              'Marketplace is not initialized. Please initialize the marketplace first using POST /nft-admin/initialize-marketplace endpoint.',
+              'Marketplace is not initialized. Please initialize it first.',
             error: 'MARKETPLACE_NOT_INITIALIZED',
           },
           HttpStatus.PRECONDITION_FAILED,
         );
       }
-
-      // Get admin keypair from encrypted private key
-      const adminKeypair =
-        this.authService.getKeypairFromToken(encryptedPrivateKey);
-
-      // Generate collection mint keypair
-      const collectionMintKeypair = Keypair.generate();
-
-      console.log('Admin:', adminKeypair.publicKey.toString());
-      console.log(
-        'Collection Mint:',
-        collectionMintKeypair.publicKey.toString(),
-      );
 
       // Upload image to IPFS
       const imageFilename = `${dto.name}_collection_image`;
@@ -1249,36 +1245,42 @@ export class NftAdminService {
       // Upload metadata to IPFS
       const metadataUri = await this.uploadToIPFS(metadata);
 
-      // Create collection on-chain
-      const result = await this.solanaContractService.createAndSubmitCollection(
-        adminKeypair,
+      const {
+        transaction,
         collectionMintKeypair,
+        collectionPda,
+        collectionMint,
+      } = await this.solanaContractService.prepareCreateCollectionTransaction(
+        admin,
         dto.name,
         dto.symbol,
         metadataUri,
         dto.royalty,
       );
 
-      const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
+      // Sign with mint keypair before returning to client
+      transaction.partialSign(collectionMintKeypair);
 
-      console.log('✅ Collection created successfully!');
-      console.log('   Signature:', result.signature);
-      console.log('   Explorer:', explorerUrl);
+      const serialized = transaction.serialize({
+        requireAllSignatures: false,
+        verifySignatures: false,
+      });
 
       return {
         success: true,
         data: {
-          signature: result.signature,
-          collectionPda: result.collectionPda,
-          collectionMint: result.collectionMint,
+          transaction: serialized.toString('base64'),
+          collectionPda,
+          collectionMint,
           metadataUri,
           imageUri,
-          explorerUrl,
-          message: 'Collection created successfully on Solana!',
+          requiredSigners: [admin.toString()],
+          message:
+            'Transaction prepared. Please sign and send using your wallet.',
         },
       };
     } catch (error) {
-      console.error('Error in createCollectionWithAuth:', error);
+      console.error('Error preparing createCollection:', error);
 
       if (error instanceof HttpException) {
         throw error;
@@ -1287,7 +1289,7 @@ export class NftAdminService {
       throw new HttpException(
         {
           success: false,
-          message: 'Failed to create collection',
+          message: 'Failed to prepare collection transaction',
           error: error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -1298,14 +1300,26 @@ export class NftAdminService {
   /**
    * Initialize marketplace with JWT authentication
    */
-  async initializeMarketplaceWithAuth(
-    encryptedPrivateKey: string,
+  async prepareInitializeMarketplace(
+    adminPublicKey: string,
     feeBps: number = 500,
   ): Promise<any> {
     try {
-      console.log('Initializing marketplace with auth, fee:', feeBps, 'bps');
+      console.log('Preparing initialize marketplace tx, fee:', feeBps, 'bps');
 
-      // Check if already initialized
+      if (!adminPublicKey) {
+        throw new HttpException(
+          {
+            success: false,
+            message: 'adminPublicKey is required',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const admin = new PublicKey(adminPublicKey);
+
+      // Ensure marketplace not already initialized
       const isInitialized =
         await this.solanaContractService.isMarketplaceInitialized();
       if (isInitialized) {
@@ -1318,38 +1332,30 @@ export class NftAdminService {
         );
       }
 
-      // Get admin keypair from encrypted private key
-      const adminKeypair =
-        this.authService.getKeypairFromToken(encryptedPrivateKey);
+      const { transaction, marketplacePda } =
+        await this.solanaContractService.prepareInitializeMarketplaceTransaction(
+          admin,
+          feeBps,
+        );
 
-      console.log('Admin:', adminKeypair.publicKey.toString());
-
-      // Initialize marketplace on-chain
-      const result = await this.solanaContractService.initializeMarketplace(
-        adminKeypair,
-        feeBps,
-      );
-
-      const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
-
-      console.log('✅ Marketplace initialized successfully!');
-      console.log('   Signature:', result.signature);
-      console.log('   Marketplace PDA:', result.marketplacePda);
-      console.log('   Explorer:', explorerUrl);
+      const serialized = transaction.serialize({
+        requireAllSignatures: false,
+        verifySignatures: false,
+      });
 
       return {
         success: true,
         data: {
-          signature: result.signature,
-          marketplacePda: result.marketplacePda,
-          feeBps,
-          explorerUrl,
-          message:
-            'Marketplace initialized successfully! You can now create collections.',
+            transaction: serialized.toString('base64'),
+            marketplacePda,
+            feeBps,
+            requiredSigners: [admin.toString()],
+            message:
+              'Transaction prepared. Please sign and send using your wallet.',
         },
       };
     } catch (error) {
-      console.error('Error in initializeMarketplaceWithAuth:', error);
+      console.error('Error preparing initializeMarketplace:', error);
 
       if (error instanceof HttpException) {
         throw error;
@@ -1358,7 +1364,7 @@ export class NftAdminService {
       throw new HttpException(
         {
           success: false,
-          message: 'Failed to initialize marketplace',
+          message: 'Failed to prepare initialize marketplace transaction',
           error: error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -1401,8 +1407,8 @@ export class NftAdminService {
   /**
    * Create NFT type with authentication - full workflow
    */
-  async createTypeWithAuth(
-    encryptedPrivateKey: string,
+  async prepareCreateType(
+    adminPublicKey: string,
     dto: CreateTypeDto,
     files: {
       mainImage?: Express.Multer.File[];
@@ -1410,13 +1416,21 @@ export class NftAdminService {
     },
   ): Promise<any> {
     try {
-      console.log('Creating NFT type with auth:', dto.name);
+      console.log('Preparing NFT type tx:', dto.name);
 
-      // Get admin keypair from encrypted private key
-      const adminKeypair =
-        this.authService.getKeypairFromToken(encryptedPrivateKey);
+      if (!adminPublicKey) {
+        throw new HttpException(
+          {
+            success: false,
+            message: 'adminPublicKey is required',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
 
-      console.log('Admin:', adminKeypair.publicKey.toString());
+      const admin = new PublicKey(adminPublicKey);
+
+      console.log('Admin:', admin.toString());
       console.log('Collection:', dto.collectionName);
       console.log('Type:', dto.name);
 
@@ -1529,20 +1543,19 @@ export class NftAdminService {
         stakingAmount: stakingLamports,
       });
 
-      // Create NFT type on-chain
-      const result = await this.solanaContractService.createAndSubmitNftType(
-        adminKeypair,
-        dto.collectionName,
-        dto.name,
-        metadataUri,
-        priceLamports,
-        Number(dto.maxSupply),
-        stakingLamports,
-      );
+      const { transaction, nftTypePda } =
+        await this.solanaContractService.prepareCreateNftTypeTransaction(
+          admin,
+          dto.collectionName,
+          dto.name,
+          metadataUri,
+          priceLamports,
+          Number(dto.maxSupply),
+          stakingLamports,
+        );
 
-      // Save to database
       const nftType = this.nftTypeRepo.create({
-        id: result.nftTypePda,
+        id: nftTypePda,
         collectionId: collection.id,
         name: dto.name,
         uri: metadataUri,
@@ -1558,17 +1571,16 @@ export class NftAdminService {
 
       await this.nftTypeRepo.save(nftType);
 
-      const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
-
-      console.log('✅ NFT type created successfully!');
-      console.log('   Signature:', result.signature);
-      console.log('   Explorer:', explorerUrl);
+      const serialized = transaction.serialize({
+        requireAllSignatures: false,
+        verifySignatures: false,
+      });
 
       return {
         success: true,
         data: {
-          signature: result.signature,
-          nftTypePda: result.nftTypePda,
+          transaction: serialized.toString('base64'),
+          nftTypePda,
           nftType,
           metadata,
           metadataUri,
@@ -1576,12 +1588,13 @@ export class NftAdminService {
           additionalImageUris,
           priceLamports,
           stakingLamports,
-          explorerUrl,
-          message: 'NFT type created successfully on Solana!',
+          requiredSigners: [admin.toString()],
+          message:
+            'Transaction prepared. Please sign and send using your wallet.',
         },
       };
     } catch (error) {
-      console.error('Error in createTypeWithAuth:', error);
+      console.error('Error preparing createType:', error);
 
       if (error instanceof HttpException) {
         throw error;
@@ -1590,7 +1603,7 @@ export class NftAdminService {
       throw new HttpException(
         {
           success: false,
-          message: 'Failed to create NFT type',
+          message: 'Failed to prepare NFT type transaction',
           error: error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -1599,98 +1612,83 @@ export class NftAdminService {
   }
 
   /**
-   * Mint NFT with authentication
-   * Note: The mint instruction requires BOTH collection_admin and buyer signatures
-   * Since we only have admin's private key from JWT, the buyer must also be the admin for this to work
-   * OR we need to implement a two-step process where buyer signs on frontend
+   * Prepare mint NFT transaction (requires both admin and buyer signatures)
    */
-  async mintNftWithAuth(
-    encryptedPrivateKey: string,
+  async prepareMintNft(
+    collectionAdminPublicKey: string,
     collectionName: string,
     typeName: string,
     collectionMintAddress: string,
     buyerPublicKey: string,
   ): Promise<any> {
     try {
-      console.log('Minting NFT with auth:', {
+      console.log('Preparing mint NFT transaction:', {
         collectionName,
         typeName,
         buyerPublicKey,
       });
 
-      // Get admin keypair from encrypted private key
-      const adminKeypair =
-        this.authService.getKeypairFromToken(encryptedPrivateKey);
-
-      console.log('Admin:', adminKeypair.publicKey.toString());
-      console.log('Buyer:', buyerPublicKey);
-
-      // Validate buyer public key
-      let buyerPubkey: PublicKey;
-      try {
-        buyerPubkey = new PublicKey(buyerPublicKey);
-      } catch (error) {
+      if (!collectionAdminPublicKey) {
         throw new HttpException(
           {
             success: false,
-            message: 'Invalid buyer public key',
+            message: 'collectionAdminPublicKey is required',
           },
           HttpStatus.BAD_REQUEST,
         );
       }
 
-      // Important: The smart contract requires BOTH collection_admin and buyer to sign
-      // For this endpoint to work, buyer and admin must be the same person
-      // Otherwise, we need a different flow (e.g., create unsigned transaction for buyer to sign)
-      if (adminKeypair.publicKey.toString() !== buyerPublicKey) {
+      if (!buyerPublicKey) {
         throw new HttpException(
           {
             success: false,
-            message:
-              'Minting requires buyer signature. For now, buyer must be the same as admin. Use the admin wallet as buyer.',
-            error: 'BUYER_SIGNATURE_REQUIRED',
+            message: 'buyerPublicKey is required',
           },
           HttpStatus.BAD_REQUEST,
         );
       }
 
-      // Mint NFT on-chain
-      const result = await this.solanaContractService.mintNftFromCollection(
-        adminKeypair, // collection admin
-        adminKeypair, // buyer (same as admin for now)
+      const collectionAdmin = new PublicKey(collectionAdminPublicKey);
+      const buyer = new PublicKey(buyerPublicKey);
+
+      const {
+        transaction,
+        nftMintKeypair,
+        nftMint,
+        buyerTokenAccount,
+      } = await this.solanaContractService.prepareMintNftTransaction(
+        collectionAdmin,
+        buyer,
         collectionName,
         typeName,
         collectionMintAddress,
       );
 
-      const explorerUrl = `https://explorer.solana.com/tx/${result.signature}?cluster=devnet`;
+      // Sign with mint keypair before returning to client
+      transaction.partialSign(nftMintKeypair);
 
-      console.log('✅ NFT minted successfully!');
-      console.log('   Signature:', result.signature);
-      console.log('   NFT Mint:', result.nftMint);
-      console.log('   Explorer:', explorerUrl);
+      const serialized = transaction.serialize({
+        requireAllSignatures: false,
+        verifySignatures: false,
+      });
 
       return {
         success: true,
         data: {
-          signature: result.signature,
-          nftMint: result.nftMint,
-          buyerTokenAccount: result.buyerTokenAccount,
-          explorerUrl,
-          message: 'NFT minted successfully on Solana!',
+          transaction: serialized.toString('base64'),
+          nftMint,
+          buyerTokenAccount,
+          requiredSigners: [collectionAdmin.toString(), buyer.toString()],
+          message:
+            'Transaction prepared. Please have all required wallets sign and send.',
         },
       };
     } catch (error) {
-      console.error('Error in mintNftWithAuth:', error);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
+      console.error('Error preparing mint NFT transaction:', error);
       throw new HttpException(
         {
           success: false,
-          message: 'Failed to mint NFT',
+          message: 'Failed to prepare mint NFT transaction',
           error: error.message,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,

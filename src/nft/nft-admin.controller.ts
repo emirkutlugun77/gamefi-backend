@@ -12,8 +12,6 @@ import {
   UseInterceptors,
   UploadedFile,
   UploadedFiles,
-  UseGuards,
-  Req,
 } from '@nestjs/common';
 import {
   FileInterceptor,
@@ -28,10 +26,7 @@ import {
   ApiBody,
   ApiParam,
   ApiConsumes,
-  ApiBearerAuth,
 } from '@nestjs/swagger';
-import type { Request } from 'express';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { NftAdminService } from './nft-admin.service';
 import { NftService } from './nft.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
@@ -40,14 +35,6 @@ import {
   CreateStoreConfigDto,
   UpdateStoreConfigDto,
 } from './dto/store-config.dto';
-
-// Extend Express Request type to include user
-interface RequestWithUser extends Request {
-  user: {
-    encryptedPrivateKey: string;
-    publicKey: string;
-  };
-}
 
 @ApiTags('nft-admin')
 @Controller('nft-admin')
@@ -58,25 +45,29 @@ export class NftAdminController {
   ) {}
 
   @Post('initialize-marketplace')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Initialize marketplace on Solana',
+    summary: 'Prepare marketplace initialization transaction',
     description:
-      'Initializes the NFT marketplace smart contract. This must be done once before creating any collections. Requires JWT authentication.',
+      'Returns an unsigned transaction that initializes the NFT marketplace smart contract. Submit the base64 transaction to your wallet for signing. Must be run once before creating any collections.',
   })
   @ApiBody({
     schema: {
       type: 'object',
+      required: ['adminPublicKey'],
       properties: {
+        adminPublicKey: {
+          type: 'string',
+          example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
+          description: 'Admin wallet that will sign the transaction',
+        },
         feeBps: {
           type: 'number',
           example: 500,
-          description: 'Marketplace fee in basis points (500 = 5%)',
+          description:
+            'Marketplace fee in basis points (500 = 5%). Optional, defaults to 500.',
         },
       },
     },
-    required: false,
   })
   @ApiResponse({
     status: 201,
@@ -88,21 +79,22 @@ export class NftAdminController {
         data: {
           type: 'object',
           properties: {
-            signature: { type: 'string', example: '5Kq...' },
+            transaction: {
+              type: 'string',
+              example: 'base64tx==',
+              description: 'Unsigned transaction payload for wallet signing',
+            },
             marketplacePda: { type: 'string', example: '9Aqrcm...' },
             feeBps: { type: 'number', example: 500 },
-            explorerUrl: {
-              type: 'string',
-              example: 'https://explorer.solana.com/tx/...?cluster=devnet',
+            requiredSigners: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw'],
             },
           },
         },
       },
     },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
   })
   @ApiResponse({
     status: 409,
@@ -113,14 +105,16 @@ export class NftAdminController {
     description: 'Internal server error',
   })
   async initializeMarketplace(
-    @Req() req: RequestWithUser,
-    @Body() body?: { feeBps?: number },
+    @Body()
+    body: {
+      adminPublicKey: string;
+      feeBps?: number;
+    },
   ) {
     try {
-      const feeBps = body?.feeBps || 500;
-      return await this.nftAdminService.initializeMarketplaceWithAuth(
-        req.user.encryptedPrivateKey,
-        feeBps,
+      return await this.nftAdminService.prepareInitializeMarketplace(
+        body.adminPublicKey,
+        body?.feeBps ?? 500,
       );
     } catch (error) {
       if (error instanceof HttpException) {
@@ -190,20 +184,29 @@ export class NftAdminController {
   }
 
   @Post('collection')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
   @UseInterceptors(FileInterceptor('image'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
-    summary: 'Create NFT collection on Solana',
+    summary: 'Prepare create collection transaction',
     description:
-      'Uploads image + metadata to IPFS, creates collection on-chain and returns transaction signature. Requires JWT authentication. Note: Marketplace must be initialized first.',
+      'Uploads image + metadata to IPFS and returns an unsigned transaction for creating the collection on-chain. Sign and submit the base64 payload with your admin wallet.',
   })
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['name', 'symbol', 'royalty', 'description'],
+      required: [
+        'adminPublicKey',
+        'name',
+        'symbol',
+        'royalty',
+        'description',
+      ],
       properties: {
+        adminPublicKey: {
+          type: 'string',
+          example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
+          description: 'Admin wallet that will sign the transaction',
+        },
         name: { type: 'string', example: 'VYBE_BUILDINGS_COLLECTION' },
         symbol: { type: 'string', example: 'VYBEB' },
         royalty: { type: 'number', example: 5 },
@@ -221,7 +224,7 @@ export class NftAdminController {
   })
   @ApiResponse({
     status: 201,
-    description: 'Collection created successfully on Solana',
+    description: 'Collection transaction prepared successfully',
     schema: {
       type: 'object',
       properties: {
@@ -229,13 +232,19 @@ export class NftAdminController {
         data: {
           type: 'object',
           properties: {
-            signature: { type: 'string', example: '5Kq...' },
+            transaction: {
+              type: 'string',
+              example: 'base64tx==',
+              description: 'Unsigned transaction payload',
+            },
             collectionPda: { type: 'string', example: '9Aqrcm...' },
             collectionMint: { type: 'string', example: 'Cv7jep...' },
             metadataUri: { type: 'string', example: 'ipfs://QmX...' },
-            explorerUrl: {
-              type: 'string',
-              example: 'https://explorer.solana.com/tx/...?cluster=devnet',
+            imageUri: { type: 'string', example: 'ipfs://QmY...' },
+            requiredSigners: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw'],
             },
           },
         },
@@ -243,21 +252,16 @@ export class NftAdminController {
     },
   })
   @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
     status: 500,
     description: 'Internal server error',
   })
   async createCollection(
-    @Req() req: RequestWithUser,
     @Body() dto: CreateCollectionDto,
     @UploadedFile() image: Express.Multer.File,
   ) {
     try {
-      return await this.nftAdminService.createCollectionWithAuth(
-        req.user.encryptedPrivateKey,
+      return await this.nftAdminService.prepareCreateCollection(
+        dto.adminPublicKey,
         dto,
         image,
       );
@@ -279,8 +283,6 @@ export class NftAdminController {
   }
 
   @Post('type')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'mainImage', maxCount: 1 },
@@ -289,15 +291,27 @@ export class NftAdminController {
   )
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
-    summary: 'Create NFT type on Solana',
+    summary: 'Prepare create NFT type transaction',
     description:
-      'Uploads images + metadata to IPFS, creates NFT type on-chain and returns transaction signature. Requires JWT authentication.',
+      'Uploads metadata to IPFS and returns an unsigned transaction for creating the NFT type on-chain.',
   })
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['collectionName', 'name', 'price', 'maxSupply', 'description'],
+      required: [
+        'adminPublicKey',
+        'collectionName',
+        'name',
+        'price',
+        'maxSupply',
+        'description',
+      ],
       properties: {
+        adminPublicKey: {
+          type: 'string',
+          example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
+          description: 'Admin wallet that will sign the transaction',
+        },
         collectionName: {
           type: 'string',
           example: 'VYBE_BUILDINGS_COLLECTION',
@@ -334,7 +348,7 @@ export class NftAdminController {
   })
   @ApiResponse({
     status: 201,
-    description: 'NFT type created successfully on Solana',
+    description: 'NFT type transaction prepared successfully',
     schema: {
       type: 'object',
       properties: {
@@ -342,7 +356,11 @@ export class NftAdminController {
         data: {
           type: 'object',
           properties: {
-            signature: { type: 'string', example: '5Kq...' },
+            transaction: {
+              type: 'string',
+              example: 'base64tx==',
+              description: 'Unsigned transaction payload',
+            },
             nftTypePda: { type: 'string', example: '9Aqrcm...' },
             nftType: { type: 'object' },
             metadata: { type: 'object' },
@@ -351,18 +369,15 @@ export class NftAdminController {
             additionalImageUris: { type: 'array', items: { type: 'string' } },
             priceLamports: { type: 'number' },
             stakingLamports: { type: 'number' },
-            explorerUrl: {
-              type: 'string',
-              example: 'https://explorer.solana.com/tx/...?cluster=devnet',
+            requiredSigners: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw'],
             },
           },
         },
       },
     },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
   })
   @ApiResponse({
     status: 400,
@@ -377,7 +392,6 @@ export class NftAdminController {
     description: 'Internal server error',
   })
   async createType(
-    @Req() req: RequestWithUser,
     @Body() dto: CreateTypeDto,
     @UploadedFiles()
     files: {
@@ -386,8 +400,8 @@ export class NftAdminController {
     },
   ) {
     try {
-      return await this.nftAdminService.createTypeWithAuth(
-        req.user.encryptedPrivateKey,
+      return await this.nftAdminService.prepareCreateType(
+        dto.adminPublicKey,
         dto,
         files,
       );
@@ -1020,23 +1034,27 @@ export class NftAdminController {
   }
 
   @Post('mint')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Mint NFT from collection',
+    summary: 'Prepare mint NFT transaction',
     description:
-      'Mints an NFT from a specific collection type. Requires both collection admin and buyer to sign the transaction. Requires JWT authentication.',
+      'Returns an unsigned transaction for minting an NFT. Both collection admin and buyer wallets must sign before sending.',
   })
   @ApiBody({
     schema: {
       type: 'object',
       required: [
+        'collectionAdminPublicKey',
         'collectionName',
         'typeName',
         'collectionMintAddress',
         'buyerPublicKey',
       ],
       properties: {
+        collectionAdminPublicKey: {
+          type: 'string',
+          example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
+          description: 'Collection admin wallet that will sign the transaction',
+        },
         collectionName: { type: 'string', example: 'VYBE_HEROES_COLLECTION' },
         typeName: { type: 'string', example: 'Duma_Bright' },
         collectionMintAddress: { type: 'string', example: 'Cv7jep...' },
@@ -1049,7 +1067,7 @@ export class NftAdminController {
   })
   @ApiResponse({
     status: 201,
-    description: 'NFT minted successfully',
+    description: 'Mint transaction prepared successfully',
     schema: {
       type: 'object',
       properties: {
@@ -1057,21 +1075,24 @@ export class NftAdminController {
         data: {
           type: 'object',
           properties: {
-            signature: { type: 'string', example: '5Kq...' },
+            transaction: {
+              type: 'string',
+              example: 'base64tx==',
+            },
             nftMint: { type: 'string', example: '9Aqrcm...' },
             buyerTokenAccount: { type: 'string', example: 'Cv7jep...' },
-            explorerUrl: {
-              type: 'string',
-              example: 'https://explorer.solana.com/tx/...?cluster=devnet',
+            requiredSigners: {
+              type: 'array',
+              items: { type: 'string' },
+              example: [
+                '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
+                '7ia7xqc8mLiPbPEfDKWo8xF2UZ8NkEJz7d7pd489rHFe',
+              ],
             },
           },
         },
       },
     },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
   })
   @ApiResponse({
     status: 400,
@@ -1082,9 +1103,9 @@ export class NftAdminController {
     description: 'Internal server error',
   })
   async mintNft(
-    @Req() req: RequestWithUser,
     @Body()
     body: {
+      collectionAdminPublicKey: string;
       collectionName: string;
       typeName: string;
       collectionMintAddress: string;
@@ -1092,8 +1113,8 @@ export class NftAdminController {
     },
   ) {
     try {
-      return await this.nftAdminService.mintNftWithAuth(
-        req.user.encryptedPrivateKey,
+      return await this.nftAdminService.prepareMintNft(
+        body.collectionAdminPublicKey,
         body.collectionName,
         body.typeName,
         body.collectionMintAddress,

@@ -10,6 +10,14 @@ import {
 
 export class CreateTypeDto {
   @ApiProperty({
+    description: 'Admin public key that will sign the transaction',
+    example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
+  })
+  @IsString()
+  @IsNotEmpty()
+  adminPublicKey: string;
+
+  @ApiProperty({
     description: 'Collection name to add this type to',
     example: 'VYBE_BUILDINGS_COLLECTION',
   })

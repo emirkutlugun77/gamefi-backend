@@ -1,4 +1,5 @@
 export declare class CreateTypeDto {
+    adminPublicKey: string;
     collectionName: string;
     name: string;
     price: number;

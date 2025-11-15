@@ -16,7 +16,6 @@ exports.NftAdminController = void 0;
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
 const swagger_1 = require("@nestjs/swagger");
-const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const nft_admin_service_1 = require("./nft-admin.service");
 const nft_service_1 = require("./nft.service");
 const create_collection_dto_1 = require("./dto/create-collection.dto");
@@ -29,10 +28,9 @@ let NftAdminController = class NftAdminController {
         this.nftAdminService = nftAdminService;
         this.nftService = nftService;
     }
-    async initializeMarketplace(req, body) {
+    async initializeMarketplace(body) {
         try {
-            const feeBps = body?.feeBps || 500;
-            return await this.nftAdminService.initializeMarketplaceWithAuth(req.user.encryptedPrivateKey, feeBps);
+            return await this.nftAdminService.prepareInitializeMarketplace(body.adminPublicKey, body?.feeBps ?? 500);
         }
         catch (error) {
             if (error instanceof common_1.HttpException) {
@@ -62,9 +60,9 @@ let NftAdminController = class NftAdminController {
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    async createCollection(req, dto, image) {
+    async createCollection(dto, image) {
         try {
-            return await this.nftAdminService.createCollectionWithAuth(req.user.encryptedPrivateKey, dto, image);
+            return await this.nftAdminService.prepareCreateCollection(dto.adminPublicKey, dto, image);
         }
         catch (error) {
             if (error instanceof common_1.HttpException) {
@@ -78,9 +76,9 @@ let NftAdminController = class NftAdminController {
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    async createType(req, dto, files) {
+    async createType(dto, files) {
         try {
-            return await this.nftAdminService.createTypeWithAuth(req.user.encryptedPrivateKey, dto, files);
+            return await this.nftAdminService.prepareCreateType(dto.adminPublicKey, dto, files);
         }
         catch (error) {
             if (error instanceof common_1.HttpException) {
@@ -346,9 +344,9 @@ let NftAdminController = class NftAdminController {
             }, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    async mintNft(req, body) {
+    async mintNft(body) {
         try {
-            return await this.nftAdminService.mintNftWithAuth(req.user.encryptedPrivateKey, body.collectionName, body.typeName, body.collectionMintAddress, body.buyerPublicKey);
+            return await this.nftAdminService.prepareMintNft(body.collectionAdminPublicKey, body.collectionName, body.typeName, body.collectionMintAddress, body.buyerPublicKey);
         }
         catch (error) {
             if (error instanceof common_1.HttpException) {
@@ -366,24 +364,27 @@ let NftAdminController = class NftAdminController {
 exports.NftAdminController = NftAdminController;
 __decorate([
     (0, common_1.Post)('initialize-marketplace'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, swagger_1.ApiBearerAuth)('JWT-auth'),
     (0, swagger_1.ApiOperation)({
-        summary: 'Initialize marketplace on Solana',
-        description: 'Initializes the NFT marketplace smart contract. This must be done once before creating any collections. Requires JWT authentication.',
+        summary: 'Prepare marketplace initialization transaction',
+        description: 'Returns an unsigned transaction that initializes the NFT marketplace smart contract. Submit the base64 transaction to your wallet for signing. Must be run once before creating any collections.',
     }),
     (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
+            required: ['adminPublicKey'],
             properties: {
+                adminPublicKey: {
+                    type: 'string',
+                    example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
+                    description: 'Admin wallet that will sign the transaction',
+                },
                 feeBps: {
                     type: 'number',
                     example: 500,
-                    description: 'Marketplace fee in basis points (500 = 5%)',
+                    description: 'Marketplace fee in basis points (500 = 5%). Optional, defaults to 500.',
                 },
             },
         },
-        required: false,
     }),
     (0, swagger_1.ApiResponse)({
         status: 201,
@@ -395,21 +396,22 @@ __decorate([
                 data: {
                     type: 'object',
                     properties: {
-                        signature: { type: 'string', example: '5Kq...' },
+                        transaction: {
+                            type: 'string',
+                            example: 'base64tx==',
+                            description: 'Unsigned transaction payload for wallet signing',
+                        },
                         marketplacePda: { type: 'string', example: '9Aqrcm...' },
                         feeBps: { type: 'number', example: 500 },
-                        explorerUrl: {
-                            type: 'string',
-                            example: 'https://explorer.solana.com/tx/...?cluster=devnet',
+                        requiredSigners: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            example: ['8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw'],
                         },
                     },
                 },
             },
         },
-    }),
-    (0, swagger_1.ApiResponse)({
-        status: 401,
-        description: 'Unauthorized - Invalid or missing JWT token',
     }),
     (0, swagger_1.ApiResponse)({
         status: 409,
@@ -419,10 +421,9 @@ __decorate([
         status: 500,
         description: 'Internal server error',
     }),
-    __param(0, (0, common_1.Req)()),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], NftAdminController.prototype, "initializeMarketplace", null);
 __decorate([
@@ -462,19 +463,28 @@ __decorate([
 ], NftAdminController.prototype, "getMarketplaceStatus", null);
 __decorate([
     (0, common_1.Post)('collection'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, swagger_1.ApiBearerAuth)('JWT-auth'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('image')),
     (0, swagger_1.ApiConsumes)('multipart/form-data'),
     (0, swagger_1.ApiOperation)({
-        summary: 'Create NFT collection on Solana',
-        description: 'Uploads image + metadata to IPFS, creates collection on-chain and returns transaction signature. Requires JWT authentication. Note: Marketplace must be initialized first.',
+        summary: 'Prepare create collection transaction',
+        description: 'Uploads image + metadata to IPFS and returns an unsigned transaction for creating the collection on-chain. Sign and submit the base64 payload with your admin wallet.',
     }),
     (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
-            required: ['name', 'symbol', 'royalty', 'description'],
+            required: [
+                'adminPublicKey',
+                'name',
+                'symbol',
+                'royalty',
+                'description',
+            ],
             properties: {
+                adminPublicKey: {
+                    type: 'string',
+                    example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
+                    description: 'Admin wallet that will sign the transaction',
+                },
                 name: { type: 'string', example: 'VYBE_BUILDINGS_COLLECTION' },
                 symbol: { type: 'string', example: 'VYBEB' },
                 royalty: { type: 'number', example: 5 },
@@ -492,7 +502,7 @@ __decorate([
     }),
     (0, swagger_1.ApiResponse)({
         status: 201,
-        description: 'Collection created successfully on Solana',
+        description: 'Collection transaction prepared successfully',
         schema: {
             type: 'object',
             properties: {
@@ -500,13 +510,19 @@ __decorate([
                 data: {
                     type: 'object',
                     properties: {
-                        signature: { type: 'string', example: '5Kq...' },
+                        transaction: {
+                            type: 'string',
+                            example: 'base64tx==',
+                            description: 'Unsigned transaction payload',
+                        },
                         collectionPda: { type: 'string', example: '9Aqrcm...' },
                         collectionMint: { type: 'string', example: 'Cv7jep...' },
                         metadataUri: { type: 'string', example: 'ipfs://QmX...' },
-                        explorerUrl: {
-                            type: 'string',
-                            example: 'https://explorer.solana.com/tx/...?cluster=devnet',
+                        imageUri: { type: 'string', example: 'ipfs://QmY...' },
+                        requiredSigners: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            example: ['8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw'],
                         },
                     },
                 },
@@ -514,38 +530,43 @@ __decorate([
         },
     }),
     (0, swagger_1.ApiResponse)({
-        status: 401,
-        description: 'Unauthorized - Invalid or missing JWT token',
-    }),
-    (0, swagger_1.ApiResponse)({
         status: 500,
         description: 'Internal server error',
     }),
-    __param(0, (0, common_1.Req)()),
-    __param(1, (0, common_1.Body)()),
-    __param(2, (0, common_1.UploadedFile)()),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.UploadedFile)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, create_collection_dto_1.CreateCollectionDto, Object]),
+    __metadata("design:paramtypes", [create_collection_dto_1.CreateCollectionDto, Object]),
     __metadata("design:returntype", Promise)
 ], NftAdminController.prototype, "createCollection", null);
 __decorate([
     (0, common_1.Post)('type'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, swagger_1.ApiBearerAuth)('JWT-auth'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileFieldsInterceptor)([
         { name: 'mainImage', maxCount: 1 },
         { name: 'additionalImages', maxCount: 10 },
     ])),
     (0, swagger_1.ApiConsumes)('multipart/form-data'),
     (0, swagger_1.ApiOperation)({
-        summary: 'Create NFT type on Solana',
-        description: 'Uploads images + metadata to IPFS, creates NFT type on-chain and returns transaction signature. Requires JWT authentication.',
+        summary: 'Prepare create NFT type transaction',
+        description: 'Uploads metadata to IPFS and returns an unsigned transaction for creating the NFT type on-chain.',
     }),
     (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
-            required: ['collectionName', 'name', 'price', 'maxSupply', 'description'],
+            required: [
+                'adminPublicKey',
+                'collectionName',
+                'name',
+                'price',
+                'maxSupply',
+                'description',
+            ],
             properties: {
+                adminPublicKey: {
+                    type: 'string',
+                    example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
+                    description: 'Admin wallet that will sign the transaction',
+                },
                 collectionName: {
                     type: 'string',
                     example: 'VYBE_BUILDINGS_COLLECTION',
@@ -582,7 +603,7 @@ __decorate([
     }),
     (0, swagger_1.ApiResponse)({
         status: 201,
-        description: 'NFT type created successfully on Solana',
+        description: 'NFT type transaction prepared successfully',
         schema: {
             type: 'object',
             properties: {
@@ -590,7 +611,11 @@ __decorate([
                 data: {
                     type: 'object',
                     properties: {
-                        signature: { type: 'string', example: '5Kq...' },
+                        transaction: {
+                            type: 'string',
+                            example: 'base64tx==',
+                            description: 'Unsigned transaction payload',
+                        },
                         nftTypePda: { type: 'string', example: '9Aqrcm...' },
                         nftType: { type: 'object' },
                         metadata: { type: 'object' },
@@ -599,18 +624,15 @@ __decorate([
                         additionalImageUris: { type: 'array', items: { type: 'string' } },
                         priceLamports: { type: 'number' },
                         stakingLamports: { type: 'number' },
-                        explorerUrl: {
-                            type: 'string',
-                            example: 'https://explorer.solana.com/tx/...?cluster=devnet',
+                        requiredSigners: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            example: ['8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw'],
                         },
                     },
                 },
             },
         },
-    }),
-    (0, swagger_1.ApiResponse)({
-        status: 401,
-        description: 'Unauthorized - Invalid or missing JWT token',
     }),
     (0, swagger_1.ApiResponse)({
         status: 400,
@@ -624,11 +646,10 @@ __decorate([
         status: 500,
         description: 'Internal server error',
     }),
-    __param(0, (0, common_1.Req)()),
-    __param(1, (0, common_1.Body)()),
-    __param(2, (0, common_1.UploadedFiles)()),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.UploadedFiles)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, create_type_dto_1.CreateTypeDto, Object]),
+    __metadata("design:paramtypes", [create_type_dto_1.CreateTypeDto, Object]),
     __metadata("design:returntype", Promise)
 ], NftAdminController.prototype, "createType", null);
 __decorate([
@@ -989,22 +1010,26 @@ __decorate([
 ], NftAdminController.prototype, "syncAll", null);
 __decorate([
     (0, common_1.Post)('mint'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, swagger_1.ApiBearerAuth)('JWT-auth'),
     (0, swagger_1.ApiOperation)({
-        summary: 'Mint NFT from collection',
-        description: 'Mints an NFT from a specific collection type. Requires both collection admin and buyer to sign the transaction. Requires JWT authentication.',
+        summary: 'Prepare mint NFT transaction',
+        description: 'Returns an unsigned transaction for minting an NFT. Both collection admin and buyer wallets must sign before sending.',
     }),
     (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
             required: [
+                'collectionAdminPublicKey',
                 'collectionName',
                 'typeName',
                 'collectionMintAddress',
                 'buyerPublicKey',
             ],
             properties: {
+                collectionAdminPublicKey: {
+                    type: 'string',
+                    example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
+                    description: 'Collection admin wallet that will sign the transaction',
+                },
                 collectionName: { type: 'string', example: 'VYBE_HEROES_COLLECTION' },
                 typeName: { type: 'string', example: 'Duma_Bright' },
                 collectionMintAddress: { type: 'string', example: 'Cv7jep...' },
@@ -1017,7 +1042,7 @@ __decorate([
     }),
     (0, swagger_1.ApiResponse)({
         status: 201,
-        description: 'NFT minted successfully',
+        description: 'Mint transaction prepared successfully',
         schema: {
             type: 'object',
             properties: {
@@ -1025,21 +1050,24 @@ __decorate([
                 data: {
                     type: 'object',
                     properties: {
-                        signature: { type: 'string', example: '5Kq...' },
+                        transaction: {
+                            type: 'string',
+                            example: 'base64tx==',
+                        },
                         nftMint: { type: 'string', example: '9Aqrcm...' },
                         buyerTokenAccount: { type: 'string', example: 'Cv7jep...' },
-                        explorerUrl: {
-                            type: 'string',
-                            example: 'https://explorer.solana.com/tx/...?cluster=devnet',
+                        requiredSigners: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            example: [
+                                '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
+                                '7ia7xqc8mLiPbPEfDKWo8xF2UZ8NkEJz7d7pd489rHFe',
+                            ],
                         },
                     },
                 },
             },
         },
-    }),
-    (0, swagger_1.ApiResponse)({
-        status: 401,
-        description: 'Unauthorized - Invalid or missing JWT token',
     }),
     (0, swagger_1.ApiResponse)({
         status: 400,
@@ -1049,10 +1077,9 @@ __decorate([
         status: 500,
         description: 'Internal server error',
     }),
-    __param(0, (0, common_1.Req)()),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], NftAdminController.prototype, "mintNft", null);
 exports.NftAdminController = NftAdminController = __decorate([

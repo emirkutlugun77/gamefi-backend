@@ -23,11 +23,11 @@ class CreateCollectionDto {
 exports.CreateCollectionDto = CreateCollectionDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'Admin public key',
+        description: 'Admin public key that will sign the transaction',
         example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
-        required: false,
     }),
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], CreateCollectionDto.prototype, "adminPublicKey", void 0);
 __decorate([

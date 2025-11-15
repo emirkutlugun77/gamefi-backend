@@ -3,12 +3,12 @@ import { IsString, IsNotEmpty, IsNumber, Min, Max } from 'class-validator';
 
 export class CreateCollectionDto {
   @ApiProperty({
-    description: 'Admin public key',
+    description: 'Admin public key that will sign the transaction',
     example: '8dsHsVcdr9rFDa2CaiNam5GtemN8MwyGYxne9ZtfmtRw',
-    required: false,
   })
   @IsString()
-  adminPublicKey?: string;
+  @IsNotEmpty()
+  adminPublicKey: string;
 
   @ApiProperty({
     description: 'Collection name',
